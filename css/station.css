@@ -732,22 +732,89 @@ body {
 }
 
 /* ============================================================
-   RESPONSIVITET (kiosk er typisk fast størrelse,
-   men vi understøtter rimelige variationer)
+   RESPONSIVITET — MOBIL
    ============================================================ */
 @media (max-width: 600px) {
+  /* Velkomst */
   .velkomst-titel {
     font-size: 2.2rem;
   }
+  .habitat-baggrund-placeholder {
+    width: 220px;
+    height: 145px;
+  }
+
+  /* Kort: fast 2 kolonner */
   .kort-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  /* Header: behold vandret layout men kompakt (undgå at spilde højde) */
   .bygge-header {
-    flex-direction: column;
+    padding: 0.8rem 1rem;
     gap: 0.8rem;
-    align-items: stretch;
   }
+  .energi-maaler {
+    width: 110px;
+  }
+
+  /* Live-dashboard: én kolonne */
+  .live-dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  /* Bekræftelse + afsendt: scrollbar hvis indhold overstiger viewport */
+  .bekraeftelse-indhold,
+  .afsendt-indhold {
+    overflow-y: auto;
+    justify-content: flex-start;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  /* Afsendt-knapper: stabel lodret */
   .afsendt-knapper {
     flex-direction: column;
   }
+}
+
+/* Smalle telefoner (≤ 420px) */
+@media (max-width: 420px) {
+  /* Velkomst */
+  .velkomst-titel { font-size: 1.8rem; }
+  .habitat-baggrund-placeholder {
+    width: 170px;
+    height: 110px;
+    font-size: 3.5rem;
+  }
+  .velkomst-beskrivelse { font-size: 1rem; }
+
+  /* Byggetrin */
+  .trin-container { padding: 0.8rem; }
+  .trin { gap: 1rem; }
+  .trin-titel { font-size: 1.4rem; }
+
+  /* Valgkort: lidt tættere */
+  .valgkort { padding: 1rem 0.7rem; }
+  .kort-emoji { font-size: 2rem; }
+
+  /* Sprite-preview overlapper navigation på smalle skærme — skjul */
+  .sprite-preview { display: none; }
+
+  /* Navigation: knapper fylder bredden */
+  .bygge-nav {
+    padding: 0.7rem 1rem;
+    gap: 0.5rem;
+  }
+  .bygge-nav .btn-primaer,
+  .bygge-nav .btn-sekundaer {
+    flex: 1;
+    padding: 0.85rem 0.5rem;
+    font-size: 1rem;
+  }
+
+  /* Artsnavn og energimåler */
+  .artsnavn { font-size: 1.25rem; }
+  .energi-maaler { width: 90px; }
+  #trin-label { font-size: 0.78rem; }
 }
