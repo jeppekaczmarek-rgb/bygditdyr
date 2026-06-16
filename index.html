@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Byg Dit Dyr</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --accent:#e8b84b; --flade:#f4efe4; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      font-family:Inter, system-ui, sans-serif; color:var(--flade); padding:24px;
+      background:radial-gradient(120% 120% at 50% 0%, #2e5a3f 0%, #1f3d2b 55%, #14271c 100%);
+    }
+    .kort { text-align:center; max-width:760px; width:100%; }
+    .ikon { font-size:64px; }
+    h1 { font-family:'Playfair Display', serif; font-size:clamp(40px, 8vw, 72px); margin:.1em 0 .2em; }
+    .under { opacity:.85; font-size:18px; margin:0 auto 40px; max-width:46ch; line-height:1.5; }
+    .valg { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+    a.knap {
+      flex:1 1 220px; max-width:300px; text-decoration:none; color:inherit;
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16);
+      border-radius:18px; padding:28px 22px; transition:.18s ease; display:block;
+    }
+    a.knap:hover { transform:translateY(-4px); background:rgba(255,255,255,.12); border-color:var(--accent); }
+    a.knap .e { font-size:44px; display:block; margin-bottom:10px; }
+    a.knap b { font-size:22px; display:block; margin-bottom:6px; }
+    a.knap span.t { opacity:.75; font-size:14px; line-height:1.4; display:block; }
+    .fod { margin-top:36px; font-size:13px; opacity:.55; line-height:1.5; }
+  </style>
+</head>
+<body>
+  <main class="kort">
+    <div class="ikon">🌲</div>
+    <h1>Byg Dit Dyr</h1>
+    <p class="under">Byg et dyr med biologiske egenskaber på en station og send det ud i habitatet på den store skærm.</p>
+    <div class="valg">
+      <a class="knap" href="station.html">
+        <span class="e">🧬</span><b>Byggestation</b>
+        <span class="t">Til eleverne — byg et dyr og send det afsted</span>
+      </a>
+      <a class="knap" href="habitat.html">
+        <span class="e">🖥️</span><b>Habitatskærm</b>
+        <span class="t">Til storskærmen — se dyrene leve og dø</span>
+      </a>
+    </div>
+    <p class="fod">Naturama · prototype · åbn habitatet på storskærmen og stationerne på elev-enhederne</p>
+  </main>
+</body>
+</html>

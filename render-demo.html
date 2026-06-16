@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Byg Dit Dyr — Render-demo (ny stil + procedurel animation)</title>
+<style>
+  html,body{margin:0;height:100%;background:#11140f;overflow:hidden;font-family:Inter,system-ui,sans-serif}
+  #scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  canvas{max-width:100%;max-height:100%;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:6px}
+  #hud{position:fixed;top:14px;left:16px;color:#f0ead6;background:rgba(0,0,0,.42);
+       padding:8px 14px;border-radius:8px;font-size:13px;line-height:1.4;backdrop-filter:blur(4px)}
+  #hud b{font-weight:700}
+  #hud span{opacity:.8}
+</style>
+</head>
+<body>
+  <div id="scene"><canvas id="lærred" width="1280" height="720"></canvas></div>
+  <div id="hud">
+    <b>Render-demo</b> — ny art-stil + procedurel animation<br>
+    <span>Bagt ved spawn · blød vejrtrækning, gang-hop, squash &amp; spejlvending · kontaktskygger</span>
+  </div>
+
+  <script src="js/render.js"></script>
+  <script>
+  // ============================================================
+  // Selvstændig demo. Rører IKKE habitat.js — beviser render.js,
+  // den nye stil og animationen under habitat-lignende forhold.
+  // ============================================================
+  const cv = document.getElementById('lærred');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+
+  // Jord-bånd hvor dyr færdes (nederste del af skoven)
+  const yTop = H * 0.60, yBund = H * 0.93;
+
+  // De tre genererede testdyr + deres egenskabsafledte parametre
+  const ARTER = [
+    { navn:'stor_pels_planteaeder',          fil:'assets/sprites/nye-test/stor_pels_planteaeder.webp',
+      basisHoejde:185, fartFaktor:0.85, grundfart:13, antal:2 },          // stor, lavt stofskifte = adstadig
+    { navn:'mellem_skael_koedaeder_pigge',   fil:'assets/sprites/nye-test/mellem_skael_koedaeder_pigge.webp',
+      basisHoejde:135, fartFaktor:1.15, grundfart:22, antal:2, rovdyr:true }, // mellem, højt
+    { navn:'lille_fjer_giftig_nataktiv',     fil:'assets/sprites/nye-test/lille_fjer_giftig_nataktiv.webp',
+      basisHoejde:95,  fartFaktor:1.3, grundfart:19, antal:3 },           // lille, højt
+  ];
+
+  let baggrund, bagte = {}, dyr = [];
+
+  function nyMaal(){ return { x: 60 + Math.random()*(W-120), y: yTop + Math.random()*(yBund-yTop) }; }
+
+  function spawnDyr(art){
+    const maal = nyMaal();
+    return {
+      art, x: maal.x, y: maal.y, maal,
+      vx:0, vy:0, spd:0, gangInt:0, retning:1,
+      animState:'walk', fartFaktor:art.fartFaktor,
+      pauseTil:0, _fase:Math.random()*6.28
+    };
+  }
+
+  // Blød accel/decel: farten glider mod et mål i stedet for at slå til/fra.
+  function opdater(d, dt, nu){
+    const cruise = d.art.grundfart;
+    const dx = d.maal.x - d.x, dy = d.maal.y - d.y;
+    const dist = Math.hypot(dx, dy);
+
+    let maalFart;
+    if (nu < d.pauseTil){                 // hviler/æder → brems til 0
+      maalFart = 0; d.animState = 'eat';
+    } else if (dist < 4){                 // nået målet → ny opgave
+      if (Math.random() < 0.55) d.pauseTil = nu + 1400 + Math.random()*3000;
+      d.maal = nyMaal();
+      maalFart = 0;
+    } else {
+      // sæt farten ned tæt på målet (blød ankomst)
+      maalFart = cruise * Math.min(1, dist / 70);
+      d.animState = 'walk';
+    }
+
+    // glat farten mod målfarten (ease-in/out)
+    d.spd += (maalFart - d.spd) * Math.min(1, 2.5 * dt);
+    if (dist > 0.001){
+      const ux = dx/dist, uy = dy/dist;
+      d.x += ux * d.spd * dt; d.y += uy * d.spd * dt;
+      if (Math.abs(ux) > 0.02) d.retning = ux < 0 ? -1 : 1;   // sidste tydelige retning
+    }
+    // fortæl render.js om fart-intensitet (0..1) og retning (via vx-fortegn)
+    d.gangInt = Math.min(1, d.spd / cruise);
+    d.vx = d.retning * (d.spd > 1 ? 1 : 0);   // kun et fortegn til spejlvending
+    d.vy = 0;
+    if (d.spd < 1 && nu >= d.pauseTil) d.animState = 'walk';
+  }
+
+  function dybde(y){ return (y - yTop) / (yBund - yTop); }   // 0 bagved → 1 forrest
+
+  let sidst = performance.now();
+  function loop(nu){
+    const dt = Math.min(0.05, (nu - sidst)/1000); sidst = nu;
+
+    ctx.drawImage(baggrund, 0, 0, W, H);
+
+    // Tegn bagfra-og-frem så nærmeste dyr lægger sig øverst
+    const sorteret = dyr.slice().sort((a,b)=>a.y-b.y);
+    for (const d of sorteret){
+      opdater(d, dt, nu);
+      const dsc = 0.82 + 0.34 * dybde(d.y);            // perspektiv-skala
+      const visHoejde = d.art.basisHoejde * dsc;
+      const baked = bagte[d.art.navn];
+      const bredde = (baked.bredde/baked.hoejde) * visHoejde;
+      Render.tegnSkygge(ctx, d.x, d.y, bredde * 0.66);
+      Render.tegnDyr(ctx, baked, d, nu, d.x, d.y, visHoejde);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ---- opstart -------------------------------------------------------------
+  const kilder = { _bg:'assets/backgrounds/skov.png' };
+  ARTER.forEach(a => kilder[a.navn] = a.fil);
+  // Gang-frames til rovdyret (hybrid: rig styrer positur+timing, AI polerer kunsten)
+  for (let i=1;i<=6;i++) kilder['pw'+i] = 'assets/sprites/nye-test/hybrid/walk_'+i+'.webp';
+
+  Render.indlaesBilleder(kilder).then(imgs => {
+    baggrund = imgs._bg;
+    const gangFrames = [];
+    for (let i=1;i<=6;i++) gangFrames.push(imgs['pw'+i]);
+    for (const a of ARTER){
+      bagte[a.navn] = Render.bake(imgs[a.navn], []);     // bag ved "spawn" (her: opstart)
+      for (let i=0;i<a.antal;i++){
+        const d = spawnDyr(a);
+        // Kun rovdyret får ægte gang-frames; resten kører procedurelt (til sammenligning)
+        if (a.navn === 'mellem_skael_koedaeder_pigge'){ d.frames = { walk: gangFrames }; d.frameFps = 9; }
+        dyr.push(d);
+      }
+    }
+    requestAnimationFrame(loop);
+  }).catch(e => {
+    document.getElementById('hud').innerHTML =
+      '<b>Fejl ved indlæsning:</b> ' + e.message +
+      '<br><span>Åbn siden via en lokal server (ikke file://) hvis billederne ikke loader.</span>';
+  });
+  </script>
+</body>
+</html>

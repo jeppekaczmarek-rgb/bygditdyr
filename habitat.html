@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Byg Dit Dyr — Habitat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/habitat.css">
+</head>
+<body>
+
+  <!-- ============ ZONE 1: Habitatverden (75%) ============ -->
+  <div id="habitat-verden">
+    <!-- Habitat-info overlay -->
+    <div id="habitat-info">
+      <span id="habitat-ikon" class="habitat-info-ikon">🌲</span>
+      <span id="habitat-titel">Tempereret Skov</span>
+    </div>
+
+    <!-- Planter tegnes på canvas under dyrene -->
+    <canvas id="plante-canvas"></canvas>
+
+    <!-- Dyr renderes her som absolutte elementer -->
+    <div id="dyr-container"></div>
+
+    <!-- Dødsbeskeder vises midlertidigt her -->
+    <div id="doed-container"></div>
+
+    <!-- Scoreboard -->
+    <div id="scoreboard"></div>
+
+    <!-- Ressource-tavle: levende dyrs økonomi (live) -->
+    <div id="oekonomi-tavle"></div>
+  </div>
+
+  <!-- ============ ZONE 2: Tidslinje (25%) ============ -->
+  <div id="tidslinje">
+    <canvas id="tidslinje-canvas"></canvas>
+  </div>
+
+  <script src="js/survival.js"></script>
+  <script src="js/oekonomi.js"></script>
+  <script src="js/names.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/deathtext.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/scoreboard.js"></script>
+  <!-- Online multi-enhed: Supabase Realtime relay (falder tilbage til BroadcastChannel lokalt/offline) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/broadcast.js"></script>
+  <script src="js/telemetri.js"></script>
+  <script src="js/habitat.js"></script>
+</body>
+</html>

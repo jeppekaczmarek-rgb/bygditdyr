@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Byg Dit Dyr — Station</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/station.css">
+</head>
+<body>
+
+  <!-- ============ VELKOMSTSKÆRM ============ -->
+  <div id="velkomst" class="skaerm aktiv">
+    <div class="velkomst-indhold">
+      <div class="habitat-baggrund-placeholder">
+        <span class="habitat-ikon">🌲</span>
+      </div>
+      <h1 class="velkomst-titel">Byg Dit Dyr</h1>
+      <p class="habitat-navn">Habitat: <strong id="habitat-label">Tempereret Skov</strong></p>
+      <p class="velkomst-beskrivelse">Byg et dyr med biologiske egenskaber og send det ud i habitatet!</p>
+      <button id="btn-start" class="btn-primaer">Byg dit dyr</button>
+    </div>
+  </div>
+
+  <!-- ============ BYGGEFLOW ============ -->
+  <div id="byggeflow" class="skaerm">
+    <!-- Top-bar: energi + fremgang -->
+    <header class="bygge-header">
+      <div class="fremgang">
+        <span id="trin-label">Trin 1 af 6</span>
+        <div class="fremgang-bar">
+          <div id="fremgang-fyld" class="fremgang-fyld" style="width: 16.66%"></div>
+        </div>
+      </div>
+      <div class="energi-sektion">
+        <span class="energi-label">Energi</span>
+        <div class="energi-maaler">
+          <div id="energi-fyld" class="energi-fyld" style="width: 100%"></div>
+          <span id="energi-tal" class="energi-tal">10 / 10</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Bygge-trin (ét synligt ad gangen) -->
+    <main id="trin-container" class="trin-container">
+      <!-- Fyldes dynamisk af station.js -->
+    </main>
+
+    <!-- Sprite-preview (fyldes dynamisk med SVG) -->
+    <div id="sprite-preview" class="sprite-preview"></div>
+
+    <!-- Navigation -->
+    <nav class="bygge-nav">
+      <button id="btn-tilbage" class="btn-sekundaer" disabled>← Tilbage</button>
+      <button id="btn-naeste" class="btn-primaer" disabled>Næste →</button>
+    </nav>
+  </div>
+
+  <!-- ============ BEKRÆFTELSESSKÆRM ============ -->
+  <div id="bekraeftelse" class="skaerm">
+    <div class="bekraeftelse-indhold">
+      <h2 class="bekraeftelse-overskrift">Dit dyr er klar!</h2>
+      <p class="artsnavn" id="artsnavn-display"></p>
+      <div id="valg-oversigt" class="valg-oversigt">
+        <!-- Fyldes dynamisk -->
+      </div>
+      <div class="bekraeftelse-energi">
+        Energi brugt: <strong id="energi-brugt-display">0</strong> / 10
+      </div>
+      <button id="btn-send" class="btn-primaer btn-send">Send til habitatet 🚀</button>
+      <button id="btn-tilbage-byg" class="btn-sekundaer">← Ret mit dyr</button>
+    </div>
+  </div>
+
+  <!-- ============ EFTER AFSENDELSE ============ -->
+  <div id="afsendt" class="skaerm">
+    <div class="afsendt-indhold">
+      <div class="afsendt-succes">✓</div>
+      <h2>Dyret er sendt!</h2>
+      <p class="artsnavn" id="afsendt-artsnavn"></p>
+      <p class="afsendt-besked">Hold øje med det på den store skærm...</p>
+
+      <div id="live-dashboard" class="live-dashboard">
+        <!-- Live status på egen art -->
+        <div id="live-status" class="live-status">
+          <h3>Din art lige nu</h3>
+          <p id="live-status-tekst">Venter på data fra habitatet...</p>
+        </div>
+
+        <!-- Event-feed -->
+        <div class="live-events">
+          <h3>Hvad sker der?</h3>
+          <ul id="event-feed" class="event-feed">
+            <li class="event-tom">Venter på begivenheder...</li>
+          </ul>
+        </div>
+
+        <!-- Mini-scoreboard -->
+        <div class="live-scoreboard">
+          <h3>🏆 Rekordliste</h3>
+          <ol id="mini-scoreboard" class="mini-scoreboard">
+            <li class="sb-tom">Ingen dyr endnu</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="afsendt-knapper">
+        <button id="btn-nyt-dyr" class="btn-primaer">Byg nyt dyr</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/survival.js"></script>
+  <script src="js/oekonomi.js"></script>
+  <script src="js/names.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/deathtext.js"></script>
+  <script src="js/audio.js"></script>
+  <!-- Online multi-enhed: Supabase Realtime relay (falder tilbage til BroadcastChannel lokalt/offline) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/broadcast.js"></script>
+  <script src="js/station.js"></script>
+</body>
+</html>

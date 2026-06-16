@@ -1,0 +1,622 @@
+/* ============================================================
+   habitat.css — Habitatskærmens visuelle stil
+   Matcher station.css "Naturhistorisk Punk"-æstetik.
+   ============================================================ */
+
+:root {
+  --bg-mork: #1a1a12;
+  --bg-kort: #2a2a1e;
+  --tekst-lys: #f0ead6;
+  --tekst-dempet: #a09a82;
+  --okker: #d4a843;
+  --okker-lys: #e8c46a;
+  --mosgroen: #5a7247;
+  --kort-kant: #4a4a38;
+  --tidslinje-bg: #111109;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-mork);
+  color: var(--tekst-lys);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   ZONE 1: Habitatverden (75%)
+   ============================================================ */
+#habitat-verden {
+  position: relative;
+  flex: 3;
+  overflow: hidden;
+  transition: background 0.5s ease;
+}
+
+/* Habitat-baggrunde (placeholders med farvegradient) */
+#habitat-verden.skov {
+  background: linear-gradient(180deg, #2d4a1e 0%, #1a3010 50%, #0f1a08 100%);
+}
+
+#habitat-verden.arktis {
+  background: linear-gradient(180deg, #b8c8d8 0%, #8aa0b8 50%, #607888 100%);
+}
+
+#habitat-verden.oerken {
+  background: linear-gradient(180deg, #c4a050 0%, #a07828 50%, #6a5018 100%);
+}
+
+/* Habitat-info badge */
+#habitat-info {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  z-index: 10;
+}
+
+.habitat-info-ikon {
+  font-size: 1.5rem;
+}
+
+#habitat-titel {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--okker-lys);
+}
+
+/* Plante-canvas: under dyrene */
+#plante-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Dyr-container: absolut positioneret overlay */
+#dyr-container, #doed-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ============================================================
+   DYR-ELEMENTER
+   ============================================================ */
+.habitat-dyr {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 0.5s ease;
+  will-change: transform;
+}
+
+.dyr-sprite {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  transition: filter 0.3s;
+}
+
+/* PNG-sprites: pixeleret rendering */
+.dyr-sprite img {
+  image-rendering: pixelated;
+  display: block;
+}
+
+/* Jagt: rødlig glød rundt om rovdyret */
+.habitat-dyr.jager .dyr-sprite {
+  filter: drop-shadow(0 0 4px rgba(200, 60, 40, 0.5));
+}
+
+/* Svagt dyr: rødlig pulserende glød */
+.habitat-dyr.svagt .dyr-sprite {
+  animation: svagt-puls 2s ease-in-out infinite;
+}
+
+@keyframes svagt-puls {
+  0%, 100% { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)); }
+  50%      { filter: drop-shadow(0 2px 8px rgba(192, 57, 43, 0.6)); }
+}
+
+.dyr-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--tekst-lys);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  margin-top: 2px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dyr-label-latin {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 0.55rem;
+  color: var(--tekst-dempet);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Formeringsbar under sprite */
+.formering-bar {
+  width: 20px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 1px;
+}
+
+.formering-fyld {
+  height: 100%;
+  background: var(--mosgroen);
+  border-radius: 2px;
+  transition: width 0.3s linear;
+}
+
+/* Formerings-hjerte */
+.formering-hjerte {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1rem;
+  animation: hjerte-pop 1s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes hjerte-pop {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(0.5); }
+  30%  { opacity: 1; transform: translateX(-50%) translateY(-8px) scale(1.2); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.8); }
+}
+
+/* Smittet dyr: lilla/grøn tone + ryste */
+.habitat-dyr.smittet .dyr-sprite {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)) hue-rotate(90deg) saturate(1.5);
+  animation: smitte-ryste 0.3s ease-in-out infinite;
+}
+
+@keyframes smitte-ryste {
+  0%, 100% { margin-left: 0; }
+  25%      { margin-left: -2px; }
+  75%      { margin-left: 2px; }
+}
+
+/* Sygdomsoverlay */
+.sygdom-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(80, 20, 80, 0.8);
+  border: 2px solid #a855a8;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  text-align: center;
+  z-index: 15;
+  pointer-events: none;
+  animation: doed-fade 8s ease-out forwards;
+}
+
+.sygdom-overlay-tekst {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 1.35rem;
+  color: var(--tekst-lys);
+  line-height: 1.4;
+}
+
+/* Død-animation */
+.habitat-dyr.doer {
+  opacity: 0 !important;
+  transition: opacity 2s ease-out;
+}
+
+/* ============================================================
+   v2 — TILSTANDSINDIKATOR (biologisk AI-cue over dyret)
+   ============================================================ */
+.tilstand-indikator {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  transition: background 0.2s ease, opacity 0.2s ease;
+  z-index: 2;
+}
+
+/* HVILER: ingen indikator */
+.tilstand-indikator.cue-skjult { opacity: 0; }
+
+/* FLUGTER: blinkende rød */
+.tilstand-indikator.cue-flugt {
+  background: #e0483a;
+  opacity: 1;
+  animation: cue-blink 0.5s steps(2, jump-none) infinite;
+}
+
+/* FOURAGER: rolig grøn */
+.tilstand-indikator.cue-fourager {
+  background: #6aaa3a;
+  opacity: 1;
+}
+
+/* JAGER: vagtsom orange */
+.tilstand-indikator.cue-jagt {
+  background: #e8a23a;
+  opacity: 1;
+}
+
+@keyframes cue-blink {
+  0%   { opacity: 1; }
+  100% { opacity: 0.35; }
+}
+
+/* v2 — Konkurrence-mærke ("Bortjaget!") */
+.konkurrence-maerke {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #e0483a;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  animation: konkurrence-pop 2s ease-out forwards;
+  z-index: 6;
+}
+
+@keyframes konkurrence-pop {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  20%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80%  { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+}
+
+/* ============================================================
+   DØDSBESKEDER
+   ============================================================ */
+.doed-besked {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.8rem 1.1rem;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid var(--kort-kant);
+  border-radius: 10px;
+  animation: doed-fade 8s ease-out forwards;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.doed-besked-navn {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--okker-lys);
+}
+
+.doed-besked-tid {
+  font-size: 0.95rem;
+  color: var(--tekst-dempet);
+}
+
+.doed-besked-latin {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--tekst-dempet);
+}
+
+.doed-besked-tekst {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--tekst-lys);
+  max-width: 360px;
+  text-align: center;
+  line-height: 1.45;
+  margin-top: 0.25rem;
+}
+
+@keyframes doed-fade {
+  0%   { opacity: 0; transform: translateY(5px); }
+  3.75%  { opacity: 1; transform: translateY(0); }
+  85%  { opacity: 1; transform: translateY(-10px); }
+  100% { opacity: 0; transform: translateY(-30px); }
+}
+
+/* ============================================================
+   SCOREBOARD
+   ============================================================ */
+#scoreboard {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 400px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--kort-kant);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.sb-sektion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sb-titel {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--okker);
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--kort-kant);
+}
+
+.sb-raekke {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 1rem;
+  line-height: 1.45;
+  padding-bottom: 0.25rem;
+}
+
+.sb-raekke-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.sb-latin {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--tekst-dempet);
+}
+
+.sb-forklaring {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--tekst-dempet);
+  line-height: 1.35;
+  padding-left: 1.6em;
+}
+
+.sb-doedsaarsag {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #e08a6b;
+  line-height: 1.35;
+  padding-left: 1.6em;
+  padding-top: 0.1rem;
+}
+
+.sb-placering {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--tekst-dempet);
+  width: 1.4em;
+  flex-shrink: 0;
+}
+
+.sb-navn {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  color: var(--tekst-lys);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-tid {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--okker-lys);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sb-habitat {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.sb-tom {
+  font-size: 0.95rem;
+  color: var(--tekst-dempet);
+  font-style: italic;
+  padding: 0.2rem 0;
+}
+
+/* Rekord-overlay */
+.sb-rekord-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+  animation: sb-rekord-fade 3s ease-out forwards;
+}
+
+.sb-rekord-tekst {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--okker-lys);
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1rem 2rem;
+  border-radius: 16px;
+  border: 2px solid var(--okker);
+}
+
+@keyframes sb-rekord-fade {
+  0%   { opacity: 0; transform: scale(0.8); }
+  15%  { opacity: 1; transform: scale(1.05); }
+  25%  { transform: scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ============================================================
+   ZONE 2: Tidslinje (25%)
+   ============================================================ */
+#tidslinje {
+  flex: 1;
+  position: relative;
+  background: var(--tidslinje-bg);
+  border-top: 2px solid var(--kort-kant);
+  overflow: hidden;
+}
+
+#tidslinje-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================================
+   RESSOURCE-TAVLE — levende dyrs økonomi (nederst til venstre)
+   ============================================================ */
+#oekonomi-tavle {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  width: 340px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--kort-kant);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.oek-titel {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--okker);
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--kort-kant);
+}
+
+.oek-legende {
+  font-size: 0.72rem;
+  color: var(--tekst-dempet);
+  padding-bottom: 0.3rem;
+}
+
+.oek-raekke {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.oek-navn {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  color: var(--tekst-lys);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oek-stats {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  color: var(--tekst-dempet);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.oek-netto {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  width: 2.6em;
+  text-align: right;
+  flex-shrink: 0;
+  color: var(--tekst-lys);
+}
+
+.oek-netto.positiv { color: #7ec46a; }
+.oek-netto.negativ { color: #e08a6b; }
+
+.oek-tom {
+  font-size: 0.9rem;
+  color: var(--tekst-dempet);
+  font-style: italic;
+}
+
+/* Lille netto-badge over hvert dyr i verdenen */
+.res-badge {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 1px 4px;
+  border-radius: 6px;
+  margin-bottom: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+.res-badge:empty { display: none; }
+.res-badge.positiv { color: #d8ffce; background: rgba(70, 130, 50, 0.6); }
+.res-badge.negativ { color: #ffe0d6; background: rgba(150, 60, 40, 0.6); }

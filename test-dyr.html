@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧪 Testside — Biologisk Interaktionsdesign v2</title>
+<style>
+  /* Naturhistorisk Punk-palette (matcher habitat.css) */
+  :root {
+    --bg-mork: #1a1a12;
+    --bg-kort: #2a2a1e;
+    --tekst-lys: #f0ead6;
+    --tekst-dempet: #a09a82;
+    --okker: #d4a843;
+    --okker-lys: #e8c46a;
+    --mosgroen: #5a7247;
+    --kort-kant: #4a4a38;
+    --roed: #e0483a;
+    --groen: #6aaa3a;
+    --orange: #e8a23a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg-mork);
+    color: var(--tekst-lys);
+    min-height: 100vh;
+    padding: 1.5rem;
+    line-height: 1.5;
+  }
+  h1 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.6rem;
+    color: var(--okker-lys);
+  }
+  h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--okker);
+    border-bottom: 1px solid var(--kort-kant);
+    padding-bottom: 0.3rem;
+    margin-bottom: 0.8rem;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  .intro {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    color: var(--tekst-dempet);
+    margin: 0.4rem 0 1.2rem;
+  }
+  .status {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: var(--bg-kort); border: 1px solid var(--kort-kant);
+    border-radius: 8px; padding: 0.4rem 0.9rem; margin-bottom: 1.4rem;
+    font-size: 0.85rem;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--tekst-dempet); }
+  .dot.online { background: var(--groen); box-shadow: 0 0 6px var(--groen); }
+  .dot.offline { background: var(--roed); }
+  section { margin-bottom: 1.8rem; }
+  .grid { display: grid; gap: 0.7rem; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .kort {
+    background: var(--bg-kort); border: 1px solid var(--kort-kant);
+    border-radius: 10px; padding: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .kort-titel { font-weight: 700; font-size: 0.95rem; color: var(--okker-lys); }
+  .kort-beskr { font-size: 0.78rem; color: var(--tekst-dempet); flex: 1; }
+  button {
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.82rem;
+    background: var(--mosgroen); color: var(--tekst-lys);
+    border: 1px solid var(--kort-kant); border-radius: 7px;
+    padding: 0.5rem 0.8rem; cursor: pointer; transition: transform 0.1s, background 0.2s;
+  }
+  button:hover { background: #6b8654; }
+  button:active { transform: scale(0.97); }
+  button.sekundaer { background: transparent; border-color: var(--okker); color: var(--okker-lys); }
+  button.sekundaer:hover { background: rgba(212,168,67,0.12); }
+  .builder { display: grid; gap: 0.7rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; }
+  .felt { display: flex; flex-direction: column; gap: 0.25rem; }
+  .felt label { font-size: 0.72rem; color: var(--tekst-dempet); text-transform: uppercase; letter-spacing: 0.04em; }
+  select, input[type=number] {
+    font-family: 'Inter', sans-serif; font-size: 0.85rem;
+    background: var(--bg-mork); color: var(--tekst-lys);
+    border: 1px solid var(--kort-kant); border-radius: 6px; padding: 0.4rem 0.5rem;
+  }
+  .log {
+    background: #111109; border: 1px solid var(--kort-kant); border-radius: 8px;
+    padding: 0.7rem 0.9rem; height: 160px; overflow-y: auto;
+    font-size: 0.78rem; font-family: ui-monospace, monospace; color: var(--tekst-dempet);
+  }
+  .log .ny { color: var(--okker-lys); }
+  .legende { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.78rem; color: var(--tekst-dempet); margin-top: 0.5rem; }
+  .legende span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .prik { width: 9px; height: 9px; border-radius: 50%; }
+  .actions-rk { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  code { background: #111109; padding: 0.1rem 0.35rem; border-radius: 4px; color: var(--okker-lys); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧪 Testside — Biologisk Interaktionsdesign v2</h1>
+  <p class="intro">Spawn modsatrettede dyr direkte i habitatet uden at bygge dem manuelt på en station.</p>
+
+  <div class="status">
+    <span id="status-dot" class="dot offline"></span>
+    <span id="status-tekst">Åbn <code>habitat.html</code> i et andet vindue, og klik “Tjek forbindelse”.</span>
+    <button class="sekundaer" style="margin-left:0.6rem" onclick="tjekForbindelse()">Tjek forbindelse</button>
+  </div>
+
+  <section>
+    <h2>Scenarier — hvert demonstrerer én v2-mekanik</h2>
+    <div class="grid" id="scenarier"></div>
+  </section>
+
+  <section>
+    <h2>Enkelte dyr</h2>
+    <div class="grid" id="presets"></div>
+  </section>
+
+  <section>
+    <h2>Byg selv</h2>
+    <div class="builder" id="builder"></div>
+    <div class="actions-rk">
+      <button onclick="spawnCustom()">Spawn dyr</button>
+      <button class="sekundaer" onclick="spawnCustom(3)">Spawn 3 ens (konkurrence)</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Log <span id="taeller" style="color:var(--tekst-dempet);font-weight:400">(0 sendt)</span></h2>
+    <div class="log" id="log"></div>
+    <div class="legende">
+      <span><span class="prik" style="background:var(--roed)"></span> FLUGTER (rød, blinker)</span>
+      <span><span class="prik" style="background:var(--groen)"></span> FOURAGER (grøn)</span>
+      <span><span class="prik" style="background:var(--orange)"></span> JAGER (orange)</span>
+      <span>HVILER (ingen prik)</span>
+    </div>
+  </section>
+</div>
+
+<script>
+// ============================================================
+// Kommunikation — samme kanal som spillet
+// ============================================================
+const kanal = new BroadcastChannel('bygditdyr');
+let sendt = 0;
+
+// Habitat svarer på HABITAT_REQUEST med HABITAT_INFO
+kanal.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'HABITAT_INFO' && e.data.habitat) {
+    const navne = { skov: 'Skov 🌲', arktis: 'Arktis 🏔️', oerken: 'Ørken 🏜️' };
+    setStatus(true, 'Forbundet til habitat: ' + (navne[e.data.habitat] || e.data.habitat));
+  }
+});
+
+function tjekForbindelse() {
+  setStatus(false, 'Søger efter habitat …');
+  kanal.postMessage({ type: 'HABITAT_REQUEST' });
+  setTimeout(() => {
+    if (document.getElementById('status-dot').classList.contains('offline')) {
+      setStatus(false, 'Intet svar. Er habitat.html åben i et andet vindue (samme browser)?');
+    }
+  }, 1000);
+}
+
+function setStatus(online, tekst) {
+  const dot = document.getElementById('status-dot');
+  dot.classList.toggle('online', online);
+  dot.classList.toggle('offline', !online);
+  document.getElementById('status-tekst').textContent = tekst;
+}
+
+// ============================================================
+// Navnegenerator (standalone — uafhængig af names.js)
+// ============================================================
+const GENUS = { hojt: 'Magnocalor', lavt: 'Lentus' };
+const KOST_LAT = { planteaeder: 'herbivorus', koedaeder: 'carnivorus', alleaeder: 'omnivorus' };
+const FORSVAR_LAT = { giftig: 'toxifer', pigge: 'spinosus', flugt: 'fugax', ingen: 'nudus' };
+const STR_DK = { lille: 'Lille', mellem: 'Mellem', stor: 'Stor' };
+const FORSVAR_DK = { giftig: 'Giftige', pigge: 'Piggede', flugt: 'Hurtige', ingen: '' };
+const KOST_DK = { planteaeder: 'Bladgnasker', koedaeder: 'Rovjæger', alleaeder: 'Altæder' };
+
+function artsnavnAf(e) {
+  return `${GENUS[e.stofskifte]} ${KOST_LAT[e.kost]} ${FORSVAR_LAT[e.forsvar]}`;
+}
+function danskNavnAf(e) {
+  return `${STR_DK[e.storrelse]} ${FORSVAR_DK[e.forsvar]} ${KOST_DK[e.kost]}`.replace(/\s+/g, ' ').trim();
+}
+
+// ============================================================
+// Dyr-objekt + afsendelse (matcher station.js' NYT_DYR-form)
+// ============================================================
+function lavDyr(egenskaber, artsnavnOverride) {
+  const e = { ...egenskaber };
+  return {
+    id: crypto.randomUUID(),
+    artsnavn: artsnavnOverride || artsnavnAf(e),
+    danskNavn: danskNavnAf(e),
+    egenskaber: e,
+    energiBrugt: 0,
+    overlevelsesScore: 0,
+    position: { x: Math.random() * 80 + 10, y: Math.random() * 60 + 20 },
+    levetid: 0,
+    levende: true
+  };
+}
+
+function spawn(egenskaber, artsnavnOverride) {
+  const dyr = lavDyr(egenskaber, artsnavnOverride);
+  kanal.postMessage({ type: 'NYT_DYR', dyr });
+  sendt++;
+  document.getElementById('taeller').textContent = `(${sendt} sendt)`;
+  log(`${dyr.danskNavn} — ${dyr.artsnavn}`);
+  return dyr;
+}
+
+function log(tekst) {
+  const el = document.getElementById('log');
+  const linje = document.createElement('div');
+  linje.className = 'ny';
+  const t = new Date().toLocaleTimeString('da-DK');
+  linje.textContent = `[${t}]  + ${tekst}`;
+  el.prepend(linje);
+  setTimeout(() => linje.classList.remove('ny'), 1200);
+}
+
+// ============================================================
+// Egenskabs-presets
+// ============================================================
+const E = {
+  giftigPlante:  { stofskifte: 'lavt', hudtype: 'glat',  kost: 'planteaeder', storrelse: 'lille',  aktivitet: 'dagaktiv', forsvar: 'giftig' },
+  stortRovdyr:   { stofskifte: 'hojt', hudtype: 'pels',  kost: 'koedaeder',   storrelse: 'stor',    aktivitet: 'dagaktiv', forsvar: 'ingen'  },
+  flugtPlante:   { stofskifte: 'hojt', hudtype: 'fjer',  kost: 'planteaeder', storrelse: 'lille',  aktivitet: 'dagaktiv', forsvar: 'flugt'  },
+  ambushRovdyr:  { stofskifte: 'lavt', hudtype: 'skael', kost: 'koedaeder',   storrelse: 'mellem',  aktivitet: 'nataktiv', forsvar: 'ingen'  },
+  piggetPlante:  { stofskifte: 'lavt', hudtype: 'skael', kost: 'planteaeder', storrelse: 'mellem',  aktivitet: 'dagaktiv', forsvar: 'pigge'  }
+};
+
+const PRESETS = [
+  { navn: 'Lille giftig planteæder', beskr: 'Flygter ikke — rovdyr undgår den aktivt.', e: E.giftigPlante },
+  { navn: 'Stort dagaktivt rovdyr', beskr: 'Pursuit-jagt (hurtig, direkte). Udløser trofisk kaskade.', e: E.stortRovdyr },
+  { navn: 'Hurtig flugt-planteæder', beskr: 'Stor detektionsradius, panikflugt + zigzag.', e: E.flugtPlante },
+  { navn: 'Mellem ambush-rovdyr', beskr: 'Baghold: sniger, fryser 2-3 s, springer.', e: E.ambushRovdyr },
+  { navn: 'Pigget planteæder', beskr: 'Flygter ikke, bevæger sig langsomt; skader jægeren.', e: E.piggetPlante }
+];
+
+const SCENARIER = [
+  { navn: '🏃 Pursuit & panik', beskr: '1 stort rovdyr + 3 flugt-planteædere. Se panikflugt og direkte forfølgelse.',
+    kør: () => { spawn(E.stortRovdyr); for (let i=0;i<3;i++) spawn(E.flugtPlante); } },
+  { navn: '🐍 Ambush-baghold', beskr: '1 mellem nataktivt rovdyr + 3 planteædere. Se snig → frys → spring.',
+    kør: () => { spawn(E.ambushRovdyr); for (let i=0;i<3;i++) spawn(E.flugtPlante); } },
+  { navn: '☠️ Giftforsvar', beskr: '1 lille giftig planteæder + 1 stort rovdyr. Rovdyret jager den IKKE.',
+    kør: () => { spawn(E.giftigPlante); spawn(E.stortRovdyr); } },
+  { navn: '🌿 Konkurrence (Gause)', beskr: '4 ens planteædere om de samme planter → “Bortjaget!”.',
+    kør: () => { const a = artsnavnAf(E.flugtPlante); for (let i=0;i<4;i++) spawn(E.flugtPlante, a); } },
+  { navn: '🌊 Trofisk kaskade', beskr: '1 stort rovdyr + 5 planteædere. +40px vagtsomhed, planter vokser hurtigere.',
+    kør: () => { spawn(E.stortRovdyr); for (let i=0;i<5;i++) spawn(E.piggetPlante); } }
+];
+
+// ============================================================
+// Byg UI
+// ============================================================
+function byg() {
+  const sc = document.getElementById('scenarier');
+  SCENARIER.forEach(s => {
+    const k = document.createElement('div');
+    k.className = 'kort';
+    k.innerHTML = `<div class="kort-titel">${s.navn}</div><div class="kort-beskr">${s.beskr}</div>`;
+    const b = document.createElement('button');
+    b.textContent = 'Kør scenarie';
+    b.onclick = s.kør;
+    k.appendChild(b);
+    sc.appendChild(k);
+  });
+
+  const pr = document.getElementById('presets');
+  PRESETS.forEach(p => {
+    const k = document.createElement('div');
+    k.className = 'kort';
+    k.innerHTML = `<div class="kort-titel">${p.navn}</div><div class="kort-beskr">${p.beskr}</div>`;
+    const b = document.createElement('button');
+    b.textContent = 'Spawn';
+    b.onclick = () => spawn(p.e);
+    k.appendChild(b);
+    pr.appendChild(k);
+  });
+
+  const muligheder = {
+    stofskifte: ['hojt', 'lavt'],
+    hudtype: ['pels', 'skael', 'fjer', 'glat'],
+    kost: ['planteaeder', 'koedaeder', 'alleaeder'],
+    storrelse: ['lille', 'mellem', 'stor'],
+    aktivitet: ['dagaktiv', 'nataktiv'],
+    forsvar: ['giftig', 'pigge', 'flugt', 'ingen']
+  };
+  const standard = { stofskifte: 'hojt', hudtype: 'pels', kost: 'planteaeder', storrelse: 'mellem', aktivitet: 'dagaktiv', forsvar: 'flugt' };
+  const builder = document.getElementById('builder');
+  for (const [navn, vals] of Object.entries(muligheder)) {
+    const felt = document.createElement('div');
+    felt.className = 'felt';
+    const id = 'sel-' + navn;
+    felt.innerHTML = `<label for="${id}">${navn}</label>`;
+    const sel = document.createElement('select');
+    sel.id = id;
+    vals.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      if (v === standard[navn]) o.selected = true;
+      sel.appendChild(o);
+    });
+    felt.appendChild(sel);
+    builder.appendChild(felt);
+  }
+}
+
+function lasEgenskaber() {
+  const navne = ['stofskifte','hudtype','kost','storrelse','aktivitet','forsvar'];
+  const e = {};
+  navne.forEach(n => e[n] = document.getElementById('sel-' + n).value);
+  return e;
+}
+
+function spawnCustom(antal = 1) {
+  const e = lasEgenskaber();
+  const art = artsnavnAf(e); // samme art → de konkurrerer indbyrdes
+  for (let i = 0; i < antal; i++) spawn(e, art);
+}
+
+byg();
+// Prøv automatisk at finde habitatet ved indlæsning
+tjekForbindelse();
+</script>
+</body>
+</html>

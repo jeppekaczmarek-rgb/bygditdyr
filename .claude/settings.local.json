@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Notion__notion-fetch",
+      "Bash(node -e \"global.window = {}; $\\(cat js/survival.js)",
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:www.notion.so)"
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<title>Test: base1_pels walk-frames i render.js</title>
+<style>
+  body { margin:0; background:#111; font-family:sans-serif; color:#eee; }
+  #info { position:fixed; top:8px; left:8px; background:rgba(0,0,0,.6); padding:8px 12px; border-radius:6px; font-size:13px; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<div id="info">base1_generalist_pels — 24 frames via render.js · [N] = nat-tone · [P] = pigge til/fra</div>
+<canvas id="cv"></canvas>
+<script src="js/render.js"></script>
+<script>
+// Test af pels-walk-frames: tre størrelser (lille/mellem/stor) går frem og
+// tilbage på skov-baggrunden, med fart-styret frameafspilning og skygge.
+(async function(){
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  cv.width = innerWidth; cv.height = innerHeight;
+
+  // Indlæs baggrund + alle 24 frames af BEGGE lag (base + pigge-pass)
+  const kilder = { _bg: 'assets/backgrounds/skov.png' };
+  for (let i=1;i<=24;i++){
+    const n = String(i).padStart(4,'0') + '.webp';
+    kilder['f'+i] = 'assets/dyr/base1_generalist_pels/walk/base/'  + n;
+    kilder['p'+i] = 'assets/dyr/base1_generalist_pels/walk/pigge/' + n;
+  }
+  const img = await Render.indlaesBilleder(kilder);
+  const frames = []; for (let i=1;i<=24;i++) frames.push(img['f'+i]);
+
+  // Bag base+pigge til ét fladt sprite pr. frame (samme princip som bake-ved-spawn).
+  // Lagene deler crop (crop-info.json), så de stables 1:1 uden offset.
+  const framesPigge = [];
+  for (let i=1;i<=24;i++) framesPigge.push(Render.bake(img['f'+i], [{ img: img['p'+i] }]));
+
+  // Tre testdyr i habitatets tre størrelser (visHoejde i px)
+  const dyr = [
+    { navn:'lille',  hoejde:160, y:0.93, vx: 60, x:200, fps:14 },
+    { navn:'mellem', hoejde:260, y:0.96, vx: 80, x:600, fps:12 },
+    { navn:'stor',   hoejde:400, y:0.99, vx:100, x:1000, fps:10 },
+  ].map(d => Object.assign(d, { vy:0, animState:'walk', gangInt:1,
+    frames:{ walk: frames }, frameFps:d.fps }));
+
+  let nat = false, pigge = false;
+  addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (k==='n') nat = !nat;
+    if (k==='p'){ // skift frame-sæt — frame-indeks bevares (samme længde)
+      pigge = !pigge;
+      for (const d of dyr) d.frames.walk = pigge ? framesPigge : frames;
+    }
+  });
+
+  let sidst = performance.now();
+  (function loop(nu){
+    let dt = Math.min(0.1,(nu-sidst)/1000); sidst = nu;
+    ctx.drawImage(img._bg, 0, 0, cv.width, cv.height);
+
+    for (const d of dyr){
+      // frem og tilbage — render.js håndterer spejlvending via vx
+      d.x += d.vx*dt;
+      if (d.x > cv.width-150) d.vx = -Math.abs(d.vx);
+      if (d.x < 150)          d.vx =  Math.abs(d.vx);
+      const gy = cv.height*d.y;
+      Render.tegnSkygge(ctx, d.x, gy, d.hoejde*1.3);
+      Render.tegnDyr(ctx, null, d, nu, d.x, gy, d.hoejde);
+    }
+
+    // Nat-tone som i habitatet (multiplikativ blå toning)
+    if (nat){
+      ctx.globalCompositeOperation='multiply';
+      ctx.fillStyle='rgb(120,130,185)';
+      ctx.fillRect(0,0,cv.width,cv.height);
+      ctx.globalCompositeOperation='source-over';
+    }
+    requestAnimationFrame(loop);
+  })(sidst);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+# Hemmeligheder — må ALDRIG committes
+.env
+.env.*
+!.env.example
+
+# Afhængigheder
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# ──────────────────────────────────────────────────────────────
+# Tunge KILDE-assets — IKKE nødvendige for at køre spillet online.
+# Holder GitHub-repoet lille (~26 MB i stedet for ~960 MB).
+# Den spilbare version renderer kun fra:
+#   assets/sprites/  ·  assets/backgrounds/  ·  assets/sounds/
+# ──────────────────────────────────────────────────────────────
+assets/Blender/
+assets/dele/
+assets/turnaround/
+assets/turnaround_lille_fjer/
+assets/turnaround_rig/
+assets/turnaround_stor_pels/
+
+# Dyr-mappen: rå Blender-frames + 3D-kilder (688 MB). Den spilbare version
+# renderer fra assets/sprites/. Når webp-pipelinen kobles ind i habitat.js,
+# så un-ignore de FÆRDIGE frames, fx:  !assets/dyr/**/walk/**/*.webp
+assets/dyr/
+
+# Blender / 3D-kilder generelt
+*.blend
+*.blend1
+*.glb
+*.obj
+*.mtl
+
+# Build-rester, eksporter og midlertidigt
+_deploy/
+*.zip
+REGEN-*.png
+.tmp.*
+telemetri/*.json

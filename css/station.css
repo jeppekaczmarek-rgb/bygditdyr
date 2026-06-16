@@ -1,0 +1,753 @@
+/* ============================================================
+   station.css — Byggestationens visuelle stil
+   "Naturhistorisk Punk": mørke naturfarver, serif artsnavne,
+   rent og læsbart for 10-12-årige.
+   ============================================================ */
+
+/* --- Farvepalette --- */
+:root {
+  --bg-mork: #1a1a12;
+  --bg-kort: #2a2a1e;
+  --bg-kort-hover: #353528;
+  --bg-kort-valgt: #3d3820;
+  --tekst-lys: #f0ead6;
+  --tekst-dempet: #a09a82;
+  --okker: #d4a843;
+  --okker-lys: #e8c46a;
+  --mosgroen: #5a7247;
+  --mosgroen-lys: #7a9a5f;
+  --dyb-blaa: #2c3e6b;
+  --advarsel: #c0392b;
+  --succes: #27ae60;
+  --kort-kant: #4a4a38;
+  --energi-fuld: #5a7247;
+  --energi-lav: #c0392b;
+}
+
+/* --- Reset og basis --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-mork);
+  color: var(--tekst-lys);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* --- Skærmhåndtering --- */
+.skaerm {
+  display: none;
+  position: fixed;
+  inset: 0;
+  flex-direction: column;
+}
+
+.skaerm.aktiv {
+  display: flex;
+}
+
+/* ============================================================
+   VELKOMSTSKÆRM
+   ============================================================ */
+.velkomst-indhold {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.habitat-baggrund-placeholder {
+  width: 280px;
+  height: 180px;
+  background: linear-gradient(135deg, #2d3a1e 0%, #1a2810 100%);
+  border-radius: 16px;
+  border: 2px solid var(--kort-kant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+}
+
+.velkomst-titel {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--okker);
+  letter-spacing: 0.02em;
+}
+
+.habitat-navn {
+  font-size: 1.2rem;
+  color: var(--tekst-dempet);
+}
+
+.habitat-navn strong {
+  color: var(--okker-lys);
+}
+
+.velkomst-beskrivelse {
+  font-size: 1.1rem;
+  color: var(--tekst-dempet);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   KNAPPER
+   ============================================================ */
+.btn-primaer, .btn-sekundaer {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.9rem 2rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, opacity 0.15s;
+}
+
+.btn-primaer:active, .btn-sekundaer:active {
+  transform: scale(0.97);
+}
+
+.btn-primaer {
+  background: var(--okker);
+  color: var(--bg-mork);
+}
+
+.btn-primaer:hover {
+  background: var(--okker-lys);
+}
+
+.btn-primaer:disabled {
+  background: var(--kort-kant);
+  color: var(--tekst-dempet);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-sekundaer {
+  background: transparent;
+  color: var(--tekst-dempet);
+  border: 2px solid var(--kort-kant);
+}
+
+.btn-sekundaer:hover {
+  border-color: var(--tekst-dempet);
+  color: var(--tekst-lys);
+}
+
+.btn-sekundaer:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================================
+   BYGGEFLOW — HEADER
+   ============================================================ */
+.bygge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1.5rem;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--kort-kant);
+}
+
+.fremgang {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+#trin-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tekst-dempet);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.fremgang-bar {
+  height: 6px;
+  background: var(--kort-kant);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fremgang-fyld {
+  height: 100%;
+  background: var(--okker);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.energi-sektion {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.energi-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tekst-dempet);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.energi-maaler {
+  position: relative;
+  width: 140px;
+  height: 28px;
+  background: var(--kort-kant);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.energi-fyld {
+  height: 100%;
+  background: var(--energi-fuld);
+  border-radius: 14px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.energi-fyld.lav {
+  background: var(--okker);
+}
+
+.energi-fyld.kritisk {
+  background: var(--energi-lav);
+}
+
+.energi-tal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--tekst-lys);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* ============================================================
+   BYGGEFLOW — TRIN
+   ============================================================ */
+.trin-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.trin {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 700px;
+}
+
+.trin.aktiv {
+  display: flex;
+}
+
+.trin-titel {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--okker);
+}
+
+.kort-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+/* --- Valgkort --- */
+.valgkort {
+  background: var(--bg-kort);
+  border: 2px solid var(--kort-kant);
+  border-radius: 14px;
+  padding: 1.4rem 1rem;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s, opacity 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.valgkort:hover {
+  border-color: var(--tekst-dempet);
+  background: var(--bg-kort-hover);
+  transform: translateY(-2px);
+}
+
+.valgkort.valgt {
+  border-color: var(--okker);
+  background: var(--bg-kort-valgt);
+  box-shadow: 0 0 0 1px var(--okker);
+}
+
+.valgkort.for-dyrt {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.valgkort.for-dyrt:hover {
+  border-color: var(--kort-kant);
+  background: var(--bg-kort);
+  transform: none;
+}
+
+.kort-emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.kort-navn {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--tekst-lys);
+}
+
+.kort-beskrivelse {
+  font-size: 0.82rem;
+  color: var(--tekst-dempet);
+  line-height: 1.35;
+}
+
+.kort-energi {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--okker);
+  margin-top: 0.2rem;
+}
+
+/* ============================================================
+   SPRITE-PREVIEW (placeholder)
+   ============================================================ */
+.sprite-preview {
+  position: fixed;
+  bottom: 90px;
+  right: 1.5rem;
+  width: 100px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid transparent;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.sprite-preview.har-valg {
+  border-color: var(--kort-kant);
+  box-shadow: 0 0 15px rgba(90, 114, 71, 0.3);
+}
+
+.sprite-preview svg {
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+.bygge-nav {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--kort-kant);
+}
+
+/* ============================================================
+   BEKRÆFTELSESSKÆRM
+   ============================================================ */
+.bekraeftelse-indhold {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.bekraeftelse-overskrift {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2rem;
+  color: var(--okker);
+}
+
+.artsnavn {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 1.6rem;
+  color: var(--okker-lys);
+  letter-spacing: 0.02em;
+}
+
+.dansk-navn {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--tekst-lys);
+  display: block;
+  margin-top: 0.3rem;
+}
+
+.valg-oversigt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--bg-kort);
+  border: 1px solid var(--kort-kant);
+  border-radius: 12px;
+  padding: 1.2rem 1.8rem;
+  text-align: left;
+  min-width: 280px;
+}
+
+.valg-linje {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  font-size: 0.95rem;
+}
+
+.valg-linje-kategori {
+  color: var(--tekst-dempet);
+}
+
+.valg-linje-vaerdi {
+  font-weight: 600;
+  color: var(--tekst-lys);
+}
+
+.bekraeftelse-energi {
+  font-size: 1rem;
+  color: var(--tekst-dempet);
+}
+
+.bekraeftelse-energi strong {
+  color: var(--okker-lys);
+}
+
+.btn-send {
+  font-size: 1.25rem;
+  padding: 1rem 2.5rem;
+  margin-top: 0.5rem;
+}
+
+/* ============================================================
+   EFTER AFSENDELSE
+   ============================================================ */
+.afsendt-indhold {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.afsendt-succes {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--succes);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  color: white;
+  font-weight: 700;
+}
+
+.afsendt-besked {
+  color: var(--tekst-dempet);
+  font-size: 1rem;
+}
+
+.live-status {
+  background: var(--bg-kort);
+  border: 1px solid var(--kort-kant);
+  border-radius: 12px;
+  padding: 1.2rem 1.8rem;
+  min-width: 280px;
+}
+
+.live-status h3 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tekst-dempet);
+  margin-bottom: 0.5rem;
+}
+
+.skjult {
+  display: none;
+}
+
+.live-status.doed {
+  border-color: #c0392b;
+}
+
+.live-status .doed-artsnavn {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--okker-lys);
+}
+
+.live-status .doed-tekst {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--tekst-lys);
+  line-height: 1.4;
+  margin-top: 0.3rem;
+}
+
+.live-status .doed-tid {
+  font-size: 0.85rem;
+  color: var(--tekst-dempet);
+  margin-top: 0.2rem;
+}
+
+/* ============================================================
+   LIVE-DASHBOARD (efter afsendelse)
+   ============================================================ */
+.live-dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  max-width: 720px;
+  margin: 0.5rem auto 0;
+  text-align: left;
+}
+
+.live-dashboard > div {
+  background: var(--bg-kort);
+  border: 1px solid var(--kort-kant);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+}
+
+/* Scoreboard spænder over begge kolonner */
+.live-scoreboard {
+  grid-column: 1 / -1;
+}
+
+.live-dashboard h3 {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--okker-lys);
+  margin-bottom: 0.6rem;
+}
+
+/* Live-status på egen art */
+.live-navn {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 1.3rem;
+  color: var(--tekst-lys);
+}
+
+.live-tal {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--mosgroen-lys);
+  margin-top: 0.2rem;
+}
+
+.live-detalje {
+  font-size: 0.95rem;
+  color: var(--tekst-dempet);
+  margin-top: 0.2rem;
+}
+
+/* Ressource-regnskab for elevens art */
+.live-res {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--kort-kant, #4a4a38);
+}
+
+.live-res-stats {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--tekst-lys);
+  white-space: nowrap;
+}
+
+.live-res-netto {
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--tekst-dempet);
+}
+
+.live-res-netto.positiv { color: #7ec46a; }
+.live-res-netto.negativ { color: #e08a6b; }
+
+#live-status-tekst {
+  font-size: 1.05rem;
+  color: var(--tekst-dempet);
+}
+
+/* Event-feed */
+.event-feed {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.event-linje {
+  font-size: 1.05rem;
+  line-height: 1.35;
+  color: var(--tekst-lys);
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(74, 74, 56, 0.5);
+  animation: event-ind 0.3s ease-out;
+}
+
+.event-linje:last-child {
+  border-bottom: none;
+}
+
+.event-tom {
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--tekst-dempet);
+  list-style: none;
+}
+
+@keyframes event-ind {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Mini-scoreboard */
+.mini-scoreboard {
+  list-style: decimal;
+  list-style-position: inside;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mini-sb-raekke {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(74, 74, 56, 0.5);
+}
+
+.mini-sb-raekke:last-child { border-bottom: none; }
+
+/* Elevens egen art fremhæves */
+.mini-sb-raekke.mig {
+  background: var(--bg-kort-valgt);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  border-bottom: none;
+}
+
+.mini-sb-navn {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  color: var(--tekst-lys);
+}
+
+.mini-sb-latin {
+  font-size: 0.85rem;
+  color: var(--tekst-dempet);
+}
+
+.mini-sb-tid {
+  font-weight: 700;
+  color: var(--okker-lys);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mini-scoreboard .sb-tom {
+  font-style: italic;
+  color: var(--tekst-dempet);
+  font-size: 1rem;
+}
+
+.doed-latin {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--tekst-dempet);
+}
+
+.afsendt-knapper {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* ============================================================
+   RESPONSIVITET (kiosk er typisk fast størrelse,
+   men vi understøtter rimelige variationer)
+   ============================================================ */
+@media (max-width: 600px) {
+  .velkomst-titel {
+    font-size: 2.2rem;
+  }
+  .kort-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bygge-header {
+    flex-direction: column;
+    gap: 0.8rem;
+    align-items: stretch;
+  }
+  .afsendt-knapper {
+    flex-direction: column;
+  }
+}
