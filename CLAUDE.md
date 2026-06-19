@@ -6,6 +6,16 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
+## Aktuel status (19. juni 2026)
+
+**Spillet er bygget og LIVE:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html). Arbejdsgang: ret lokalt → dobbeltklik `udgiv.bat` → online ca. 1 min senere.
+
+Survival-logik, simulation (v2 tilstandsmaskine + ressource-økonomi), navne, lyd og online-relay (Supabase Realtime) er færdige. Asset-sporet (fjer/glat/skæl-turnarounds + base1-rig i Blender) kører sideløbende — se Assets-sektionen.
+
+**Næste arbejde = forbedrings-roadmap fra den kritiske analyse (18. juni).** Fulde specs i `analyse/` (`00-hovedanalyse-og-roadmap.md` + `01`–`05` + kørbar `balance.js`). Rækkefølge: **Sprint A = 01 (feedback-loop) + 05 (balance/data, inkl. mutation ved formering) → 04 → 02 → 03.** Afkrydselig opgaveliste + start-prompt ligger i Notion under projekt-hubben.
+
+**Arbejdsgang i dispatch:** foreslå og vent på Jeppes ok ved HVERT trin — vis plan/diff, implementér efter ok, kør tests (`node analyse/balance.js` ved matrix-ændringer + `node --check js/*.js`), vent på ok før udgivelse (web/GitHub: åbn en PR som Jeppe merger → Pages udgiver automatisk · lokalt: `udgiv.bat`). Overlevelsesmatrixen har historisk været "bevidst urørt"; pakke 05 ÆNDRER den bevidst — behandl matrix-ændringer som eksplicitte beslutninger. Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
+
 ## Teknisk stack
 
 - **Sprog:** Vanilla HTML + CSS + JavaScript. INGEN frameworks. INGEN build-tools.
@@ -31,11 +41,15 @@ bygditdyr/
 │   ├── config.js       # Runtime-config: Supabase-endpoint + kanalnavn (online relay)
 │   ├── names.js        # Linneansk navnegenerator
 │   ├── render.js       # Lag-compositing + bake-ved-spawn (ImageBitmap-cache)
-│   └── survival.js     # Overlevelsesmatrix og algoritme
+│   ├── survival.js     # Overlevelsesmatrix og score-beregning
+│   ├── oekonomi.js     # Ressource-regnskab (planter/bytte/flugt/angreb)
+│   ├── deathtext.js    # Biologiske dødsforklaringer
+│   └── scoreboard.js   # Rekordliste
 ├── assets/
 │   ├── sprites/        # Dyrenes PNG/SVG-lag
 │   ├── backgrounds/    # Habitatbaggrunde
 │   └── sounds/         # Ambientelyde + effekter
+├── analyse/            # Kritisk analyse + roadmap (00–05) + balance.js — NÆSTE ARBEJDE
 └── CLAUDE.md
 ```
 
@@ -149,13 +163,13 @@ Se: [Game Design Document — Byg Dit Dyr](https://www.notion.so/Game-Design-Doc
 
 Se: [Overlevelsesmatrix — Prototype (3 habitater)](https://www.notion.so/Overlevelsesmatrix-Prototype-3-habitater-3396276fd47f81cf9c84db83148cbc1d?pvs=21)
 
-## Start her
+## Start her (dispatch, juni 2026)
 
-Byg i denne rækkefølge:
+Spillet er FÆRDIGBYGGET og live (se "Aktuel status" øverst). Start IKKE forfra.
 
-1. `survival.js` — overlevelsesmatrix og score-beregning (ren logik, nemt at teste)
-2. `names.js` — navnegeneratoren (ren logik, nemt at teste)
-3. `station.html` + `station.css` + `station.js` — byggefladen
-4. `broadcast.js` — kommunikationslaget
-5. `habitat.html` + `habitat.css` + `habitat.js` — simulationen
-6. Lyd sidst
+1. Læs `analyse/00-hovedanalyse-og-roadmap.md` — overblik + roadmap.
+2. Tag opgavepakkerne i rækkefølge: **01 → 05 (Sprint A) → 04 → 02 → 03**. Hver pakke (`analyse/01`–`05`) har problem, kodested, konkret forslag og "gjort-når".
+3. Pr. trin: foreslå plan → vent på ok → implementér → test (`node analyse/balance.js`, `node --check js/*.js`) → vent på ok → `udgiv.bat`.
+4. Hold `survival.js`/`oekonomi.js` adskilt fra visuals; kommentér på dansk.
+
+*Oprindelig byggerækkefølge (historik, da spillet blev bygget forfra): survival.js → names.js → station → broadcast.js → habitat → lyd.*
