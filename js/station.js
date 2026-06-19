@@ -459,6 +459,12 @@ if (window.Broadcast && window.Broadcast.lyt) {
           visDyrDoede(besked);
         }
         break;
+      case 'DYR_DOEDE_INDIVID':
+        // Et enkelt individ af elevens art er dødt
+        if (besked.artsnavn === minArtsnavn) {
+          visIndividDoed(besked);
+        }
+        break;
       case 'DYR_EVENT':
         // Begivenhed i habitatet — vis kun events for elevens art
         if (besked.artsnavn === minArtsnavn) {
@@ -570,6 +576,15 @@ function formatTid(sek) {
   const min = Math.floor(sek / 60);
   const rest = sek % 60;
   return min === 0 ? `${rest} sek` : `${min} min ${rest} sek`;
+}
+
+// Vis at et enkelt individ af elevens art er dødt (i event-feedet)
+function visIndividDoed(besked) {
+  if (artUddoed) return; // artsuddøen håndteres separat
+  const ikon = besked.erStamdyr ? '💀' : '⚠️';
+  const hvem = besked.erStamdyr ? 'Dit første dyr' : `Et individ af ${besked.danskNavn}`;
+  const tekst = `${ikon} ${hvem} døde efter ${besked.levetid} sek — ${besked.kortTekst}`;
+  tilfoejEvent(tekst);
 }
 
 // Vis at elevens art er uddød på stationens skærm

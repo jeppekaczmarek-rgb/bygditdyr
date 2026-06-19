@@ -347,8 +347,43 @@ function genererDoedsTekst(dyr, habitat, aarsag) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// Korte individ-dødstekster til event-feedet på stationen
+// Ét præcist led: årsag + koblet egenskab, maks 10 ord
+const KORT_DOED = {
+  frys: e => e.stofskifte === 'lavt'
+    ? 'Koldblodigt i frost — frøs ihjel.'
+    : e.hudtype === 'glat' || e.hudtype === 'skael'
+      ? 'Ingen varmeisolering — frøs ihjel.'
+      : 'Kulden var for hård.',
+  toerke: e => e.hudtype === 'pels'
+    ? 'Pelsen kogte dyret indefra i heden.'
+    : e.stofskifte === 'hojt'
+      ? 'Varmblodigt i ørkenen — overophedede.'
+      : 'Tørken vandt.',
+  jaget: e => e.forsvar === 'ingen'
+    ? 'Intet forsvar — let bytte for et rovdyr.'
+    : e.forsvar === 'flugt'
+      ? 'Flugtforsøget slog fejl — fanget.'
+      : 'Fanget af et rovdyr.',
+  sult: e => e.kost === 'koedaeder'
+    ? 'Kødæder — jagten gav ikke nok mad.'
+    : 'Fandt ikke nok føde.',
+  udmattelse: () => 'Brugte al energi på at flygte — udmattet.',
+  sygdom: () => 'Smittet — for mange ens dyr tæt sammen.',
+  udkonkurreret: e => e.storrelse === 'stor'
+    ? 'For stor krop, for lidt mad — udkonkurreret.'
+    : 'Tabte ressourcekampen til bedre tilpassede dyr.'
+};
+
+// Generer en kort, feedvenlig dødstekst til individ-begivenheder
+function genererKortDoedsTekst(dyr, habitat, aarsag) {
+  const e = dyr.egenskaber || dyr;
+  const fn = KORT_DOED[aarsag];
+  return fn ? fn(e) : 'Overlevede ikke i dette habitat.';
+}
+
 // --- Eksporter til browser ---
-window.DeathText = { genererDoedsTekst };
+window.DeathText = { genererDoedsTekst, genererKortDoedsTekst };
 
 // --- Test ---
 (function() {
