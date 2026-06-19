@@ -172,6 +172,9 @@ function tilfoejDyr(dyr) {
   // Tilfældig startretning
   const vinkel = Math.random() * Math.PI * 2;
 
+  // Stamdyr = første individ af arten (ikke afkom)
+  const erStamdyr = !dyr._afkom && !dyrListe.some(d => d.artsnavn === dyr.artsnavn);
+
   // Habitat-dimensioner
   const bredde = habitatVerden.clientWidth;
   const hoejde = habitatVerden.clientHeight;
@@ -185,6 +188,7 @@ function tilfoejDyr(dyr) {
     ...dyr,
     overlevelsesScore: score,
     levetid: levetid,
+    erStamdyr: erStamdyr,
     // Position (kan overskrives af _startX/_startY for afkom)
     x: dyr._startX ?? (Math.random() * (bredde - 100) + 50),
     y: dyr._startY ?? (Math.random() * (hoejde - 100) + 50),
@@ -1048,6 +1052,18 @@ function draebDyr(dyr, nu, aarsag) {
       levetid: levetidSek,
       doedsTekst: doedsTekst
     });
+  } else {
+    // Individuel død: send kort besked til stationen (bruges i event-feed)
+    const kortTekst = DeathText.genererKortDoedsTekst(dyr, aktivtHabitat, aarsag);
+    Broadcast.send({
+      type: 'DYR_DOEDE_INDIVID',
+      artsnavn: dyr.artsnavn,
+      danskNavn: dyr.danskNavn,
+      aarsag: aarsag,
+      levetid: levetidSek,
+      erStamdyr: dyr.erStamdyr || false,
+      kortTekst: kortTekst
+    });
   }
   // Individuel død: tidslinjen markerer med × (sker automatisk via doedsTid)
 }
@@ -1150,6 +1166,18 @@ function tjekDoed(nu) {
       });
 
       console.log(`ART UDDØD: ${dyr.danskNavn} (${dyr.artsnavn}) — ${doedsTekst}`);
+    } else {
+      // Individuel død: send kort besked til stationen (bruges i event-feed)
+      const kortTekst = DeathText.genererKortDoedsTekst(dyr, aktivtHabitat, aarsag.aarsag);
+      Broadcast.send({
+        type: 'DYR_DOEDE_INDIVID',
+        artsnavn: dyr.artsnavn,
+        danskNavn: dyr.danskNavn,
+        aarsag: aarsag.aarsag,
+        levetid: levetidSek,
+        erStamdyr: dyr.erStamdyr || false,
+        kortTekst: kortTekst
+      });
     }
   }
 
