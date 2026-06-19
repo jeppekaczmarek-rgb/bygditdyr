@@ -305,19 +305,48 @@ function opdaterSpritePreview() {
   dom.spritePreview.innerHTML = Sprites.genererSprite(valg);
 }
 
+// Tegn-ikon og CSS-klasse for et checklistepunkt
+function checklisteTegn(tegn) {
+  if (tegn === 'god')     return { ikon: '✅', klasse: 'check-god' };
+  if (tegn === 'daarlig') return { ikon: '❌', klasse: 'check-daarlig' };
+  return                         { ikon: '➖', klasse: 'check-neutral' };
+}
+
+// Generer HTML til egenskabs-checklisten (bekræftelse + live-status)
+function genererChecklisteHTML(egenskaber, habitat) {
+  const forklaringer = Survival.forklarEgenskaber({ egenskaber }, habitat);
+  return forklaringer.map(f => {
+    const { ikon, klasse } = checklisteTegn(f.tegn);
+    const kategoriNavn = KATEGORI_NAVNE[f.kategori] || f.kategori;
+    const vaerdiNavn   = VAERDI_NAVNE[f.vaerdi]     || f.vaerdi;
+    const scoreLabel   = f.score !== 0 ? ` (${f.score > 0 ? '+' : ''}${f.score})` : '';
+    return `
+      <div class="check-linje ${klasse}">
+        <span class="check-ikon">${ikon}</span>
+        <span class="check-tekst">
+          <strong>${kategoriNavn}: ${vaerdiNavn}</strong>${scoreLabel}
+          ${f.forklaring ? `<br><span class="check-forklaring">${f.forklaring}</span>` : ''}
+        </span>
+      </div>
+    `;
+  }).join('');
+}
+
 // --- Bekræftelsesskærm ---
 function visBekraeftelse() {
   const artsnavn = Names.genererArtsnavn(valg);
   const danskNavn = Names.genererDanskNavn(valg);
   dom.artsnavnDisplay.innerHTML = `${artsnavn}<br><span class="dansk-navn">${danskNavn}</span>`;
 
-  // Valgoversigt
-  dom.valgOversigt.innerHTML = BYGGETRIN.map(trin => `
-    <div class="valg-linje">
-      <span class="valg-linje-kategori">${KATEGORI_NAVNE[trin.kategori]}</span>
-      <span class="valg-linje-vaerdi">${VAERDI_NAVNE[valg[trin.kategori]]}</span>
-    </div>
-  `).join('');
+  // Egenskabs-checklist med habitat-match (erstatter simpel valg-oversigt)
+  const score = Survival.beregnHabitatScore({ egenskaber: valg }, aktivtHabitat);
+  const levetidSek = Survival.beregnOverlevelsestid(score);
+  const habitatNavn = HABITAT_DATA[aktivtHabitat]?.navn || aktivtHabitat;
+  dom.valgOversigt.innerHTML = `
+    <p class="check-overskrift">DIT DYR I ${habitatNavn.toUpperCase()}</p>
+    ${genererChecklisteHTML(valg, aktivtHabitat)}
+    <p class="check-bundlinje">Samlet: din art starter på <strong>${levetidSek} sekunder</strong></p>
+  `;
 
   dom.energiBrugt.textContent = beregnBrugtEnergi();
   visSkaerm('bekraeftelse');
@@ -492,6 +521,10 @@ function opdaterLiveStatus(arter) {
     const netto = Oekonomi.beregnNetto(r);
     const I = Oekonomi.RESSOURCE_IKON;
     const nettoKlasse = netto > 0 ? 'positiv' : netto < 0 ? 'negativ' : '';
+    // Egenskabs-checklist (kompakt, kun ikon + vaerdinavn + forklaring)
+    const checkHTML = status.egenskaber
+      ? genererChecklisteHTML(status.egenskaber, aktivtHabitat)
+      : '';
     dom.liveStatus.classList.remove('doed');
     dom.liveStatus.innerHTML = `
       <h3>Din art lige nu</h3>
@@ -502,6 +535,7 @@ function opdaterLiveStatus(arter) {
         <span class="live-res-stats">${I.planter} ${r.planter} &nbsp; ${I.bytte} ${r.bytte} &nbsp; ${I.flugt} ${r.flugt} &nbsp; ${I.angreb} ${r.angreb}</span>
         <span class="live-res-netto ${nettoKlasse}">Netto ${netto > 0 ? '+' : ''}${netto}</span>
       </div>
+      ${checkHTML ? `<details class="live-checklist"><summary>Egenskaber i dette habitat</summary>${checkHTML}</details>` : ''}
     `;
   } else {
     // Ingen levende endnu (eller lige forsvundet) — vis afventende status

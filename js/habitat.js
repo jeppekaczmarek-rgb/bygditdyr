@@ -1493,7 +1493,8 @@ function sendArterStatus(nu) {
       antal: 0,
       aeldsteSek: 0,
       afkom: fodselTael[d.artsnavn] || 0,
-      res: Oekonomi.nytRegnskab()       // samlet ressource-regnskab for arten
+      res: Oekonomi.nytRegnskab(),      // samlet ressource-regnskab for arten
+      egenskaber: d.egenskaber          // egenskaber til checklist på stationen
     });
     a.antal++;
     a.res = Oekonomi.laegSammen(a.res, d.ressourcer);
