@@ -106,6 +106,11 @@ let simStart = performance.now();
 let sidsteFrame = simStart;
 let scoreboard = null;         // Initialiseres i init()
 
+// Sæsontilstand — personalets indstilling fra indstillinger.html
+// 'stille' | 'auto' | 'myldretid' — gemmes i localStorage['saeson']
+let sæsonTilstand = localStorage.getItem('saeson') || 'auto';
+let sidsteSæsonLæs = 0;
+
 // Live-feedback til stationerne
 let fodselTael = {};           // artsnavn → samlet antal fødsler
 let artEventTid = {};          // artsnavn → { event: tidspunkt } (throttling)
@@ -361,22 +366,40 @@ const NPC_COOLDOWN = 20000; // ms mellem NPC-tjek
 function tjekNpcSpawn(nu) {
   if (nu - sidsteNpcTjek < NPC_COOLDOWN) return;
   sidsteNpcTjek = nu;
-  const { arter } = maalBelastning();
-  const harNpc = dyrListe.some(d => d._npc && !d.doedsTid);
-  if (arter < 2 && !harNpc) {
-    const defs = NPC_DEFS[aktivtHabitat] || [];
-    const def = defs[Math.floor(Math.random() * defs.length)];
-    if (!def) return;
-    const npc = {
-      id: crypto.randomUUID(),
-      artsnavn: `NPC_${def.danskNavn.replace(/ /g, '_')}`,
-      danskNavn: def.danskNavn,
-      egenskaber: { ...def.egenskaber },
-      _npc: true
-    };
-    tilfoejDyr(npc);
-    console.log(`NPC spawnet: ${npc.danskNavn}`);
+
+  const { individer } = maalBelastning();
+  const defs = NPC_DEFS[aktivtHabitat] || [];
+  if (!defs.length) return;
+
+  // Maks NPCer afhænger af sæsontilstand + antal levende spillerdyr
+  let maksNpc;
+  if (sæsonTilstand === 'myldretid') {
+    maksNpc = 0; // nok dyr i forvejen
+  } else if (sæsonTilstand === 'stille') {
+    maksNpc = individer <= 5 ? 2 : 0;
+  } else {
+    // auto: 2 NPCer ved meget lav belastning, 1 ved lav
+    maksNpc = individer <= 1 ? 2 : individer <= 3 ? 1 : 0;
   }
+
+  const aktiveNpc = dyrListe.filter(d => d._npc && !d.doedsTid);
+  if (aktiveNpc.length >= maksNpc) return;
+
+  // Vælg NPC-type aktivt: sørg for én kødæder + én planteæder ved 2 NPCer
+  const harKoeNpc = aktiveNpc.some(d => d.egenskaber.kost === 'koedaeder');
+  const oensketKost = harKoeNpc ? 'planteaeder' : 'koedaeder';
+  const def = defs.find(d => d.egenskaber.kost === oensketKost)
+           || defs[Math.floor(Math.random() * defs.length)];
+
+  const npc = {
+    id: crypto.randomUUID(),
+    artsnavn: `NPC_${def.danskNavn.replace(/ /g, '_')}`,
+    danskNavn: def.danskNavn,
+    egenskaber: { ...def.egenskaber },
+    _npc: true
+  };
+  tilfoejDyr(npc);
+  console.log(`NPC spawnet: ${npc.danskNavn} (sæson: ${sæsonTilstand}, individer: ${individer})`);
 }
 
 // ============================================================
@@ -790,10 +813,20 @@ function bevægHvile(dyr, dt, fart) {
 // JAGT — fangst-resolution (bevægelse styres af tilstandsmaskinen)
 // ============================================================
 function opdaterJagt(nu) {
+  // Dynamisk jagt-takt: skalerer opad med antal rovdyr for at undgå jagt-kaos
+  const rovdyrAntal = dyrListe.filter(d => !d.doedsTid && d.egenskaber.kost === 'koedaeder').length;
+  const sæsonMult = sæsonTilstand === 'stille' ? 0.7 : sæsonTilstand === 'myldretid' ? 2.0 : 1.0;
+  const jagtCooldown = JAGT_COOLDOWN * Math.max(1, rovdyrAntal / 3) * sæsonMult;
+  // Maks simultane fangster pr. frame: én pr. 3 rovdyr (undgår jagt-storm)
+  const maksJagterPerFrame = Math.max(1, Math.ceil(rovdyrAntal / 3));
+  let jagtTael = 0;
+
   for (const jaeger of dyrListe) {
     if (jaeger.doedsTid) continue;
     if (jaeger.tilstand !== 'JAGER' || !jaeger.jagtMaal) continue;
-    if (nu - jaeger.sidsteJagt < JAGT_COOLDOWN) continue;
+    if (nu - jaeger.sidsteJagt < jagtCooldown) continue;
+    if (jagtTael >= maksJagterPerFrame) continue; // global begrænsning pr. frame
+    jagtTael++;
 
     const bytte = hentDyr(jaeger.jagtMaal);
     if (!bytte) continue;
@@ -1683,9 +1716,18 @@ function renderTidslinje() {
 // ============================================================
 // HOVEDLOOP
 // ============================================================
+// Læs sæsontilstand fra localStorage hvert 10. sekund
+function opdaterSæsonTilstand(nu) {
+  if (nu - sidsteSæsonLæs < 10000) return;
+  sidsteSæsonLæs = nu;
+  sæsonTilstand = localStorage.getItem('saeson') || 'auto';
+}
+
 function simulationsLoop(timestamp) {
   const dt = Math.min((timestamp - sidsteFrame) / 1000, 0.1); // max 100ms step
   sidsteFrame = timestamp;
+
+  opdaterSæsonTilstand(timestamp);
 
   // v2: opdater kaskade-bonus → tilstandsmaskine → konkurrence før bevægelse
   opdaterKaskade();
