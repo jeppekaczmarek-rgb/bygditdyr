@@ -566,6 +566,7 @@ function beregnDetektionsRadius(dyr) {
   let r = DETEKT_BASE;                              // 150px basis
   const e = dyr.egenskaber;
   if (e.aktivitet === 'dagaktiv') r += 50;          // ser bedre i dagslys
+  if (e.aktivitet === 'nataktiv') r += 25;          // skærpede sanser i mørke: tradeoff mod lavere fourageRadius
   if (e.forsvar === 'flugt') r += 40;               // sky, holder altid udkig
   if (e.storrelse === 'lille') r += 30;             // byttevilkår → ekstra vagtsom
   if (e.forsvar === 'giftig' || e.forsvar === 'pigge') r -= 20; // konfident
@@ -577,6 +578,7 @@ function beregnFourageringsRadius(dyr) {
   let r = FOURAGER_BASE;                            // 120px basis
   const e = dyr.egenskaber;
   if (e.stofskifte === 'hojt') r += 50;             // sulten, leder aktivt
+  if (e.aktivitet === 'nataktiv') r -= 20;          // sværere at finde mad visuelt i mørke
   if (e.kost === 'planteaeder') r += 30;            // planter er statiske, nemme
   if (e.storrelse === 'stor') r += 40;              // skal spise mere
   return r;
