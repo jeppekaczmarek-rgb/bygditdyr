@@ -86,11 +86,12 @@ body {
   pointer-events: none;
 }
 
-/* Dyr-container: absolut positioneret overlay */
+/* Dyr-container: absolut positioneret overlay — z-index 3 for at ligge over dag/nat-overlay */
 #dyr-container, #doed-container {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 3;
 }
 
 /* ============================================================
@@ -119,9 +120,9 @@ body {
   display: block;
 }
 
-/* Jagt: rødlig glød rundt om rovdyret */
+/* Jagt: rødlig glød rundt om rovdyret — stor og tydelig fra 3 meter */
 .habitat-dyr.jager .dyr-sprite {
-  filter: drop-shadow(0 0 4px rgba(200, 60, 40, 0.5));
+  filter: drop-shadow(0 0 10px rgba(200, 60, 40, 0.85)) drop-shadow(0 0 4px rgba(200, 60, 40, 0.5));
 }
 
 /* Svagt dyr: rødlig pulserende glød */
@@ -137,7 +138,7 @@ body {
 .dyr-label {
   font-family: 'Inter', sans-serif;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1.1rem;  /* hævet 0.95→1.1: læsbar fra 3 meter */
   color: var(--tekst-lys);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   white-space: nowrap;
@@ -159,20 +160,20 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Formeringsbar under sprite */
+/* Formeringsbar under sprite — større så den er synlig fra 3 meter */
 .formering-bar {
-  width: 20px;
-  height: 3px;
+  width: 36px;
+  height: 8px;  /* hævet 3→8px */
   background: rgba(0, 0, 0, 0.4);
-  border-radius: 2px;
+  border-radius: 4px;
   overflow: hidden;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 .formering-fyld {
   height: 100%;
-  background: var(--mosgroen);
-  border-radius: 2px;
+  background: var(--okker);
+  border-radius: 4px;
   transition: width 0.3s linear;
 }
 
@@ -257,16 +258,17 @@ body {
 /* ============================================================
    v2 — TILSTANDSINDIKATOR (biologisk AI-cue over dyret)
    ============================================================ */
+/* Tilstandsindikator — hævet 7→20px og fast farve (synlig fra 3 meter) */
 .tilstand-indikator {
   position: absolute;
-  top: -10px;
+  top: -16px;
   left: 50%;
-  width: 7px;
-  height: 7px;
-  margin-left: -3.5px;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
   border-radius: 50%;
   pointer-events: none;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
   transition: background 0.2s ease, opacity 0.2s ease;
   z-index: 2;
 }
@@ -274,28 +276,25 @@ body {
 /* HVILER: ingen indikator */
 .tilstand-indikator.cue-skjult { opacity: 0; }
 
-/* FLUGTER: blinkende rød */
+/* FLUGTER: klar rød — fast farve, tydeligere end blink fra afstand */
 .tilstand-indikator.cue-flugt {
   background: #e0483a;
+  box-shadow: 0 0 8px rgba(224, 72, 58, 0.8);
   opacity: 1;
-  animation: cue-blink 0.5s steps(2, jump-none) infinite;
 }
 
-/* FOURAGER: rolig grøn */
+/* FOURAGER: klar grøn */
 .tilstand-indikator.cue-fourager {
   background: #6aaa3a;
+  box-shadow: 0 0 8px rgba(106, 170, 58, 0.7);
   opacity: 1;
 }
 
-/* JAGER: vagtsom orange */
+/* JAGER: klar orange */
 .tilstand-indikator.cue-jagt {
-  background: #e8a23a;
+  background: #f97316;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.9);
   opacity: 1;
-}
-
-@keyframes cue-blink {
-  0%   { opacity: 1; }
-  100% { opacity: 0.35; }
 }
 
 /* v2 — Konkurrence-mærke ("Bortjaget!") */
@@ -623,22 +622,8 @@ body {
   font-style: italic;
 }
 
-/* Lille netto-badge over hvert dyr i verdenen */
-.res-badge {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 1px 4px;
-  border-radius: 6px;
-  margin-bottom: 1px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-  pointer-events: none;
-}
-
-.res-badge:empty { display: none; }
-.res-badge.positiv { color: #d8ffce; background: rgba(70, 130, 50, 0.6); }
-.res-badge.negativ { color: #ffe0d6; background: rgba(150, 60, 40, 0.6); }
+/* Res-badge skjult — støj usynlig fra 3 meter; info er i ressource-tavlen */
+.res-badge { display: none; }
 
 /* ============================================================
    FORTÆLLER-STRIBE
@@ -746,19 +731,177 @@ body {
   50%       { box-shadow: inset 0 0 32px 8px rgba(192, 57, 43, 0.35); }
 }
 
-/* ============================================================
-   NICHE-MARKERING — farvet ◆ efter dyr-label for konkurrenter
-   Opdateres hvert 3. sekund af opdaterNicheMarkering()
-   ============================================================ */
+/* NICHE-MARKERING: diamanter skjult — usynlige fra 3 meter; konkurrence
+   formidles via fortæller-striben i stedet. Klasser bevares i JS-logikken. */
 .habitat-dyr.niche-a .dyr-label::after,
 .habitat-dyr.niche-b .dyr-label::after,
 .habitat-dyr.niche-c .dyr-label::after,
 .habitat-dyr.niche-d .dyr-label::after {
-  content: ' ◆';
-  font-size: 0.6em;
-  vertical-align: middle;
+  display: none;
 }
-.habitat-dyr.niche-a .dyr-label::after { color: #f59e0b; }
-.habitat-dyr.niche-b .dyr-label::after { color: #22d3ee; }
-.habitat-dyr.niche-c .dyr-label::after { color: #4ade80; }
-.habitat-dyr.niche-d .dyr-label::after { color: #f472b6; }
+
+/* ============================================================
+   DAG/NAT-CYKLUS — blå overlay der slår ind om natten
+   Cyklus: 60s dag → 30s nat → 60s dag ... (90s total)
+   Toggle via .er-nat på #habitat-verden fra habitat.js
+   ============================================================ */
+#habitat-verden::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 40, 0);
+  pointer-events: none;
+  z-index: 2;
+  transition: background 15s ease;
+}
+
+#habitat-verden.er-nat::after {
+  background: rgba(10, 10, 40, 0.42);
+}
+
+/* Nataktive dyr: grøn glød om natten (de er i deres element) */
+#habitat-verden.er-nat .habitat-dyr.nataktiv .dyr-sprite {
+  filter: drop-shadow(0 0 10px rgba(80, 200, 80, 0.8));
+}
+
+/* ============================================================
+   HABITAT-ATMOSFÆRE — subtil åndedrætspuls per habitat-type
+   Bruger ::before da ::after er optaget af dag/nat
+   ============================================================ */
+#habitat-verden::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#habitat-verden.skov::before {
+  background: radial-gradient(ellipse at 50% 0%, rgba(40, 80, 20, 0.18) 0%, transparent 65%);
+  animation: habitat-aande 7s ease-in-out infinite;
+}
+
+#habitat-verden.arktis::before {
+  background: radial-gradient(ellipse at 50% 0%, rgba(150, 200, 255, 0.12) 0%, transparent 65%);
+  animation: habitat-aande 9s ease-in-out infinite;
+}
+
+#habitat-verden.oerken::before {
+  background: radial-gradient(ellipse at 50% 100%, rgba(220, 160, 40, 0.14) 0%, transparent 65%);
+  animation: habitat-aande 11s ease-in-out infinite;
+}
+
+@keyframes habitat-aande {
+  0%, 100% { opacity: 0; }
+  50%       { opacity: 1; }
+}
+
+/* ============================================================
+   SPEKTAKEL-EFFEKTER — store synlige øjeblikke
+   ============================================================ */
+
+/* Hvid flash ved fangst */
+.fangst-flash-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.13);
+  pointer-events: none;
+  z-index: 80;
+  animation: fangst-flash 0.25s ease-out forwards;
+}
+
+@keyframes fangst-flash {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Stor center-celebration ved ny generation */
+.formering-celebration {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--okker-lys);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.62);
+  padding: 0.8rem 2rem;
+  border-radius: 18px;
+  border: 2px solid var(--okker);
+  pointer-events: none;
+  z-index: 70;
+  white-space: nowrap;
+  animation: celebration-fade 2.5s ease-out forwards;
+}
+
+@keyframes celebration-fade {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  25%  { transform: translate(-50%, -50%) scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -60%); }
+}
+
+/* Hjerter der flyver ud fra forælderen */
+.celebration-hjerte {
+  position: absolute;
+  font-size: 1.6rem;
+  pointer-events: none;
+  z-index: 65;
+  color: #f472b6;
+  text-shadow: 0 0 6px rgba(244, 114, 182, 0.8);
+  animation: hjerte-flyv 1.5s ease-out forwards;
+}
+
+@keyframes hjerte-flyv {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1.2); }
+  100% { opacity: 0; transform: translate(var(--vx), var(--vy)) scale(0.4); }
+}
+
+/* Sort mørkning ved artsudslettelse */
+.sort-fade-overlay {
+  position: fixed;
+  inset: 0;
+  background: black;
+  pointer-events: none;
+  z-index: 100;
+  animation: sort-fade 0.9s ease-in-out forwards;
+}
+
+@keyframes sort-fade {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.65; }
+  65%  { opacity: 0.65; }
+  100% { opacity: 0; }
+}
+
+/* Population-milepæl */
+.milepael-overlay {
+  position: absolute;
+  bottom: 28%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #4ade80;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.65);
+  padding: 0.6rem 1.8rem;
+  border-radius: 16px;
+  border: 2px solid #4ade80;
+  pointer-events: none;
+  z-index: 70;
+  white-space: nowrap;
+  animation: milepael-fade 2.2s ease-out forwards;
+}
+
+@keyframes milepael-fade {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-18px); }
+}
