@@ -10,54 +10,54 @@ const BYGGETRIN = [
     kategori: 'stofskifte',
     titel: 'Stofskifte',
     valg: [
-      { vaerdi: 'hojt', emoji: '🔥', navn: 'Højt stofskifte', beskrivelse: 'Holder selv varmen — men bruger meget energi' },
-      { vaerdi: 'lavt', emoji: '🧊', navn: 'Lavt stofskifte', beskrivelse: 'Bruger solens varme — sparsomt og effektivt' }
+      { vaerdi: 'hojt', emoji: '🔥', navn: 'Højt stofskifte', beskrivelse: 'Holder selv varmen — som en ulv. Energikrævende, men aktiv i frost.' },
+      { vaerdi: 'lavt', emoji: '🧊', navn: 'Lavt stofskifte', beskrivelse: 'Bruger solens varme gratis — som en firben. Hjælpeløs i kulde.' }
     ]
   },
   {
     kategori: 'hudtype',
     titel: 'Hudtype',
     valg: [
-      { vaerdi: 'pels',  emoji: '🧥', navn: 'Pels',     beskrivelse: 'God varmeisolering' },
-      { vaerdi: 'skael', emoji: '🐟', navn: 'Skæl',     beskrivelse: 'Vandtæt og varmeresistent' },
-      { vaerdi: 'fjer',  emoji: '🪶', navn: 'Fjer',     beskrivelse: 'Isolerer og giver mobilitet' },
-      { vaerdi: 'glat',  emoji: '🦎', navn: 'Glat hud', beskrivelse: 'Simpel — men sprød' }
+      { vaerdi: 'pels',  emoji: '🧥', navn: 'Pels',     beskrivelse: 'Holder på kropsvarmen. Perfekt i kulde — en katastrofe i ørken.' },
+      { vaerdi: 'skael', emoji: '🐟', navn: 'Skæl',     beskrivelse: 'Låser fugten inde og tåler stegende sol. Krybdyrenes ørken-trick.' },
+      { vaerdi: 'fjer',  emoji: '🪶', navn: 'Fjer',     beskrivelse: 'Isolerer og vejer næsten ingenting. God i mange habitater.' },
+      { vaerdi: 'glat',  emoji: '🦎', navn: 'Glat hud', beskrivelse: 'Smidig og hurtig. Klarer sig i fugtige miljøer — kæmper i ekstremerne.' }
     ]
   },
   {
     kategori: 'kost',
     titel: 'Kost',
     valg: [
-      { vaerdi: 'planteaeder', emoji: '🌿', navn: 'Planteæder', beskrivelse: 'Let tilgængeligt, men næringsfattigt' },
-      { vaerdi: 'koedaeder',   emoji: '🥩', navn: 'Kødæder',   beskrivelse: 'Næringsrigt, men kræver jagt' },
-      { vaerdi: 'alleaeder',   emoji: '🍽️', navn: 'Alleæder',   beskrivelse: 'Fleksibel — men ingen specialisering' }
+      { vaerdi: 'planteaeder', emoji: '🌿', navn: 'Planteæder', beskrivelse: 'Planter er let tilgængelige — men næringsfattige. Du bruger meget tid på at spise.' },
+      { vaerdi: 'koedaeder',   emoji: '🥩', navn: 'Kødæder',   beskrivelse: 'Kød giver masser af energi — men hver jagt kan slå fejl.' },
+      { vaerdi: 'alleaeder',   emoji: '🍽️', navn: 'Alleæder',   beskrivelse: 'Fleksibel som en krage. Ikke specialiseret — men aldrig uden mad.' }
     ]
   },
   {
     kategori: 'storrelse',
     titel: 'Størrelse',
     valg: [
-      { vaerdi: 'lille',  emoji: '🐭', navn: 'Lille',  beskrivelse: 'Let at gemme sig, taber varme hurtigt' },
-      { vaerdi: 'mellem', emoji: '🐺', navn: 'Mellem', beskrivelse: 'God balance' },
-      { vaerdi: 'stor',   emoji: '🦣', navn: 'Stor',   beskrivelse: 'Bevarer varme, svær at skjule' }
+      { vaerdi: 'lille',  emoji: '🐭', navn: 'Lille',  beskrivelse: 'Let at gemme sig. Taber varme hurtigt — men hurtig og sparsommelig.' },
+      { vaerdi: 'mellem', emoji: '🐺', navn: 'Mellem', beskrivelse: 'God balance mellem varme, fart og fødebehov.' },
+      { vaerdi: 'stor',   emoji: '🦣', navn: 'Stor',   beskrivelse: 'Bevarer varmen bedst. Men kræver enorm mængde mad — svær at skjule.' }
     ]
   },
   {
     kategori: 'aktivitet',
     titel: 'Aktivitetstid',
     valg: [
-      { vaerdi: 'dagaktiv', emoji: '☀️', navn: 'Dagaktiv', beskrivelse: 'Udnytter lyset — men synlig for rovdyr' },
-      { vaerdi: 'nataktiv', emoji: '🌙', navn: 'Nataktiv', beskrivelse: 'Undgår mange rovdyr — men svært i mørketid' }
+      { vaerdi: 'dagaktiv', emoji: '☀️', navn: 'Dagaktiv', beskrivelse: 'Udnytter lyset og varmen. Synlig for rovdyr — men produktiv.' },
+      { vaerdi: 'nataktiv', emoji: '🌙', navn: 'Nataktiv', beskrivelse: 'Undgår varme og mange rovdyr. Svagt i arktis mørketid.' }
     ]
   },
   {
     kategori: 'forsvar',
     titel: 'Forsvar',
     valg: [
-      { vaerdi: 'giftig', emoji: '☠️',  navn: 'Giftig',       beskrivelse: 'Effektivt — men biologisk dyrt at producere' },
-      { vaerdi: 'pigge',  emoji: '🦔', navn: 'Pigge',        beskrivelse: 'Solid beskyttelse' },
-      { vaerdi: 'flugt',  emoji: '🏃', navn: 'Hurtig flugt', beskrivelse: 'Undviger angreb' },
-      { vaerdi: 'ingen',  emoji: '🚫', navn: 'Intet forsvar', beskrivelse: 'Risikabelt — men sparer energi' }
+      { vaerdi: 'giftig', emoji: '☠️',  navn: 'Giftig',       beskrivelse: 'Rovdyr lærer at holde sig væk. Men gift er biologisk dyrt at producere.' },
+      { vaerdi: 'pigge',  emoji: '🦔', navn: 'Pigge',        beskrivelse: 'Solid fysisk beskyttelse. Som en pindsvin — virker i næsten alle habitater.' },
+      { vaerdi: 'flugt',  emoji: '🏃', navn: 'Hurtig flugt', beskrivelse: 'Undviger angreb med fart. Kræver energi — og et sted at løbe hen.' },
+      { vaerdi: 'ingen',  emoji: '🚫', navn: 'Intet forsvar', beskrivelse: 'Sparer energi — men ethvert rovdyr er en dødelig trussel.' }
     ]
   }
 ];
@@ -366,7 +366,18 @@ function genererChecklisteHTML(egenskaber, habitat) {
 function visBekraeftelse() {
   const artsnavn = Names.genererArtsnavn(valg);
   const danskNavn = Names.genererDanskNavn(valg);
-  dom.artsnavnDisplay.innerHTML = `${artsnavn}<br><span class="dansk-navn">${danskNavn}</span>`;
+
+  // Linné-navn med nedbrydning af hvert led
+  const navneLed = Names.forklarArtsnavn(artsnavn);
+  const navneForklaring = navneLed.map(l =>
+    `<span class="linne-led"><em>${l.led}</em> = <span class="linne-bety">${l.betydning}</span></span>`
+  ).join(' &nbsp;·&nbsp; ');
+
+  dom.artsnavnDisplay.innerHTML = `
+    <span class="artsnavn-latin">${artsnavn}</span>
+    <span class="dansk-navn">${danskNavn}</span>
+    <span class="linne-forklaring">${navneForklaring}</span>
+  `;
 
   // Egenskabs-checklist med habitat-match (erstatter simpel valg-oversigt)
   const score = Survival.beregnHabitatScore({ egenskaber: valg }, aktivtHabitat);

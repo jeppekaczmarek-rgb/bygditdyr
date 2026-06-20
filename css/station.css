@@ -448,12 +448,30 @@ body {
   color: var(--okker);
 }
 
-.artsnavn {
+.artsnavn, .artsnavn-latin {
   font-family: 'Playfair Display', Georgia, serif;
   font-style: italic;
   font-size: 1.6rem;
   color: var(--okker-lys);
   letter-spacing: 0.02em;
+  display: block;
+}
+
+.linne-forklaring {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--tekst-dempet);
+  margin-top: 0.3rem;
+  line-height: 1.7;
+}
+
+.linne-led em {
+  font-style: italic;
+  color: var(--okker);
+}
+
+.linne-bety {
+  color: var(--tekst-dempet);
 }
 
 .dansk-navn {

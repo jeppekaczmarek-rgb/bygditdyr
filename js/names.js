@@ -112,8 +112,69 @@ function genererDanskNavn(egenskaber) {
   return `${adj} ${dyr}`;
 }
 
+// --- Ordbog: betydning af hvert navneled ---
+// Bruges til at bryde Linné-navnet ned på bekræftelsesskærmen
+const NAVNE_ORDBOG = {
+  genus: {
+    Parvocalor:  { led: 'Parvocalor',  betydning: 'parvus = lille · calor = varm (varmblodigt)' },
+    Parvofrigo:  { led: 'Parvofrigo',  betydning: 'parvus = lille · frigo = koldt (koldblodigt)' },
+    Mediocalor:  { led: 'Mediocalor',  betydning: 'medius = medium · calor = varm (varmblodigt)' },
+    Mediofrigo:  { led: 'Mediofrigo',  betydning: 'medius = medium · frigo = koldt (koldblodigt)' },
+    Magnocalor:  { led: 'Magnocalor',  betydning: 'magnus = stor · calor = varm (varmblodigt)' },
+    Magnofrigo:  { led: 'Magnofrigo',  betydning: 'magnus = stor · frigo = koldt (koldblodigt)' }
+  },
+  forsvar: {
+    venenatus: { led: 'venenatus', betydning: 'venenum = gift — giftig' },
+    spinosus:  { led: 'spinosus',  betydning: 'spina = pigge — med pigge' },
+    fugax:     { led: 'fugax',     betydning: 'fuga = flugt — hurtig flygtning' }
+  },
+  hud: {
+    pilus:  { led: 'pilus',  betydning: 'pilus = hår — pelsdækket' },
+    squama: { led: 'squama', betydning: 'squama = skæl — skældækket' },
+    pluma:  { led: 'pluma',  betydning: 'pluma = fjer — fjerdækket' },
+    levis:  { led: 'levis',  betydning: 'levis = glat — glat hud' }
+  },
+  kost: {
+    herbivor: { led: 'herbivorus', betydning: 'herba = plante · vorare = æde — planteæder' },
+    carnivor: { led: 'carnivorus', betydning: 'caro = kød · vorare = æde — kødæder' },
+    omnivor:  { led: 'omnivorus',  betydning: 'omnis = alt · vorare = æde — alleæder' }
+  }
+};
+
+// Bryd et Linneansk artsnavn ned i dets betydningsled
+// Returnerer [{ led, betydning }, ...]
+function forklarArtsnavn(artsnavn) {
+  const dele = artsnavn.trim().split(/\s+/);
+  const resultat = [];
+
+  // Genus (første led)
+  const genus = NAVNE_ORDBOG.genus[dele[0]];
+  if (genus) resultat.push(genus);
+
+  // Forsvar-præfiks (evt. andet led)
+  if (dele.length === 3) {
+    const forsvar = NAVNE_ORDBOG.forsvar[dele[1]];
+    if (forsvar) resultat.push(forsvar);
+  }
+
+  // Artsepitet (sidste led) — del det i hud + kost
+  const epitet = dele[dele.length - 1];
+  for (const [rod, info] of Object.entries(NAVNE_ORDBOG.hud)) {
+    if (epitet.startsWith(rod)) {
+      resultat.push(info);
+      const rest = epitet.slice(rod.length);
+      // rest = herbivorus / carnivorus / omnivorus
+      for (const [suf, kinfo] of Object.entries(NAVNE_ORDBOG.kost)) {
+        if (rest.startsWith(suf)) { resultat.push(kinfo); break; }
+      }
+      break;
+    }
+  }
+  return resultat;
+}
+
 // --- Eksporter til browser ---
-window.Names = { genererArtsnavn, genererDanskNavn };
+window.Names = { genererArtsnavn, genererDanskNavn, forklarArtsnavn };
 
 // --- Test ---
 (function() {

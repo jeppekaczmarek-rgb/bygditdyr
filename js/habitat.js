@@ -1232,6 +1232,67 @@ function visArtsudslettelse(dyr, levetidSek, doedsTekst) {
 }
 
 // ============================================================
+// FORTÆLLER-STRIBE
+// Viser ét stort øjeblik ad gangen — throttlet, biologisk sprog
+// ============================================================
+let fortaellerEl = null;
+let fortaellerTid = 0;
+const FORTAELLER_VARIGHED = 5000; // ms synlig
+const FORTAELLER_COOLDOWN = 12000; // ms mellem fortæller-beskeder
+
+function visFortaeller(tekst) {
+  if (!fortaellerEl) fortaellerEl = document.getElementById('fortaeller-stribe');
+  if (!fortaellerEl) return;
+  const nu = performance.now();
+  if (nu - fortaellerTid < FORTAELLER_COOLDOWN) return;
+  fortaellerTid = nu;
+
+  fortaellerEl.textContent = tekst;
+  fortaellerEl.classList.remove('fortaeller-skjult');
+  clearTimeout(fortaellerEl._timer);
+  fortaellerEl._timer = setTimeout(() => {
+    if (fortaellerEl) fortaellerEl.classList.add('fortaeller-skjult');
+  }, FORTAELLER_VARIGHED);
+}
+
+// Kaldes fra simulationsloopet ved nøglebegivenheder
+function tjekFortaellerBegivenheder(nu) {
+  const levende = dyrListe.filter(d => !d.doedsTid);
+  const antalArter = new Set(levende.map(d => d.artsnavn)).size;
+  const antalIndivider = levende.length;
+
+  // Første kødæder ankommer
+  if (!fortaellerFlags.foersteKoedaeder && levende.some(d => d.egenskaber.kost === 'koedaeder')) {
+    fortaellerFlags.foersteKoedaeder = true;
+    visFortaeller('Et rovdyr er ankommet. Nu er planteæderne ikke længere alene.');
+  }
+
+  // Mange ens dyr tæt sammen (monokultur-advarsel)
+  const tael = {};
+  for (const d of levende) tael[d.artsnavn] = (tael[d.artsnavn] || 0) + 1;
+  const storsteArt = Math.max(...Object.values(tael), 0);
+  if (storsteArt >= 8 && !fortaellerFlags.monokuluturAdvaret) {
+    fortaellerFlags.monokuluturAdvaret = true;
+    visFortaeller('Mange ens dyr tæt sammen. I naturen er det farligt — sygdom spreder sig let.');
+  }
+  if (storsteArt < 5) fortaellerFlags.monokuluturAdvaret = false; // nulstil når arten falder
+
+  // Trofisk kaskade aktiveret
+  if (trofiskKaskade && !fortaellerFlags.kaskadeVist) {
+    fortaellerFlags.kaskadeVist = true;
+    visFortaeller('Et stort rovdyr dominerer habitatet — alle planteædere er på vagt. Planterne vokser tilbage.');
+  }
+  if (!trofiskKaskade) fortaellerFlags.kaskadeVist = false;
+}
+
+// State-flags til fortæller-throttling
+const fortaellerFlags = {
+  foersteKoedaeder: false,
+  monokuluturAdvaret: false,
+  kaskadeVist: false
+};
+
+// ============================================================
 // SPRITE-ANIMATION (frame cycling)
 // ============================================================
 function opdaterAnimation(nu) {
@@ -1491,6 +1552,7 @@ function simulationsLoop(timestamp) {
   opdaterSygdom(timestamp);
   tjekDoed(timestamp);
   sendArterStatus(timestamp);
+  tjekFortaellerBegivenheder(timestamp);
   if (window.Telemetri) Telemetri.tik(dyrListe, dt, timestamp, trofiskKaskade);
   opdaterAnimation(timestamp);
   renderPlanter();
@@ -1506,14 +1568,18 @@ function simulationsLoop(timestamp) {
 // Stationen matcher på artsnavn og viser status/events/scoreboard.
 // ============================================================
 
-// Korte, børnevenlige event-tekster (bruger artens danske navn)
+// Event-tekster: fortæller HVORFOR, ikke kun hvad der sker
 const EVENT_TEKST = {
-  ankom:    d => `🐾 ${d.danskNavn} ankom til habitatet`,
-  spiser:   d => `🌿 ${d.danskNavn} leder efter mad`,
-  jager:    d => `🎯 ${d.danskNavn} jager et bytte`,
-  flygter:  d => `💨 ${d.danskNavn} flygter fra fare`,
-  foedsel:  d => `💕 ${d.danskNavn} fik et afkom`,
-  jaget:    d => `⚠️ ${d.danskNavn} blev fanget af et rovdyr`
+  ankom:   d => `🐾 ${d.danskNavn} er sendt ud i habitatet — nu afgør naturen om den slags klarer sig`,
+  spiser:  d => d.egenskaber.kost === 'planteaeder'
+    ? `🌿 ${d.danskNavn} æder planter — planteædere bruger meget tid på at samle nok energi`
+    : d.egenskaber.kost === 'koedaeder'
+      ? `🎯 ${d.danskNavn} jager — kød giver masser af energi, men hver jagt kan slå fejl`
+      : `🍽️ ${d.danskNavn} leder efter mad — alleædere finder altid noget at spise`,
+  jager:   d => `🎯 ${d.danskNavn} er på jagt — kød giver energi til at få unger`,
+  flygter: d => `💨 ${d.danskNavn} flygter — hver flugt brænder energi den ellers skulle bruge på afkom`,
+  foedsel: d => `💕 ${d.danskNavn} fik en unge — den klarede sig godt nok til at føre arten videre`,
+  jaget:   d => `⚠️ ${d.danskNavn} blev fanget — den slags dyr får færre unger her`
 };
 
 // Send et event for en art (throttlet pr. art + event-type)
