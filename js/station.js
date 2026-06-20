@@ -9,55 +9,61 @@ const BYGGETRIN = [
   {
     kategori: 'stofskifte',
     titel: 'Stofskifte',
+    spørgsmaal: 'Laver din krop selv varme — eller låner du solens?',
     valg: [
-      { vaerdi: 'hojt', emoji: '🔥', navn: 'Højt stofskifte', beskrivelse: 'Holder selv varmen — som en ulv. Energikrævende, men aktiv i frost.' },
+      { vaerdi: 'hojt', emoji: '🔥', navn: 'Højt stofskifte', beskrivelse: 'Holder selv varmen — som en ulv. Energikrævende, men aktiv selv i frost.' },
       { vaerdi: 'lavt', emoji: '🧊', navn: 'Lavt stofskifte', beskrivelse: 'Bruger solens varme gratis — som en firben. Hjælpeløs i kulde.' }
     ]
   },
   {
     kategori: 'hudtype',
     titel: 'Hudtype',
+    spørgsmaal: 'Hvad dækker kroppen udenpå? Det første forsvar mod vejr og kulde.',
     valg: [
-      { vaerdi: 'pels',  emoji: '🧥', navn: 'Pels',     beskrivelse: 'Holder på kropsvarmen. Perfekt i kulde — en katastrofe i ørken.' },
+      { vaerdi: 'pels',  emoji: '🧥', navn: 'Pels',     beskrivelse: 'Holder på kropsvarmen. Isbjørnens hemmelighed — perfekt i kulde, en katastrofe i ørken.' },
       { vaerdi: 'skael', emoji: '🐟', navn: 'Skæl',     beskrivelse: 'Låser fugten inde og tåler stegende sol. Krybdyrenes ørken-trick.' },
-      { vaerdi: 'fjer',  emoji: '🪶', navn: 'Fjer',     beskrivelse: 'Isolerer og vejer næsten ingenting. God i mange habitater.' },
-      { vaerdi: 'glat',  emoji: '🦎', navn: 'Glat hud', beskrivelse: 'Smidig og hurtig. Klarer sig i fugtige miljøer — kæmper i ekstremerne.' }
+      { vaerdi: 'fjer',  emoji: '🪶', navn: 'Fjer',     beskrivelse: 'Isolerer og afskærmer mod sol. Pingvinen i kulden, ørnen i vinden — virker næsten overalt.' },
+      { vaerdi: 'glat',  emoji: '🦎', navn: 'Glat hud', beskrivelse: 'Smidig og hurtig i fugt. Som en frø eller ål — men tørrer ud i ekstrem kulde og varme.' }
     ]
   },
   {
     kategori: 'kost',
     titel: 'Kost',
+    spørgsmaal: 'Hvad spiser du? Det bestemmer hvem du konkurrerer med — og hvem der jager dig.',
     valg: [
-      { vaerdi: 'planteaeder', emoji: '🌿', navn: 'Planteæder', beskrivelse: 'Planter er let tilgængelige — men næringsfattige. Du bruger meget tid på at spise.' },
-      { vaerdi: 'koedaeder',   emoji: '🥩', navn: 'Kødæder',   beskrivelse: 'Kød giver masser af energi — men hver jagt kan slå fejl.' },
-      { vaerdi: 'alleaeder',   emoji: '🍽️', navn: 'Alleæder',   beskrivelse: 'Fleksibel som en krage. Ikke specialiseret — men aldrig uden mad.' }
+      { vaerdi: 'planteaeder', emoji: '🌿', navn: 'Planteæder', beskrivelse: 'Planter er altid tilgængelige — men næringsfattige. Som en elefant: lang tid på at samle nok energi.' },
+      { vaerdi: 'koedaeder',   emoji: '🥩', navn: 'Kødæder',   beskrivelse: 'Kød giver masser af energi på én gang. Som en løve — men hver jagt kan slå fejl.' },
+      { vaerdi: 'alleaeder',   emoji: '🍽️', navn: 'Alleæder',   beskrivelse: 'Fleksibel som en krage. Ikke specialiseret — men aldrig helt uden mad.' }
     ]
   },
   {
     kategori: 'storrelse',
     titel: 'Størrelse',
+    spørgsmaal: 'Stor er svær at dræbe — men kræver mere mad. Lille er hurtig — men lettere at spise.',
     valg: [
-      { vaerdi: 'lille',  emoji: '🐭', navn: 'Lille',  beskrivelse: 'Let at gemme sig. Taber varme hurtigt — men hurtig og sparsommelig.' },
-      { vaerdi: 'mellem', emoji: '🐺', navn: 'Mellem', beskrivelse: 'God balance mellem varme, fart og fødebehov.' },
-      { vaerdi: 'stor',   emoji: '🦣', navn: 'Stor',   beskrivelse: 'Bevarer varmen bedst. Men kræver enorm mængde mad — svær at skjule.' }
+      { vaerdi: 'lille',  emoji: '🐭', navn: 'Lille',  beskrivelse: 'Let at gemme sig overalt. Som en mus — hurtig og sparsommelig, men mister varme i kulde.' },
+      { vaerdi: 'mellem', emoji: '🐺', navn: 'Mellem', beskrivelse: 'God balance. Som en ræv — stærk nok til at jage, lille nok til at gemme sig.' },
+      { vaerdi: 'stor',   emoji: '🦣', navn: 'Stor',   beskrivelse: 'Ingen tør angribe den, og varmen bevares bedst. Som en bjørn — men kræver enorm mængde mad.' }
     ]
   },
   {
     kategori: 'aktivitet',
     titel: 'Aktivitetstid',
+    spørgsmaal: 'Hvornår du er aktiv bestemmer hvem du møder — og hvem der kan møde dig.',
     valg: [
-      { vaerdi: 'dagaktiv', emoji: '☀️', navn: 'Dagaktiv', beskrivelse: 'Udnytter lyset og varmen. Synlig for rovdyr — men produktiv.' },
-      { vaerdi: 'nataktiv', emoji: '🌙', navn: 'Nataktiv', beskrivelse: 'Undgår varme og mange rovdyr. Svagt i arktis mørketid.' }
+      { vaerdi: 'dagaktiv', emoji: '☀️', navn: 'Dagaktiv', beskrivelse: 'Udnytter lyset og varmen fuldt ud. Som en ørn — produktiv, men synlig for fjender.' },
+      { vaerdi: 'nataktiv', emoji: '🌙', navn: 'Nataktiv', beskrivelse: 'Undgår middagsheden og de fleste rovdyr. Som en ugle — men svag i arktis mørketid.' }
     ]
   },
   {
     kategori: 'forsvar',
     titel: 'Forsvar',
+    spørgsmaal: 'Hvad sker der, når et rovdyr finder dig?',
     valg: [
       { vaerdi: 'giftig', emoji: '☠️',  navn: 'Giftig',       beskrivelse: 'Rovdyr lærer at holde sig væk. Men gift er biologisk dyrt at producere.' },
       { vaerdi: 'pigge',  emoji: '🦔', navn: 'Pigge',        beskrivelse: 'Solid fysisk beskyttelse. Som en pindsvin — virker i næsten alle habitater.' },
-      { vaerdi: 'flugt',  emoji: '🏃', navn: 'Hurtig flugt', beskrivelse: 'Undviger angreb med fart. Kræver energi — og et sted at løbe hen.' },
-      { vaerdi: 'ingen',  emoji: '🚫', navn: 'Intet forsvar', beskrivelse: 'Sparer energi — men ethvert rovdyr er en dødelig trussel.' }
+      { vaerdi: 'flugt',  emoji: '🏃', navn: 'Hurtig flugt', beskrivelse: 'Fart er det eneste forsvar. Som en gazelle — hurtig, men aldrig rigtig tryg.' },
+      { vaerdi: 'ingen',  emoji: '🚫', navn: 'Intet forsvar', beskrivelse: 'Sparer al energi til at overleve og få unger. Men ethvert møde med et rovdyr kan blive det sidste.' }
     ]
   }
 ];
@@ -153,6 +159,7 @@ function opretTrin() {
 
     div.innerHTML = `
       <h2 class="trin-titel">${trin.titel}</h2>
+      ${trin.spørgsmaal ? `<p class="trin-spoergsmaal">${trin.spørgsmaal}</p>` : ''}
       <div class="kort-grid">
         ${trin.valg.map(v => `
           <div class="valgkort" data-kategori="${trin.kategori}" data-vaerdi="${v.vaerdi}">

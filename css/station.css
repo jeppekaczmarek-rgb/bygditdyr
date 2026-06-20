@@ -318,6 +318,13 @@ body {
   color: var(--okker);
 }
 
+.trin-spoergsmaal {
+  font-size: 0.9rem;
+  color: var(--tekst-dempet);
+  margin: -0.25rem 0 0.5rem;
+  line-height: 1.4;
+}
+
 .kort-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
