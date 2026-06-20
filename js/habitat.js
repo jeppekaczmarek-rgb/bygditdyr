@@ -4,11 +4,11 @@
 // ============================================================
 
 // --- Konstanter ---
-const JAGT_COOLDOWN = 5000;    // ms mellem jagtinteraktioner
+const JAGT_COOLDOWN = 2500;    // ms mellem jagtinteraktioner (sænket 5000→2500: mere action)
 const FART_BASIS = 40;         // px/sek basisfartsvariation
-const FART_LILLE = 50;
-const FART_MELLEM = 35;
-const FART_STOR = 25;
+const FART_LILLE = 85;         // hævet 50→85: dyr er synlige fra 3 meter
+const FART_MELLEM = 65;        // hævet 35→65
+const FART_STOR = 45;          // hævet 25→45
 const RETNINGSSKIFT_CHANCE = 0.3; // pr. sekund
 const TIDSLINJE_VINDUE = 180;  // sekunder synligt i tidslinjen
 const FADE_DOEDSTID = 8000;    // ms for dødsbesked-animation
@@ -19,7 +19,7 @@ const DYR_RADIUS = { lille: 20, mellem: 30, stor: 40 };
 // Formering
 // Tuning 1/6 2026: halveret formeringstempo — overbefolkning udløste
 // gentagne sygdomscrash der overdøvede rovdyr/byttedyr-dynamikken.
-const FORMERING_FART_HURTIG = 100 / 50;    // %/sek (score ≥ 6)
+const FORMERING_FART_HURTIG = 100 / 33;    // %/sek (score ≥ 6) — hævet 50→33: succesrige arter vokser hurtigere
 const FORMERING_FART_MIDDEL = 100 / 120;   // %/sek (score 3-5)
 const FORMERING_FART_LANGSOM = 100 / 240;  // %/sek (score < 3)
 
@@ -265,6 +265,7 @@ function tilfoejDyr(dyr) {
   const el = document.createElement('div');
   el.className = 'habitat-dyr';
   if (dyr.egenskaber.kost === 'koedaeder') el.classList.add('koedaeder');
+  if (dyr.egenskaber.aktivitet === 'nataktiv') el.classList.add('nataktiv');
   el.dataset.id = dyr.id;
   // Generationsmærke (gen 2+ vises) og mutatations-spark
   const genMaerke = (dyr._generation && dyr._generation > 1)
@@ -362,7 +363,7 @@ const NPC_DEFS = {
 };
 
 let npcSpawnet = false;
-const NPC_COOLDOWN = 20000; // ms mellem NPC-tjek
+const NPC_COOLDOWN = 8000; // ms mellem NPC-tjek (sænket 20000→8000: habitatet holder sig befolket)
 
 function tjekNpcSpawn(nu) {
   if (nu - sidsteNpcTjek < NPC_COOLDOWN) return;
@@ -379,8 +380,8 @@ function tjekNpcSpawn(nu) {
   } else if (sæsonTilstand === 'stille') {
     maksNpc = individer <= 5 ? 2 : 0;
   } else {
-    // auto: 2 NPCer ved meget lav belastning, 1 ved lav
-    maksNpc = individer <= 1 ? 2 : individer <= 3 ? 1 : 0;
+    // auto: 4 NPCer baseline — habitatet skal aldrig se tomt ud
+    maksNpc = individer <= 4 ? 4 : individer <= 8 ? 2 : 0;
   }
 
   const aktiveNpc = dyrListe.filter(d => d._npc && !d.doedsTid);
@@ -863,6 +864,78 @@ function bevægHvile(dyr, dt, fart) {
 // JAGT — fangst-resolution (bevægelse styres af tilstandsmaskinen)
 // ============================================================
 
+// ============================================================
+// SPEKTAKEL-EFFEKTER — store synlige øjeblikke
+// ============================================================
+
+// Hvid flash på hele habitatskærmen ved fangst
+function visFangstFlash() {
+  const el = document.createElement('div');
+  el.className = 'fangst-flash-overlay';
+  habitatVerden.appendChild(el);
+  setTimeout(() => el.remove(), 250);
+}
+
+// Stor center-celebration + flyvende hjerter ved ny generation
+let formeringCelebrationSidste = 0;
+function visFormeringsCelebration(dyr) {
+  const nu = performance.now();
+  if (nu - formeringCelebrationSidste < 4000) return;
+  formeringCelebrationSidste = nu;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'formering-celebration';
+  overlay.textContent = `✨ Ny generation! ${dyr.danskNavn}`;
+  habitatVerden.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 2500);
+
+  // 6 hjerter der flyver ud i alle retninger
+  for (let i = 0; i < 6; i++) {
+    const hjerte = document.createElement('div');
+    hjerte.className = 'celebration-hjerte';
+    hjerte.textContent = '♥';
+    const vinkel = (i / 6) * Math.PI * 2;
+    hjerte.style.left = dyr.x + 'px';
+    hjerte.style.top  = dyr.y + 'px';
+    hjerte.style.setProperty('--vx', Math.round(Math.cos(vinkel) * 90) + 'px');
+    hjerte.style.setProperty('--vy', Math.round(Math.sin(vinkel) * 90) + 'px');
+    dyrContainer.appendChild(hjerte);
+    setTimeout(() => hjerte.remove(), 1500);
+  }
+}
+
+// Sort-mørkning ved artsudslettelse — "universet mister en art"
+function visSortFade() {
+  const el = document.createElement('div');
+  el.className = 'sort-fade-overlay';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// Milepæl: første gang en art rammer 5 individer
+const milepaelesRamt = new Set();
+function tjekMilepael(dyr) {
+  const noegle = `${dyr.artsnavn}-5`;
+  if (milepaelesRamt.has(noegle)) return;
+  const antalAfArt = dyrListe.filter(d => !d.doedsTid && d.artsnavn === dyr.artsnavn).length;
+  if (antalAfArt < 5) return;
+  milepaelesRamt.add(noegle);
+  const el = document.createElement('div');
+  el.className = 'milepael-overlay';
+  el.textContent = `🎉 ${dyr.danskNavn} blomstrer! 5 individer`;
+  habitatVerden.appendChild(el);
+  setTimeout(() => el.remove(), 2200);
+}
+
+// Dag/nat-cyklus: 60s dag → 30s nat → gentag (90s total)
+let dagNatSidste = 0;
+function opdaterDagNat(nu) {
+  if (nu - dagNatSidste < 5000) return;
+  dagNatSidste = nu;
+  const cyklusSek = (Date.now() / 1000) % 90;
+  habitatVerden.classList.toggle('er-nat', cyklusSek >= 60);
+}
+
 // Synlig fangst-label midt på skærmen — ét ad gangen, kun cross-player
 let jagtOverlayAktiv = false;
 function visJagtOverlay(jaeger, bytte) {
@@ -977,6 +1050,7 @@ function opdaterJagt(nu) {
     if (udfald === 'draebt') {
       sendDyrEvent(bytte, 'jaget', nu);
       visJagtOverlay(jaeger, bytte);
+      visFangstFlash();
     }
 
     jaeger.jagtMaal = null;
@@ -1131,6 +1205,13 @@ function spawnAfkom(foraeldrer, bredde, hoejde) {
   hjerte.textContent = muteret ? '✨' : '♥';
   foraeldrer.el.appendChild(hjerte);
   setTimeout(() => hjerte.remove(), muteret ? 1800 : 1000);
+
+  // Stor celebration fra 2. fødsel og frem
+  if ((fodselTael[foraeldrer.artsnavn] || 0) >= 2) {
+    visFormeringsCelebration(foraeldrer);
+  }
+  // Milepæl: første gang arten rammer 5 individer
+  tjekMilepael(foraeldrer);
 }
 
 // ============================================================
@@ -1296,6 +1377,7 @@ function draebDyr(dyr, nu, aarsag) {
 
   if (sidsteAfArt) {
     if (window.Audio) Audio.dyrDoer();
+    visSortFade();
     visArtsudslettelse(dyr, levetidSek, doedsTekst);
 
     Broadcast.send({
@@ -1422,6 +1504,7 @@ function tjekDoed(nu) {
     // Dramatisk overlay + broadcast KUN ved artsudslettelse
     if (sidsteAfArt) {
       if (window.Audio) Audio.dyrDoer();
+      visSortFade();
       visArtsudslettelse(dyr, levetidSek, doedsTekst);
 
       Broadcast.send({
@@ -1477,7 +1560,7 @@ function visArtsudslettelse(dyr, levetidSek, doedsTekst) {
 let fortaellerEl = null;
 let fortaellerTid = 0;
 const FORTAELLER_VARIGHED = 5000; // ms synlig
-const FORTAELLER_COOLDOWN = 12000; // ms mellem fortæller-beskeder
+const FORTAELLER_COOLDOWN = 8000; // ms mellem fortæller-beskeder (sænket 12000→8000)
 
 function visFortaeller(tekst) {
   if (!fortaellerEl) fortaellerEl = document.getElementById('fortaeller-stribe');
@@ -1905,6 +1988,7 @@ function simulationsLoop(timestamp) {
   tjekNpcSpawn(timestamp);
   opdaterPulsPanel();
   opdaterNicheMarkering(timestamp);
+  opdaterDagNat(timestamp);
   if (window.Telemetri) Telemetri.tik(dyrListe, dt, timestamp, trofiskKaskade);
   opdaterAnimation(timestamp);
   renderPlanter();
