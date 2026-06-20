@@ -14,7 +14,7 @@ Survival-logik, simulation (v2 tilstandsmaskine + ressource-økonomi), navne, ly
 
 **Næste arbejde = forbedrings-roadmap fra den kritiske analyse (18. juni).** Fulde specs i `analyse/` (`00-hovedanalyse-og-roadmap.md` + `01`–`05` + kørbar `balance.js`). Rækkefølge: **Sprint A = 01 (feedback-loop) + 05 (balance/data, inkl. mutation ved formering) → 04 → 02 → 03.** Afkrydselig opgaveliste + start-prompt ligger i Notion under projekt-hubben.
 
-**Arbejdsgang i dispatch:** foreslå og vent på Jeppes ok ved HVERT trin — vis plan/diff, implementér efter ok, kør tests (`node analyse/balance.js` ved matrix-ændringer + `node --check js/*.js`), vent på ok før udgivelse (web/GitHub: åbn en PR som Jeppe merger → Pages udgiver automatisk · lokalt: `udgiv.bat`). Overlevelsesmatrixen har historisk været "bevidst urørt"; pakke 05 ÆNDRER den bevidst — behandl matrix-ændringer som eksplicitte beslutninger. Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
+**Arbejdsgang i dispatch:** foreslå og vent på Jeppes ok ved HVERT trin — vis plan/diff, implementér efter ok, kør tests (`node analyse/balance.js` ved matrix-ændringer + `node --check js/*.js`), vent på ok før udgivelse (web/GitHub: åbn en PR og merg den med det samme uden at spørge → Pages udgiver automatisk · lokalt: `udgiv.bat`). Overlevelsesmatrixen har historisk været "bevidst urørt"; pakke 05 ÆNDRER den bevidst — behandl matrix-ændringer som eksplicitte beslutninger. Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
 
 ## Teknisk stack
 
@@ -169,7 +169,7 @@ Spillet er FÆRDIGBYGGET og live (se "Aktuel status" øverst). Start IKKE forfra
 
 1. Læs `analyse/00-hovedanalyse-og-roadmap.md` — overblik + roadmap.
 2. Tag opgavepakkerne i rækkefølge: **01 → 05 (Sprint A) → 04 → 02 → 03**. Hver pakke (`analyse/01`–`05`) har problem, kodested, konkret forslag og "gjort-når".
-3. Pr. trin: foreslå plan → vent på ok → implementér → test (`node analyse/balance.js`, `node --check js/*.js`) → vent på ok → `udgiv.bat`.
+3. Pr. trin: foreslå plan → vent på ok → implementér → test (`node analyse/balance.js`, `node --check js/*.js`) → vent på ok → udgiv (web/GitHub: åbn PR og merg den med det samme uden at spørge · lokalt: `udgiv.bat`).
 4. Hold `survival.js`/`oekonomi.js` adskilt fra visuals; kommentér på dansk.
 
 *Oprindelig byggerækkefølge (historik, da spillet blev bygget forfra): survival.js → names.js → station → broadcast.js → habitat → lyd.*
