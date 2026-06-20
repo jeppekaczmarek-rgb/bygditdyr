@@ -193,6 +193,25 @@ body {
   100% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.8); }
 }
 
+/* Generationsmærke på afkom */
+.gen-maerke {
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: rgba(200, 190, 160, 0.75);
+  margin-left: 3px;
+}
+
+/* Stamdyr: gylden ring så barnet kan følge sit første dyr på skærmen */
+.habitat-dyr.stamdyr .dyr-sprite {
+  filter: drop-shadow(0 0 6px rgba(212, 168, 67, 0.9))
+          drop-shadow(0 0 12px rgba(212, 168, 67, 0.5));
+}
+
+.habitat-dyr.stamdyr .dyr-label::before {
+  content: '★ ';
+  color: #d4a843;
+}
+
 /* Smittet dyr: lilla/grøn tone + ryste */
 .habitat-dyr.smittet .dyr-sprite {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)) hue-rotate(90deg) saturate(1.5);

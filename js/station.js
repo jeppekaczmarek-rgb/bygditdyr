@@ -124,7 +124,10 @@ const dom = {
   liveStatus:      document.getElementById('live-status'),
   liveStatusTekst: document.getElementById('live-status-tekst'),
   eventFeed:       document.getElementById('event-feed'),
-  miniScoreboard:  document.getElementById('mini-scoreboard')
+  miniScoreboard:  document.getElementById('mini-scoreboard'),
+  matchSektion:    document.getElementById('match-sektion'),
+  matchFyld:       document.getElementById('match-fyld'),
+  matchOrd:        document.getElementById('match-ord')
 };
 
 // --- Live-feedback tilstand ---
@@ -215,6 +218,33 @@ function opdaterEnergi() {
 
   // Marker kort der er for dyre på kommende trin
   opdaterForDyreKort(rest);
+
+  // Opdater habitat-match-måler (kvalitativ — ikke et råt tal eleven kan min-maxe)
+  opdaterMatchMaaler();
+}
+
+// Habitat-match: vis "svag/middel/god/rigtig god" afhængig af score
+// Vises kun når mindst ét valg er truffet
+function opdaterMatchMaaler() {
+  const antalValg = Object.keys(valg).length;
+  if (!dom.matchSektion) return;
+  if (antalValg === 0) {
+    dom.matchSektion.style.display = 'none';
+    return;
+  }
+  dom.matchSektion.style.display = '';
+
+  const score = Survival.beregnHabitatScore({ egenskaber: valg }, aktivtHabitat);
+  // Score-spænd ca. -8 til +11; vi normaliserer til 0–100%
+  const MIN_SCORE = -8, MAX_SCORE = 11;
+  const pct = Math.round(Math.max(0, Math.min(100,
+    (score - MIN_SCORE) / (MAX_SCORE - MIN_SCORE) * 100)));
+
+  dom.matchFyld.style.width = pct + '%';
+  dom.matchFyld.className = 'match-fyld ' + (
+    pct < 35 ? 'match-svag' : pct < 55 ? 'match-middel' : pct < 75 ? 'match-god' : 'match-super'
+  );
+  dom.matchOrd.textContent = pct < 35 ? 'Svag' : pct < 55 ? 'Middel' : pct < 75 ? 'God' : 'Rigtig god';
 }
 
 function opdaterForDyreKort(restEnergi) {

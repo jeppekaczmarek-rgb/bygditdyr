@@ -7,41 +7,47 @@
 const MAX_ENERGI = 10;
 const BASIS_TID = 60;          // sekunder basistid
 const SCORE_MULTIPLIKATOR = 8; // sekunder per scorepoint
-const MIN_LEVETID = 10;        // minimum overlevelsestid i sekunder
+const MIN_LEVETID = 20;        // minimum levetid — hævet 10→20 så alle dyr når at blive set
 
 // --- Overlevelsesmatrix: score per egenskab per habitat ---
 // Værdier fra -2 (stor ulempe) til +2 (stor fordel)
 const HABITAT_SCORE = {
   skov: {
     stofskifte: { hojt: 1, lavt: -1 },
-    hudtype:    { pels: 1, fjer: 1, skael: 0, glat: -1 },
-    kost:       { planteaeder: 1, koedaeder: 0, alleaeder: 2 },
+    // glat hud: hævet -1→0 i skov (biologisk niche: skovens fugtige miljø) + har mekanisk fartbonus
+    hudtype:    { pels: 1, fjer: 1, skael: 0, glat: 0 },
+    // alleaeder: sænket +2→+1 så specialister bliver konkurrencedygtige
+    kost:       { planteaeder: 1, koedaeder: 0, alleaeder: 1 },
     storrelse:  { lille: 0, mellem: 1, stor: -1 },
     aktivitet:  { dagaktiv: 1, nataktiv: 0 },
     forsvar:    { giftig: 1, pigge: 1, flugt: 2, ingen: -1 }
   },
   arktis: {
     stofskifte: { hojt: 2, lavt: -2 },
-    hudtype:    { pels: 2, fjer: 1, skael: -2, glat: -2 },
+    // glat: hævet -2→-1 (stadig dårlig, men ikke dødsdømt; glat+svøm-niche-note)
+    hudtype:    { pels: 2, fjer: 1, skael: -2, glat: -1 },
     kost:       { planteaeder: -1, koedaeder: 2, alleaeder: 1 },
-    storrelse:  { lille: -1, mellem: 1, stor: 2 },
+    // arktis-rebalance: stor hævet +2→+3, flugt hævet 1→2 — giver råd til ét forsvar i topbuilds
+    storrelse:  { lille: -1, mellem: 1, stor: 3 },
     aktivitet:  { dagaktiv: 1, nataktiv: -2 },
-    forsvar:    { giftig: 0, pigge: 0, flugt: 1, ingen: -1 }
+    forsvar:    { giftig: 0, pigge: 1, flugt: 2, ingen: -1 }
   },
   oerken: {
     stofskifte: { hojt: -1, lavt: 2 },
     hudtype:    { pels: -2, fjer: 1, skael: 2, glat: -1 },
-    kost:       { planteaeder: 1, koedaeder: 1, alleaeder: 2 },
+    // alleaeder: sænket +2→+1 i ørken; giftig hævet 2→1, flugt 0→1 — spreder topscore
+    kost:       { planteaeder: 1, koedaeder: 1, alleaeder: 1 },
     storrelse:  { lille: 1, mellem: 0, stor: -1 },
     aktivitet:  { dagaktiv: -1, nataktiv: 2 },
-    forsvar:    { giftig: 2, pigge: 1, flugt: 0, ingen: -1 }
+    forsvar:    { giftig: 1, pigge: 1, flugt: 1, ingen: -1 }
   }
 };
 
 // --- Energiomkostning per egenskab ---
 const ENERGI_OMKOSTNING = {
   stofskifte: { hojt: 3, lavt: 1 },
-  hudtype:    { pels: 2, fjer: 2, skael: 1, glat: 1 },
+  // pels: sænket 2→1 (pels er biologisk simpelt at producere — naturens standardisolering)
+  hudtype:    { pels: 1, fjer: 2, skael: 1, glat: 1 },
   kost:       { planteaeder: 1, koedaeder: 3, alleaeder: 2 },
   storrelse:  { lille: 1, mellem: 2, stor: 3 },
   aktivitet:  { dagaktiv: 1, nataktiv: 2 },
@@ -87,12 +93,12 @@ const EGENSKAB_FORKLARING = {
       pels:  'Pels isolerer godt mod skovens vekselvise vejr.',
       fjer:  'Fjer giver både varme og lethed til at komme rundt i skoven.',
       skael: 'Skæl er neutralt — hverken til fordel eller ulempe i skoven.',
-      glat:  'Glat hud mister varme let — en svaghed i den fugtige skov.'
+      glat:  'Glat hud er smidig og hurtig — fungerer i skovens fugtige miljø.'
     },
     kost: {
-      planteaeder: 'Skoven bugner af planter — let at finde mad hele året.',
-      koedaeder:   'Bytte findes i skoven, men det kræver energi at jage.',
-      alleaeder:   'Alleædere klarer sig godt i skoven — de kan spise alt.'
+      planteaeder: 'Skoven bugner af planter — planteædere finder altid mad her.',
+      koedaeder:   'Bytte er der nok af i skoven — men jagten kræver energi.',
+      alleaeder:   'Alleædere er fleksible, men specialister kan slå dem i netop deres niche.'
     },
     storrelse: {
       lille: 'Lille størrelse er hverken fordel eller ulempe i skoven.',
@@ -137,8 +143,8 @@ const EGENSKAB_FORKLARING = {
     },
     forsvar: {
       giftig: 'Gift er neutralt i arktis — rovdyr angriber alligevel.',
-      pigge:  'Pigge er neutrale i arktis — rovdyrene angriber alligevel.',
-      flugt:  'Hurtig flugt hjælper en smule i det åbne arktiske landskab.',
+      pigge:  'Pigge afholder rovdyr fra at angribe — nyttigt selv i arktis.',
+      flugt:  'Hurtig flugt i det åbne arktiske terræn kan redde livet.',
       ingen:  'Uden forsvar i arktis er dyret let bytte for de få rovdyr der lever her.'
     }
   },
@@ -168,9 +174,9 @@ const EGENSKAB_FORKLARING = {
       nataktiv: 'Nataktive dyr undgår varmen og jager i køligheden — perfekt i ørkenen.'
     },
     forsvar: {
-      giftig: 'Gift er meget effektivt i ørkenen — klapperslangens strategi.',
-      pigge:  'Pigge skræmmer rovdyr væk i det åbne ørken-landskab.',
-      flugt:  'Flugt i åbent ørken-terrain — ingen steder at gemme sig.',
+      giftig: 'Gift holder rovdyr på afstand i ørkenen.',
+      pigge:  'Pigge er en god beskyttelse i det åbne ørken-terræn.',
+      flugt:  'Hurtig flugt kan virke i ørkenen — men der er langt til ly.',
       ingen:  'Ingen forsvar i en ørken fuld af farlige rovdyr er risikabelt.'
     }
   }

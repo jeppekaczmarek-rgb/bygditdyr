@@ -23,6 +23,9 @@ const FORMERING_FART_HURTIG = 100 / 50;    // %/sek (score ≥ 6)
 const FORMERING_FART_MIDDEL = 100 / 120;   // %/sek (score 3-5)
 const FORMERING_FART_LANGSOM = 100 / 240;  // %/sek (score < 3)
 
+// Mutation — sandsynlighed for at ét træk muterer ved formering (sæt 0 for at slå fra)
+const MUTATION_RATE = 0.08;
+
 // Sygdom
 const SYGDOM_THRESHOLD = 20;    // antal levende af samme art før crash
 const SMITTE_RADIUS = 150;      // px
@@ -165,9 +168,11 @@ function tilfoejDyr(dyr) {
   const score = Survival.beregnHabitatScore(dyr, aktivtHabitat);
   const levetid = Survival.beregnOverlevelsestid(score);
 
-  // Beregn startfart baseret på størrelse
+  // Beregn startfart baseret på størrelse; glat hud giver fartbonus
   const fartMap = { lille: FART_LILLE, mellem: FART_MELLEM, stor: FART_STOR };
-  const basisFart = fartMap[dyr.egenskaber.storrelse] || FART_BASIS;
+  const GLAT_FART_MOD = 1.25; // glat hud: smidig krop = 25% hurtigere
+  const basisFart = (fartMap[dyr.egenskaber.storrelse] || FART_BASIS)
+    * (dyr.egenskaber.hudtype === 'glat' ? GLAT_FART_MOD : 1);
 
   // Tilfældig startretning
   const vinkel = Math.random() * Math.PI * 2;
@@ -253,13 +258,20 @@ function tilfoejDyr(dyr) {
   el.className = 'habitat-dyr';
   if (dyr.egenskaber.kost === 'koedaeder') el.classList.add('koedaeder');
   el.dataset.id = dyr.id;
+  // Generationsmærke (gen 2+ vises) og mutatations-spark
+  const genMaerke = (dyr._generation && dyr._generation > 1)
+    ? ` <span class="gen-maerke">gen ${dyr._generation}${dyr._muteret ? ' ✨' : ''}</span>`
+    : '';
   el.innerHTML = `
     <span class="tilstand-indikator cue-skjult"></span>
     <span class="res-badge"></span>
     <div class="dyr-sprite">${Sprites.genererSprite(dyr)}</div>
     <div class="formering-bar"><div class="formering-fyld"></div></div>
-    <span class="dyr-label">${dyr.danskNavn}</span>
+    <span class="dyr-label">${dyr.danskNavn}${genMaerke}</span>
   `;
+  // Stamdyr-markering: synlig ring så barnet kan følge sit eget første dyr
+  if (erStamdyr) el.classList.add('stamdyr');
+
   dyrContainer.appendChild(el);
   simDyr.el = el;
 
@@ -856,29 +868,47 @@ function spawnAfkom(foraeldrer, bredde, hoejde) {
   const nx = Math.max(30, Math.min(bredde - 30, foraeldrer.x + Math.cos(vinkel) * afstand));
   const ny = Math.max(30, Math.min(hoejde - 30, foraeldrer.y + Math.sin(vinkel) * afstand));
 
+  // Arv egenskaber; lille chance for ét tilfældigt muteret træk
+  const egenskaber = { ...foraeldrer.egenskaber };
+  let muteret = false;
+  if (Math.random() < MUTATION_RATE) {
+    const kategorier = Object.keys(Survival.ENERGI_OMKOSTNING);
+    const kat = kategorier[Math.floor(Math.random() * kategorier.length)];
+    const muligeVaerdier = Object.keys(Survival.ENERGI_OMKOSTNING[kat]);
+    const nyVaerdi = muligeVaerdier[Math.floor(Math.random() * muligeVaerdier.length)];
+    if (nyVaerdi !== egenskaber[kat]) {
+      egenskaber[kat] = nyVaerdi;
+      muteret = true;
+    }
+  }
+
+  const generation = (foraeldrer._generation || 1) + 1;
+
   const barn = {
     id: crypto.randomUUID(),
     artsnavn: foraeldrer.artsnavn,
     danskNavn: foraeldrer.danskNavn,
-    egenskaber: { ...foraeldrer.egenskaber },
+    egenskaber,
     _startX: nx,
     _startY: ny,
-    _afkom: true
+    _afkom: true,
+    _generation: generation,
+    _muteret: muteret
   };
 
   tilfoejDyr(barn);
-  if (window.Telemetri) Telemetri.registrer('foedsel');
+  if (window.Telemetri) Telemetri.registrer('foedsel', { muteret });
 
   // Tæl fødsler + send "foedsel"-event til stationerne
   fodselTael[foraeldrer.artsnavn] = (fodselTael[foraeldrer.artsnavn] || 0) + 1;
   sendDyrEvent(foraeldrer, 'foedsel', performance.now());
 
-  // Vis hjerte over forælderen
+  // Vis hjerte over forælderen (✨ ved mutation)
   const hjerte = document.createElement('span');
   hjerte.className = 'formering-hjerte';
-  hjerte.textContent = '♥';
+  hjerte.textContent = muteret ? '✨' : '♥';
   foraeldrer.el.appendChild(hjerte);
-  setTimeout(() => hjerte.remove(), 1000);
+  setTimeout(() => hjerte.remove(), muteret ? 1800 : 1000);
 }
 
 // ============================================================
