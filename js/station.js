@@ -514,9 +514,11 @@ if (window.Broadcast && window.Broadcast.lyt) {
       case 'DYR_JAGES':
         // Jagt — vis hvis elevens art er involveret (som bytte eller jæger)
         if (besked.bytte_artsnavn === minArtsnavn) {
-          tilfoejEvent(`🎯 Din ${besked.bytte_danskNavn} jages af ${besked.jaeger_danskNavn}!`);
+          const jagerFra = besked.jaeger_stationId ? ` (station ${besked.jaeger_stationId})` : '';
+          tilfoejEvent(`🎯 Din ${besked.bytte_danskNavn} jages af ${besked.jaeger_danskNavn}${jagerFra}!`);
         } else if (besked.jaeger_artsnavn === minArtsnavn) {
-          tilfoejEvent(`🥩 Din ${besked.jaeger_danskNavn} jagter ${besked.bytte_danskNavn}.`);
+          const bytteStation = besked.bytte_stationId ? ` (station ${besked.bytte_stationId})` : '';
+          tilfoejEvent(`🥩 Din ${besked.jaeger_danskNavn} jagter ${besked.bytte_danskNavn}${bytteStation}.`);
         }
         break;
       case 'DYR_EVENT':

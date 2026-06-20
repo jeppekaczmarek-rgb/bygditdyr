@@ -862,6 +862,23 @@ function bevægHvile(dyr, dt, fart) {
 // ============================================================
 // JAGT — fangst-resolution (bevægelse styres af tilstandsmaskinen)
 // ============================================================
+
+// Synlig fangst-label midt på skærmen — ét ad gangen, kun cross-player
+let jagtOverlayAktiv = false;
+function visJagtOverlay(jaeger, bytte) {
+  if (jagtOverlayAktiv) return;
+  // NPC-mod-NPC jagter er ikke sociale og behøver ikke at larme
+  if (jaeger._npc && bytte._npc) return;
+  jagtOverlayAktiv = true;
+  const el = document.createElement('div');
+  el.className = 'jagt-overlay';
+  el.textContent = `${jaeger.danskNavn} → ${bytte.danskNavn}`;
+  el.style.left = Math.round((jaeger.x + bytte.x) / 2) + 'px';
+  el.style.top  = Math.round((jaeger.y + bytte.y) / 2) + 'px';
+  dyrContainer.appendChild(el);
+  setTimeout(() => { el.remove(); jagtOverlayAktiv = false; }, 1600);
+}
+
 function opdaterJagt(nu) {
   // Dynamisk jagt-takt: skalerer opad med antal rovdyr for at undgå jagt-kaos
   const rovdyrAntal = dyrListe.filter(d => !d.doedsTid && d.egenskaber.kost === 'koedaeder').length;
@@ -957,7 +974,10 @@ function opdaterJagt(nu) {
     if (window.Telemetri) Telemetri.registrer('fangst', { udfald, forsvar: bytte.egenskaber.forsvar });
 
     // Send "jaget"-event til stationerne når byttet rent faktisk bliver fanget
-    if (udfald === 'draebt') sendDyrEvent(bytte, 'jaget', nu);
+    if (udfald === 'draebt') {
+      sendDyrEvent(bytte, 'jaget', nu);
+      visJagtOverlay(jaeger, bytte);
+    }
 
     jaeger.jagtMaal = null;
   }
@@ -1007,6 +1027,8 @@ function opdaterKaskade() {
     !d.doedsTid && d.egenskaber.storrelse === 'stor'
     && (d.egenskaber.kost === 'koedaeder' || d.egenskaber.kost === 'alleaeder'));
   trofiskKaskade = storeRovdyr.length > 0;
+  // Stemningsændring: rødlig kant på habitatskærmen ved aktiv kaskade
+  habitatVerden.classList.toggle('kaskade-aktiv', trofiskKaskade);
 
   const r2 = KASKADE_RADIUS * KASKADE_RADIUS;
   for (const dyr of dyrListe) {
