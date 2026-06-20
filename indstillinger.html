@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Personalemenu — Byg Dit Dyr</title>
+  <script src="js/config.js"></script>
   <style>
     :root {
       --accent: #e8b84b;
@@ -15,33 +16,33 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
+      display: flex; align-items: flex-start; justify-content: center;
       font-family: Inter, system-ui, sans-serif;
       color: var(--tekst);
       background: radial-gradient(120% 120% at 50% 0%, #2e5a3f 0%, #1f3d2b 55%, #14271c 100%);
-      padding: 24px;
+      padding: 40px 24px 60px;
     }
-    .indhold { max-width: 520px; width: 100%; }
+    .indhold { max-width: 760px; width: 100%; }
     h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
     .under { opacity: .7; font-size: 14px; margin-bottom: 32px; line-height: 1.5; }
-    .sektion { margin-bottom: 32px; }
-    .sektion h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; opacity: .55; margin-bottom: 12px; }
+    .sektion { margin-bottom: 36px; }
+    .sektion h2 {
+      font-size: 13px; text-transform: uppercase; letter-spacing: .08em;
+      opacity: .55; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
 
     /* Sæson-knapper */
-    .saeson-gruppe { display: flex; flex-direction: column; gap: 10px; }
+    .saeson-gruppe { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
     .saeson-knap {
       display: flex; align-items: flex-start; gap: 14px;
       background: var(--kort); border: 1.5px solid var(--kant);
       border-radius: 12px; padding: 16px 18px;
       cursor: pointer; color: var(--tekst); text-align: left;
-      transition: .15s ease; font-family: inherit;
-      width: 100%;
+      transition: .15s ease; font-family: inherit; width: 100%;
     }
     .saeson-knap:hover { background: rgba(255,255,255,.12); }
-    .saeson-knap.aktiv {
-      border-color: var(--accent);
-      background: rgba(232,184,75,.1);
-    }
+    .saeson-knap.aktiv { border-color: var(--accent); background: rgba(232,184,75,.1); }
     .saeson-knap .ikon { font-size: 26px; flex-shrink: 0; margin-top: 1px; }
     .saeson-knap .txt b { display: block; font-size: 16px; margin-bottom: 3px; }
     .saeson-knap .txt span { font-size: 13px; opacity: .72; line-height: 1.4; }
@@ -51,25 +52,78 @@
       color: var(--accent); white-space: nowrap; align-self: center;
     }
 
-    /* Status */
     .status-boks {
       background: var(--kort); border: 1px solid var(--kant);
       border-radius: 10px; padding: 14px 16px;
-      font-size: 13px; opacity: .8; line-height: 1.6;
+      font-size: 13px; opacity: .8; line-height: 1.6; max-width: 520px;
     }
-    .tilbage { display: inline-block; margin-top: 24px; font-size: 13px; opacity: .5; text-decoration: none; color: var(--tekst); }
+    .tilbage { display: inline-block; margin-top: 28px; font-size: 13px; opacity: .5; text-decoration: none; color: var(--tekst); }
     .tilbage:hover { opacity: .85; }
+
+    /* --- Statistik --- */
+    .opdater-knap {
+      background: none; border: 1px solid var(--kant);
+      border-radius: 6px; color: var(--tekst); font-size: 12px;
+      padding: 3px 10px; cursor: pointer; opacity: .6;
+      font-family: inherit; transition: .15s;
+    }
+    .opdater-knap:hover { opacity: 1; border-color: var(--accent); }
+
+    .periode-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+    .p-tab {
+      background: var(--kort); border: 1px solid var(--kant);
+      border-radius: 20px; color: var(--tekst); font-size: 12px;
+      padding: 5px 14px; cursor: pointer; font-family: inherit; transition: .15s;
+    }
+    .p-tab:hover { background: rgba(255,255,255,.12); }
+    .p-tab.aktiv { background: rgba(232,184,75,.18); border-color: var(--accent); color: var(--accent); }
+
+    .nk-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px;
+    }
+    @media (max-width: 500px) { .nk-grid { grid-template-columns: repeat(2, 1fr); } }
+    .nk-kort {
+      background: var(--kort); border: 1px solid var(--kant);
+      border-radius: 10px; padding: 14px 10px; text-align: center;
+    }
+    .nk-tal { font-size: 30px; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 5px; }
+    .nk-label { font-size: 11px; opacity: .55; text-transform: uppercase; letter-spacing: .04em; line-height: 1.3; }
+
+    .chart-boks {
+      background: var(--kort); border: 1px solid var(--kant);
+      border-radius: 10px; padding: 16px; margin-bottom: 10px; overflow: hidden;
+    }
+    .chart-titel { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .chart-sub { font-size: 12px; opacity: .45; margin-bottom: 12px; }
+    canvas { display: block; border-radius: 4px; max-width: 100%; }
+
+    .bar-row {
+      display: grid; grid-template-columns: 110px 1fr 44px;
+      align-items: center; gap: 8px; margin-bottom: 7px; font-size: 12px;
+    }
+    .bar-label { opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { background: rgba(255,255,255,.06); border-radius: 4px; height: 16px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); opacity: .75; transition: width .4s ease; min-width: 2px; }
+    .bar-tal { opacity: .5; text-align: right; font-size: 11px; }
+
+    .egenskab-gruppe { margin-bottom: 16px; }
+    .egenskab-titel { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; opacity: .4; margin-bottom: 6px; }
+
+    .to-kolonner { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 560px) { .to-kolonner { grid-template-columns: 1fr; } }
+
+    .stat-info { font-size: 11px; opacity: .3; margin-top: 8px; text-align: right; }
+    .ingen-data { opacity: .35; font-size: 13px; font-style: italic; padding: 6px 0; }
   </style>
 </head>
 <body>
 <div class="indhold">
   <h1>⚙️ Personalemenu</h1>
-  <p class="under">Disse indstillinger gælder for habitatskærmen og opdateres automatisk inden for 10 sekunder — ingen genindlæsning af projektoren nødvendig.</p>
+  <p class="under">Indstillinger gælder for habitatskærmen og opdateres automatisk inden for 10 sekunder — ingen genindlæsning af projektoren nødvendig.</p>
 
   <div class="sektion">
     <h2>Dagens sæson</h2>
     <div class="saeson-gruppe" id="saeson-gruppe">
-
       <button class="saeson-knap" data-mode="stille">
         <span class="ikon">🌿</span>
         <span class="txt">
@@ -78,7 +132,6 @@
         </span>
         <span class="aktiv-maerke" style="display:none">Aktiv</span>
       </button>
-
       <button class="saeson-knap" data-mode="auto">
         <span class="ikon">⚖️</span>
         <span class="txt">
@@ -87,7 +140,6 @@
         </span>
         <span class="aktiv-maerke" style="display:none">Aktiv</span>
       </button>
-
       <button class="saeson-knap" data-mode="myldretid">
         <span class="ikon">🏫</span>
         <span class="txt">
@@ -96,7 +148,6 @@
         </span>
         <span class="aktiv-maerke" style="display:none">Aktiv</span>
       </button>
-
     </div>
   </div>
 
@@ -105,42 +156,361 @@
     <div class="status-boks" id="status-boks">Indlæser...</div>
   </div>
 
+  <!-- STATISTIK -->
+  <div class="sektion">
+    <h2>
+      Statistik
+      <button class="opdater-knap" id="opdater-knap">↻ Opdater</button>
+    </h2>
+
+    <div class="periode-tabs">
+      <button class="p-tab aktiv" data-p="dag">I dag</button>
+      <button class="p-tab" data-p="maaned">Denne måned</button>
+      <button class="p-tab" data-p="aar">Dette år</button>
+      <button class="p-tab" data-p="alt">Alle tider</button>
+    </div>
+
+    <div class="nk-grid">
+      <div class="nk-kort"><div class="nk-tal" id="nk-dyr">—</div><div class="nk-label">Dyr skabt</div></div>
+      <div class="nk-kort"><div class="nk-tal" id="nk-stationer">—</div><div class="nk-label">Unikke stationer</div></div>
+      <div class="nk-kort"><div class="nk-tal" id="nk-pr-station">—</div><div class="nk-label">Dyr pr. station</div></div>
+      <div class="nk-kort"><div class="nk-tal" id="nk-levetid">—</div><div class="nk-label">Gns. levetid</div></div>
+    </div>
+
+    <div class="chart-boks">
+      <div class="chart-titel">Aktivitet på ugen</div>
+      <div class="chart-sub">Antal dyr skabt pr. time og ugedag — alle tider</div>
+      <canvas id="heatmap-canvas"></canvas>
+    </div>
+
+    <div class="chart-boks">
+      <div class="chart-titel">Valgte egenskaber</div>
+      <div class="chart-sub">Procentandel i valgt periode</div>
+      <div id="egenskaber-bars"><div class="ingen-data">Indlæser…</div></div>
+    </div>
+
+    <div class="to-kolonner">
+      <div class="chart-boks">
+        <div class="chart-titel">Overlevelsestid pr. habitat</div>
+        <div class="chart-sub">Gennemsnit i sekunder</div>
+        <div id="habitat-bars"><div class="ingen-data">Indlæser…</div></div>
+      </div>
+      <div class="chart-boks">
+        <div class="chart-titel">Dødsårsager</div>
+        <div class="chart-sub">Fordeling i valgt periode</div>
+        <div id="doeds-bars"><div class="ingen-data">Indlæser…</div></div>
+      </div>
+    </div>
+
+    <div class="chart-boks">
+      <div class="chart-titel">Aktivitet — seneste 30 dage</div>
+      <div class="chart-sub">Dyr skabt pr. dag</div>
+      <canvas id="trend-canvas"></canvas>
+    </div>
+
+    <div class="stat-info" id="stat-info">Henter data…</div>
+  </div>
+
   <a class="tilbage" href="index.html">← Tilbage til startsiden</a>
 </div>
 
 <script>
-  const NOEGLE = 'saeson';
-  const knapper = document.querySelectorAll('.saeson-knap');
-  const statusBoks = document.getElementById('status-boks');
+/* ===================== SÆSON-STYRING ===================== */
+const NOEGLE = 'saeson';
+const saesKnapper = document.querySelectorAll('.saeson-knap');
+const statusBoks = document.getElementById('status-boks');
 
-  const BESKRIVELSE = {
-    stille:    'Stille dag er aktiv — op til 3 NPC-dyr spawner, jagttakt ×0,7.',
-    auto:      'Auto er aktiv — habitatet tilpasser sig automatisk til belastningen.',
-    myldretid: 'Myldretid er aktiv — jagttakt ×2, ingen NPC-dyr.'
-  };
+const BESKRIVELSE = {
+  stille:    'Stille dag er aktiv — op til 3 NPC-dyr spawner, jagttakt ×0,7.',
+  auto:      'Auto er aktiv — habitatet tilpasser sig automatisk til belastningen.',
+  myldretid: 'Myldretid er aktiv — jagttakt ×2, ingen NPC-dyr.'
+};
 
-  function læsTilstand() {
-    return localStorage.getItem(NOEGLE) || 'auto';
+function læsTilstand() { return localStorage.getItem(NOEGLE) || 'auto'; }
+
+function opdaterSæsonUI() {
+  const aktiv = læsTilstand();
+  saesKnapper.forEach(k => {
+    const er = k.dataset.mode === aktiv;
+    k.classList.toggle('aktiv', er);
+    k.querySelector('.aktiv-maerke').style.display = er ? '' : 'none';
+  });
+  statusBoks.textContent = BESKRIVELSE[aktiv] || 'Ukendt tilstand.';
+}
+
+saesKnapper.forEach(k => {
+  k.addEventListener('click', () => { localStorage.setItem(NOEGLE, k.dataset.mode); opdaterSæsonUI(); });
+});
+opdaterSæsonUI();
+
+/* ===================== STATISTIK ===================== */
+let allSpawns = [], allDoes = [];
+let aktivPeriode = 'dag';
+
+const HABITAT_NAVNE  = { skov: 'Skov', arktis: 'Arktis', oerken: 'Ørken' };
+const DOEDS_NAVNE = {
+  jaget: 'Fanget', sult: 'Sult', frys: 'Kulde', toerke: 'Tørke',
+  sygdom: 'Sygdom', udmattelse: 'Udmattelse', udkonkurreret: 'Udkonkurreret'
+};
+const EG_INFO = {
+  stofskifte: { label: 'Stofskifte', vals: { hojt: 'Højt', lavt: 'Lavt' } },
+  hudtype:    { label: 'Hudtype',    vals: { pels: 'Pels', skael: 'Skæl', fjer: 'Fjer', glat: 'Glat' } },
+  kost:       { label: 'Kost',       vals: { koedaeder: 'Kødæder', planteaeder: 'Planteæder', alleaeder: 'Alleæder' } },
+  storrelse:  { label: 'Størrelse',  vals: { stor: 'Stor', mellem: 'Mellem', lille: 'Lille' } },
+  aktivitet:  { label: 'Aktivitet',  vals: { dagaktiv: 'Dagaktiv', nataktiv: 'Nataktiv' } },
+  forsvar:    { label: 'Forsvar',    vals: { giftig: 'Giftig', pigge: 'Pigge', flugt: 'Flugt', ingen: 'Ingen' } }
+};
+
+function filterPeriode(events, periode) {
+  const nu = new Date();
+  let fra;
+  if (periode === 'dag')    fra = new Date(nu.getFullYear(), nu.getMonth(), nu.getDate());
+  else if (periode === 'maaned') fra = new Date(nu.getFullYear(), nu.getMonth(), 1);
+  else if (periode === 'aar')    fra = new Date(nu.getFullYear(), 0, 1);
+  else return events;
+  return events.filter(e => new Date(e.ts) >= fra);
+}
+
+async function hentData() {
+  const cfg = window.BYGDITDYR_CONFIG;
+  if (!cfg?.supabaseUrl) {
+    document.getElementById('stat-info').textContent = 'Supabase ikke konfigureret.';
+    return false;
+  }
+  const h = { 'apikey': cfg.supabaseAnonKey, 'Authorization': `Bearer ${cfg.supabaseAnonKey}` };
+  document.getElementById('stat-info').textContent = 'Henter…';
+  try {
+    const [sRes, dRes] = await Promise.all([
+      fetch(`${cfg.supabaseUrl}/rest/v1/dyr_events?type=eq.spawn&select=ts,habitat,egenskaber,station_id,er_afkom&limit=10000&order=ts.asc`, { headers: h }),
+      fetch(`${cfg.supabaseUrl}/rest/v1/dyr_events?type=eq.doed&select=ts,habitat,levetid_sek,doeds_aarsag&limit=10000`, { headers: h })
+    ]);
+    allSpawns = await sRes.json();
+    allDoes   = await dRes.json();
+    if (!Array.isArray(allSpawns)) allSpawns = [];
+    if (!Array.isArray(allDoes))   allDoes   = [];
+    return true;
+  } catch (err) {
+    document.getElementById('stat-info').textContent = 'Fejl: ' + err.message;
+    return false;
+  }
+}
+
+function opdaterNoegletal(spawns, does) {
+  const st = spawns.filter(e => e.station_id && !e.er_afkom);
+  document.getElementById('nk-dyr').textContent = st.length || '0';
+  const unikke = new Set(st.map(e => e.station_id)).size;
+  document.getElementById('nk-stationer').textContent = unikke || '0';
+  document.getElementById('nk-pr-station').textContent =
+    unikke > 0 ? (st.length / unikke).toFixed(1) : '—';
+  const lt = does.filter(e => e.levetid_sek > 0).map(e => e.levetid_sek);
+  document.getElementById('nk-levetid').textContent =
+    lt.length > 0 ? Math.round(lt.reduce((a,b)=>a+b,0)/lt.length) + 's' : '—';
+}
+
+function tegnBars(container, data, suffix) {
+  const entries = Object.entries(data).sort((a,b) => b[1]-a[1]);
+  const max = entries[0]?.[1] || 1;
+  container.innerHTML = entries.length
+    ? entries.map(([lbl, val]) => `
+        <div class="bar-row">
+          <div class="bar-label">${lbl}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/max*100)}%"></div></div>
+          <div class="bar-tal">${val}${suffix||''}</div>
+        </div>`).join('')
+    : '<div class="ingen-data">Ingen data</div>';
+}
+
+function tegnEgenskaber(container, spawns) {
+  if (!spawns.length) { container.innerHTML = '<div class="ingen-data">Ingen data endnu</div>'; return; }
+  let html = '';
+  for (const [felt, info] of Object.entries(EG_INFO)) {
+    const tael = {};
+    for (const e of spawns) {
+      const v = e.egenskaber?.[felt];
+      if (!v) continue;
+      const lbl = info.vals[v] || v;
+      tael[lbl] = (tael[lbl] || 0) + 1;
+    }
+    const entries = Object.entries(tael).sort((a,b)=>b[1]-a[1]);
+    const maks = entries[0]?.[1] || 1;
+    html += `<div class="egenskab-gruppe"><div class="egenskab-titel">${info.label}</div>`;
+    html += entries.map(([lbl, val]) => {
+      const pct = Math.round(val/maks*100);
+      const andel = Math.round(val/spawns.length*100);
+      return `<div class="bar-row">
+        <div class="bar-label">${lbl}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="bar-tal">${andel}%</div>
+      </div>`;
+    }).join('');
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function tegnHeatmap(canvas, spawns) {
+  const TIMER = [7,8,9,10,11,12,13,14,15,16,17,18];
+  const DAGE  = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+  const C = 34, LV = 34, LT = 22;
+  const W = LV + TIMER.length * C, H = LT + DAGE.length * C;
+  canvas.width = W; canvas.height = H;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+
+  const grid = {};
+  let maxVal = 1;
+  for (const e of spawns) {
+    const d = new Date(e.ts);
+    const dow = (d.getDay() + 6) % 7;
+    const h = d.getHours();
+    if (h < 7 || h > 18) continue;
+    const k = `${dow}-${h}`;
+    grid[k] = (grid[k]||0) + 1;
+    if (grid[k] > maxVal) maxVal = grid[k];
   }
 
-  function opdaterUI() {
-    const aktiv = læsTilstand();
-    knapper.forEach(knap => {
-      const erAktiv = knap.dataset.mode === aktiv;
-      knap.classList.toggle('aktiv', erAktiv);
-      knap.querySelector('.aktiv-maerke').style.display = erAktiv ? '' : 'none';
-    });
-    statusBoks.textContent = BESKRIVELSE[aktiv] || 'Ukendt tilstand.';
+  ctx.fillStyle = '#16291e';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let dow = 0; dow < 7; dow++) {
+    for (let ti = 0; ti < TIMER.length; ti++) {
+      const count = grid[`${dow}-${TIMER[ti]}`] || 0;
+      const t = count / maxVal;
+      const x = LV + ti*C, y = LT + dow*C;
+      ctx.globalAlpha = count > 0 ? 0.18 + t*0.82 : 0.1;
+      ctx.fillStyle = `rgb(${Math.round(26+t*206)},${Math.round(51+t*133)},${Math.round(37+t*38)})`;
+      ctx.fillRect(x+1, y+1, C-2, C-2);
+      ctx.globalAlpha = 1;
+      if (count > 0) {
+        ctx.fillStyle = t > 0.55 ? '#14271c' : '#c8d4c0';
+        ctx.font = `bold ${count > 9 ? 10 : 12}px system-ui`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(count, x + C/2, y + C/2);
+      }
+    }
   }
 
-  knapper.forEach(knap => {
-    knap.addEventListener('click', () => {
-      localStorage.setItem(NOEGLE, knap.dataset.mode);
-      opdaterUI();
-    });
+  ctx.fillStyle = 'rgba(244,239,228,0.42)';
+  ctx.font = '11px system-ui';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  DAGE.forEach((d,i) => ctx.fillText(d, LV-5, LT + i*C + C/2));
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  TIMER.forEach((h,i) => ctx.fillText(h, LV + i*C + C/2, LT-4));
+}
+
+function tegnTrend(canvas, spawns) {
+  const W = Math.max(canvas.parentElement.clientWidth - 34, 200), H = 130;
+  canvas.width = W; canvas.height = H;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+
+  const nu = new Date();
+  const dage = Array.from({length:30}, (_, i) => {
+    const d = new Date(nu.getFullYear(), nu.getMonth(), nu.getDate() - (29-i));
+    return d;
+  });
+  const taeldre = {};
+  for (const e of spawns) {
+    const d = new Date(e.ts);
+    const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    taeldre[k] = (taeldre[k]||0) + 1;
+  }
+  const tael = dage.map(d => taeldre[`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`] || 0);
+  const max = Math.max(...tael, 1);
+
+  ctx.fillStyle = '#16291e';
+  ctx.fillRect(0, 0, W, H);
+
+  const ML=30, MR=10, MT=10, MB=26;
+  const pW=W-ML-MR, pH=H-MT-MB;
+  const xP = i => ML + (i/(dage.length-1))*pW;
+  const yP = v => MT + pH - (v/max)*pH;
+
+  ctx.beginPath();
+  ctx.moveTo(xP(0), yP(0));
+  tael.forEach((v,i) => ctx.lineTo(xP(i), yP(v)));
+  ctx.lineTo(xP(tael.length-1), yP(0));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(232,184,75,0.1)';
+  ctx.fill();
+
+  ctx.beginPath();
+  tael.forEach((v,i) => i===0 ? ctx.moveTo(xP(i),yP(v)) : ctx.lineTo(xP(i),yP(v)));
+  ctx.strokeStyle = '#e8b84b';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  tael.forEach((v,i) => {
+    if (v === 0) return;
+    ctx.beginPath();
+    ctx.arc(xP(i), yP(v), 3, 0, Math.PI*2);
+    ctx.fillStyle = '#e8b84b';
+    ctx.fill();
   });
 
-  opdaterUI();
+  ctx.fillStyle = 'rgba(244,239,228,0.38)';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillText('0', ML-4, yP(0));
+  if (max > 0) ctx.fillText(max, ML-4, yP(max));
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  dage.forEach((d,i) => {
+    if (i % 7 === 0 || i === dage.length-1)
+      ctx.fillText(`${d.getDate()}/${d.getMonth()+1}`, xP(i), H-MB+4);
+  });
+}
+
+function opdaterDashboard() {
+  const spawns = filterPeriode(allSpawns, aktivPeriode);
+  const does   = filterPeriode(allDoes,   aktivPeriode);
+
+  opdaterNoegletal(spawns, does);
+  tegnEgenskaber(document.getElementById('egenskaber-bars'), spawns);
+
+  // Habitat-levetider
+  const habGns = {};
+  for (const hab of ['skov','arktis','oerken']) {
+    const lt = does.filter(e => e.habitat===hab && e.levetid_sek>0).map(e=>e.levetid_sek);
+    if (lt.length) habGns[HABITAT_NAVNE[hab]] = Math.round(lt.reduce((a,b)=>a+b,0)/lt.length);
+  }
+  tegnBars(document.getElementById('habitat-bars'), habGns, 's');
+
+  // Dødsårsager
+  const doedsTael = {};
+  for (const e of does) {
+    if (!e.doeds_aarsag) continue;
+    const lbl = DOEDS_NAVNE[e.doeds_aarsag] || e.doeds_aarsag;
+    doedsTael[lbl] = (doedsTael[lbl]||0) + 1;
+  }
+  tegnBars(document.getElementById('doeds-bars'), doedsTael, '');
+
+  // Heatmap og trend bruger altid alle data for at give et meningsfuldt mønster
+  tegnHeatmap(document.getElementById('heatmap-canvas'), allSpawns);
+  tegnTrend(document.getElementById('trend-canvas'), allSpawns);
+
+  const opdTid = new Date().toLocaleTimeString('da-DK', {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('stat-info').textContent =
+    `${allSpawns.length} spawns · ${allDoes.length} dødsfald · opdateret ${opdTid}`;
+}
+
+async function indlæsOgVis() {
+  const ok = await hentData();
+  if (ok) opdaterDashboard();
+}
+
+document.querySelectorAll('.p-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    aktivPeriode = tab.dataset.p;
+    document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('aktiv'));
+    tab.classList.add('aktiv');
+    opdaterDashboard();
+  });
+});
+
+document.getElementById('opdater-knap').addEventListener('click', indlæsOgVis);
+
+indlæsOgVis();
 </script>
 </body>
 </html>
