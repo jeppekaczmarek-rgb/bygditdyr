@@ -1509,6 +1509,19 @@ function tjekFortaellerBegivenheder(nu) {
     visFortaeller('Et stort rovdyr dominerer habitatet — alle planteædere er på vagt. Planterne vokser tilbage.');
   }
   if (!trofiskKaskade) fortaellerFlags.kaskadeVist = false;
+
+  // Intens niche-konkurrence (3+ dyr på same niche = kost + størrelse + aktivitet)
+  const nicheTaelF = {};
+  for (const d of levende) {
+    const nk = beregnNicheNoegle(d.egenskaber);
+    nicheTaelF[nk] = (nicheTaelF[nk] || 0) + 1;
+  }
+  const storsteNiche = Math.max(...Object.values(nicheTaelF), 0);
+  if (storsteNiche >= 3 && !fortaellerFlags.nicheKonkurrence) {
+    fortaellerFlags.nicheKonkurrence = true;
+    visFortaeller('Mange dyr konkurrerer om den samme fødekilde. I naturen presses de svageste ud.');
+  }
+  if (storsteNiche < 2) fortaellerFlags.nicheKonkurrence = false;
 }
 
 // ============================================================
@@ -1544,11 +1557,66 @@ function opdaterPulsPanel() {
   `;
 }
 
+// ============================================================
+// NICHE-MARKERING — farvet prik på dyr der deler same niche
+// Niche = kost × størrelse × aktivitet (de tre kompetitive egenskaber)
+// ============================================================
+const NICHE_KLASSER = ['niche-a', 'niche-b', 'niche-c', 'niche-d'];
+const nicheKlasseMap = new Map(); // nicheNoegle → CSS-klasse
+const nicheKlasseBrug = new Set(); // klasser der er i brug
+let nicheOpdaterSidste = 0;
+
+function beregnNicheNoegle(egenskaber) {
+  return `${egenskaber.kost}-${egenskaber.storrelse}-${egenskaber.aktivitet}`;
+}
+
+function opdaterNicheMarkering(nu) {
+  if (nu - nicheOpdaterSidste < 3000) return;
+  nicheOpdaterSidste = nu;
+
+  // Tæl levende dyr per niche
+  const nicheTael = new Map();
+  for (const d of dyrListe) {
+    if (d.doedsTid) continue;
+    const noegle = beregnNicheNoegle(d.egenskaber);
+    nicheTael.set(noegle, (nicheTael.get(noegle) || 0) + 1);
+  }
+
+  // Frigiv klasser for niches der er faldet til < 2 dyr
+  for (const [noegle, klasse] of nicheKlasseMap) {
+    if ((nicheTael.get(noegle) || 0) < 2) {
+      nicheKlasseMap.delete(noegle);
+      nicheKlasseBrug.delete(klasse);
+    }
+  }
+
+  // Tildel stabile klasser til nye niches med >= 2 dyr
+  for (const [noegle, antal] of nicheTael) {
+    if (antal >= 2 && !nicheKlasseMap.has(noegle)) {
+      const ledigKlasse = NICHE_KLASSER.find(k => !nicheKlasseBrug.has(k));
+      if (ledigKlasse) {
+        nicheKlasseMap.set(noegle, ledigKlasse);
+        nicheKlasseBrug.add(ledigKlasse);
+      }
+    }
+  }
+
+  // Opdater DOM-elementer (fjern gamle klasser, tilføj aktuelle)
+  for (const d of dyrListe) {
+    if (!d.el) continue;
+    for (const kl of NICHE_KLASSER) d.el.classList.remove(kl);
+    if (d.doedsTid) continue;
+    const klasse = nicheKlasseMap.get(beregnNicheNoegle(d.egenskaber));
+    if (klasse) d.el.classList.add(klasse);
+  }
+}
+
 // State-flags til fortæller-throttling
 const fortaellerFlags = {
   foersteKoedaeder: false,
   monokuluturAdvaret: false,
-  kaskadeVist: false
+  kaskadeVist: false,
+  nicheKonkurrence: false
 };
 
 // ============================================================
@@ -1823,6 +1891,7 @@ function simulationsLoop(timestamp) {
   tjekFortaellerBegivenheder(timestamp);
   tjekNpcSpawn(timestamp);
   opdaterPulsPanel();
+  opdaterNicheMarkering(timestamp);
   if (window.Telemetri) Telemetri.tik(dyrListe, dt, timestamp, trofiskKaskade);
   opdaterAnimation(timestamp);
   renderPlanter();
