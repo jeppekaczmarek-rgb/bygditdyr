@@ -862,6 +862,23 @@ function bevægHvile(dyr, dt, fart) {
 // ============================================================
 // JAGT — fangst-resolution (bevægelse styres af tilstandsmaskinen)
 // ============================================================
+
+// Synlig fangst-label midt på skærmen — ét ad gangen, kun cross-player
+let jagtOverlayAktiv = false;
+function visJagtOverlay(jaeger, bytte) {
+  if (jagtOverlayAktiv) return;
+  // NPC-mod-NPC jagter er ikke sociale og behøver ikke at larme
+  if (jaeger._npc && bytte._npc) return;
+  jagtOverlayAktiv = true;
+  const el = document.createElement('div');
+  el.className = 'jagt-overlay';
+  el.textContent = `${jaeger.danskNavn} → ${bytte.danskNavn}`;
+  el.style.left = Math.round((jaeger.x + bytte.x) / 2) + 'px';
+  el.style.top  = Math.round((jaeger.y + bytte.y) / 2) + 'px';
+  dyrContainer.appendChild(el);
+  setTimeout(() => { el.remove(); jagtOverlayAktiv = false; }, 1600);
+}
+
 function opdaterJagt(nu) {
   // Dynamisk jagt-takt: skalerer opad med antal rovdyr for at undgå jagt-kaos
   const rovdyrAntal = dyrListe.filter(d => !d.doedsTid && d.egenskaber.kost === 'koedaeder').length;
@@ -957,7 +974,10 @@ function opdaterJagt(nu) {
     if (window.Telemetri) Telemetri.registrer('fangst', { udfald, forsvar: bytte.egenskaber.forsvar });
 
     // Send "jaget"-event til stationerne når byttet rent faktisk bliver fanget
-    if (udfald === 'draebt') sendDyrEvent(bytte, 'jaget', nu);
+    if (udfald === 'draebt') {
+      sendDyrEvent(bytte, 'jaget', nu);
+      visJagtOverlay(jaeger, bytte);
+    }
 
     jaeger.jagtMaal = null;
   }
@@ -1007,6 +1027,8 @@ function opdaterKaskade() {
     !d.doedsTid && d.egenskaber.storrelse === 'stor'
     && (d.egenskaber.kost === 'koedaeder' || d.egenskaber.kost === 'alleaeder'));
   trofiskKaskade = storeRovdyr.length > 0;
+  // Stemningsændring: rødlig kant på habitatskærmen ved aktiv kaskade
+  habitatVerden.classList.toggle('kaskade-aktiv', trofiskKaskade);
 
   const r2 = KASKADE_RADIUS * KASKADE_RADIUS;
   for (const dyr of dyrListe) {
@@ -1359,6 +1381,19 @@ function tjekDoed(nu) {
     const levetidSek = Math.round(levetMs / 1000);
     const aarsag = bestemDoedsaarsag(dyr);
 
+    // 03E: Trofisk afhængighed — berig dødsbeskeden når rovdyr sulter pga. byttedyr-kollaps
+    let afhængighedKontekst = '';
+    if (aarsag.aarsag === 'sult' && dyr.egenskaber.kost === 'koedaeder') {
+      const levende = dyrListe.filter(d => !d.doedsTid);
+      const harBytte = levende.some(d =>
+        d.egenskaber.kost === 'planteaeder' || d.egenskaber.kost === 'alleaeder'
+      );
+      if (!harBytte) {
+        afhængighedKontekst = ' — alle planteædere forsvandt, og fødekæden kollapsede';
+        visFortaeller('Et rovdyr sultede fordi alle planteædere forsvandt. Fødekæden kan ikke overleve uden byttet i bunden.');
+      }
+    }
+
     // Tjek artsudslettelse FØR vi markerer dyret som dødt
     const sidsteAfArt = erSidsteAfArt(dyr);
 
@@ -1410,7 +1445,7 @@ function tjekDoed(nu) {
         aarsag: aarsag.aarsag,
         levetid: levetidSek,
         erStamdyr: dyr.erStamdyr || false,
-        kortTekst: kortTekst
+        kortTekst: kortTekst + afhængighedKontekst
       });
     }
   }
@@ -1487,6 +1522,19 @@ function tjekFortaellerBegivenheder(nu) {
     visFortaeller('Et stort rovdyr dominerer habitatet — alle planteædere er på vagt. Planterne vokser tilbage.');
   }
   if (!trofiskKaskade) fortaellerFlags.kaskadeVist = false;
+
+  // Intens niche-konkurrence (3+ dyr på same niche = kost + størrelse + aktivitet)
+  const nicheTaelF = {};
+  for (const d of levende) {
+    const nk = beregnNicheNoegle(d.egenskaber);
+    nicheTaelF[nk] = (nicheTaelF[nk] || 0) + 1;
+  }
+  const storsteNiche = Math.max(...Object.values(nicheTaelF), 0);
+  if (storsteNiche >= 3 && !fortaellerFlags.nicheKonkurrence) {
+    fortaellerFlags.nicheKonkurrence = true;
+    visFortaeller('Mange dyr konkurrerer om den samme fødekilde. I naturen presses de svageste ud.');
+  }
+  if (storsteNiche < 2) fortaellerFlags.nicheKonkurrence = false;
 }
 
 // ============================================================
@@ -1522,11 +1570,66 @@ function opdaterPulsPanel() {
   `;
 }
 
+// ============================================================
+// NICHE-MARKERING — farvet prik på dyr der deler same niche
+// Niche = kost × størrelse × aktivitet (de tre kompetitive egenskaber)
+// ============================================================
+const NICHE_KLASSER = ['niche-a', 'niche-b', 'niche-c', 'niche-d'];
+const nicheKlasseMap = new Map(); // nicheNoegle → CSS-klasse
+const nicheKlasseBrug = new Set(); // klasser der er i brug
+let nicheOpdaterSidste = 0;
+
+function beregnNicheNoegle(egenskaber) {
+  return `${egenskaber.kost}-${egenskaber.storrelse}-${egenskaber.aktivitet}`;
+}
+
+function opdaterNicheMarkering(nu) {
+  if (nu - nicheOpdaterSidste < 3000) return;
+  nicheOpdaterSidste = nu;
+
+  // Tæl levende dyr per niche
+  const nicheTael = new Map();
+  for (const d of dyrListe) {
+    if (d.doedsTid) continue;
+    const noegle = beregnNicheNoegle(d.egenskaber);
+    nicheTael.set(noegle, (nicheTael.get(noegle) || 0) + 1);
+  }
+
+  // Frigiv klasser for niches der er faldet til < 2 dyr
+  for (const [noegle, klasse] of nicheKlasseMap) {
+    if ((nicheTael.get(noegle) || 0) < 2) {
+      nicheKlasseMap.delete(noegle);
+      nicheKlasseBrug.delete(klasse);
+    }
+  }
+
+  // Tildel stabile klasser til nye niches med >= 2 dyr
+  for (const [noegle, antal] of nicheTael) {
+    if (antal >= 2 && !nicheKlasseMap.has(noegle)) {
+      const ledigKlasse = NICHE_KLASSER.find(k => !nicheKlasseBrug.has(k));
+      if (ledigKlasse) {
+        nicheKlasseMap.set(noegle, ledigKlasse);
+        nicheKlasseBrug.add(ledigKlasse);
+      }
+    }
+  }
+
+  // Opdater DOM-elementer (fjern gamle klasser, tilføj aktuelle)
+  for (const d of dyrListe) {
+    if (!d.el) continue;
+    for (const kl of NICHE_KLASSER) d.el.classList.remove(kl);
+    if (d.doedsTid) continue;
+    const klasse = nicheKlasseMap.get(beregnNicheNoegle(d.egenskaber));
+    if (klasse) d.el.classList.add(klasse);
+  }
+}
+
 // State-flags til fortæller-throttling
 const fortaellerFlags = {
   foersteKoedaeder: false,
   monokuluturAdvaret: false,
-  kaskadeVist: false
+  kaskadeVist: false,
+  nicheKonkurrence: false
 };
 
 // ============================================================
@@ -1801,6 +1904,7 @@ function simulationsLoop(timestamp) {
   tjekFortaellerBegivenheder(timestamp);
   tjekNpcSpawn(timestamp);
   opdaterPulsPanel();
+  opdaterNicheMarkering(timestamp);
   if (window.Telemetri) Telemetri.tik(dyrListe, dt, timestamp, trofiskKaskade);
   opdaterAnimation(timestamp);
   renderPlanter();

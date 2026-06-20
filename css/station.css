@@ -318,6 +318,40 @@ body {
   color: var(--okker);
 }
 
+.trin-spoergsmaal {
+  font-size: 0.9rem;
+  color: var(--tekst-dempet);
+  margin: -0.25rem 0 0.5rem;
+  line-height: 1.4;
+}
+
+.fagord-detaljer {
+  font-size: 0.82rem;
+  color: var(--tekst-dempet);
+  margin: 0.1rem 0 0.6rem;
+}
+
+.fagord-detaljer summary {
+  cursor: pointer;
+  color: var(--okker);
+  font-size: 0.8rem;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.fagord-detaljer summary::marker { display: none; content: ''; }
+.fagord-detaljer summary::before { content: 'ℹ'; font-style: normal; }
+.fagord-detaljer[open] summary::before { content: '▾'; }
+
+.fagord-detaljer p {
+  margin: 0.4rem 0 0;
+  line-height: 1.45;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--okker-dempet, rgba(180, 140, 60, 0.4));
+}
+
 .kort-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
