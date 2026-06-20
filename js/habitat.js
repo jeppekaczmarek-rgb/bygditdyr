@@ -285,6 +285,7 @@ function tilfoejDyr(dyr) {
 
   dyrListe.push(simDyr);
   if (window.Telemetri) Telemetri.registrer('ankomst', { egenskaber: simDyr.egenskaber, score });
+  logSpawn(simDyr);
 
   // Send "ankom"-event til stationerne (kun for nyligt byggede dyr, ikke afkom)
   if (!dyr._afkom) sendDyrEvent(simDyr, 'ankom', simDyr.ankomstTid);
@@ -400,6 +401,55 @@ function tjekNpcSpawn(nu) {
   };
   tilfoejDyr(npc);
   console.log(`NPC spawnet: ${npc.danskNavn} (sæson: ${sæsonTilstand}, individer: ${individer})`);
+}
+
+// ============================================================
+// STATISTIK-LOGGING — anonyme gameplay-data til Supabase
+// Bruges af personaledashboardet på indstillinger.html.
+// ============================================================
+async function logTilSupabase(payload) {
+  const cfg = window.BYGDITDYR_CONFIG;
+  if (!cfg?.supabaseUrl) return;
+  try {
+    await fetch(`${cfg.supabaseUrl}/rest/v1/dyr_events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': cfg.supabaseAnonKey,
+        'Authorization': `Bearer ${cfg.supabaseAnonKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (_) {} // logging er ikke kritisk for spillet
+}
+
+function logSpawn(dyr) {
+  if (dyr._npc) return;
+  logTilSupabase({
+    type: 'spawn',
+    dyr_id: dyr.id,
+    habitat: aktivtHabitat,
+    egenskaber: dyr.egenskaber,
+    score: dyr.overlevelsesScore,
+    station_id: dyr.stationId || null,
+    er_afkom: dyr._afkom || false
+  });
+}
+
+function logDoed(dyr, levetidSek, aarsag) {
+  if (dyr._npc) return;
+  logTilSupabase({
+    type: 'doed',
+    dyr_id: dyr.id,
+    habitat: aktivtHabitat,
+    egenskaber: dyr.egenskaber,
+    score: dyr.overlevelsesScore,
+    levetid_sek: levetidSek,
+    doeds_aarsag: aarsag,
+    station_id: dyr.stationId || null,
+    er_afkom: dyr._afkom || false
+  });
 }
 
 // ============================================================
@@ -1220,6 +1270,7 @@ function draebDyr(dyr, nu, aarsag) {
     sendScoreboard();
   }
   if (window.Telemetri) Telemetri.registrer('doed', { aarsag, levetid: levetidSek, egenskaber: dyr.egenskaber });
+  logDoed(dyr, levetidSek, aarsag);
 
   if (sidsteAfArt) {
     if (window.Audio) Audio.dyrDoer();
@@ -1331,6 +1382,7 @@ function tjekDoed(nu) {
       sendScoreboard();
     }
     if (window.Telemetri) Telemetri.registrer('doed', { aarsag: aarsag.aarsag, levetid: levetidSek, egenskaber: dyr.egenskaber });
+    logDoed(dyr, levetidSek, aarsag.aarsag);
 
     // Dramatisk overlay + broadcast KUN ved artsudslettelse
     if (sidsteAfArt) {
