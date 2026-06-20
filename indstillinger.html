@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personalemenu — Byg Dit Dyr</title>
+  <style>
+    :root {
+      --accent: #e8b84b;
+      --baggrund: #1f3d2b;
+      --kort: rgba(255,255,255,.07);
+      --kant: rgba(255,255,255,.14);
+      --tekst: #f4efe4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      font-family: Inter, system-ui, sans-serif;
+      color: var(--tekst);
+      background: radial-gradient(120% 120% at 50% 0%, #2e5a3f 0%, #1f3d2b 55%, #14271c 100%);
+      padding: 24px;
+    }
+    .indhold { max-width: 520px; width: 100%; }
+    h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+    .under { opacity: .7; font-size: 14px; margin-bottom: 32px; line-height: 1.5; }
+    .sektion { margin-bottom: 32px; }
+    .sektion h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; opacity: .55; margin-bottom: 12px; }
+
+    /* Sæson-knapper */
+    .saeson-gruppe { display: flex; flex-direction: column; gap: 10px; }
+    .saeson-knap {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: var(--kort); border: 1.5px solid var(--kant);
+      border-radius: 12px; padding: 16px 18px;
+      cursor: pointer; color: var(--tekst); text-align: left;
+      transition: .15s ease; font-family: inherit;
+      width: 100%;
+    }
+    .saeson-knap:hover { background: rgba(255,255,255,.12); }
+    .saeson-knap.aktiv {
+      border-color: var(--accent);
+      background: rgba(232,184,75,.1);
+    }
+    .saeson-knap .ikon { font-size: 26px; flex-shrink: 0; margin-top: 1px; }
+    .saeson-knap .txt b { display: block; font-size: 16px; margin-bottom: 3px; }
+    .saeson-knap .txt span { font-size: 13px; opacity: .72; line-height: 1.4; }
+    .aktiv-maerke {
+      margin-left: auto; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: var(--accent); white-space: nowrap; align-self: center;
+    }
+
+    /* Status */
+    .status-boks {
+      background: var(--kort); border: 1px solid var(--kant);
+      border-radius: 10px; padding: 14px 16px;
+      font-size: 13px; opacity: .8; line-height: 1.6;
+    }
+    .tilbage { display: inline-block; margin-top: 24px; font-size: 13px; opacity: .5; text-decoration: none; color: var(--tekst); }
+    .tilbage:hover { opacity: .85; }
+  </style>
+</head>
+<body>
+<div class="indhold">
+  <h1>⚙️ Personalemenu</h1>
+  <p class="under">Disse indstillinger gælder for habitatskærmen og opdateres automatisk inden for 10 sekunder — ingen genindlæsning af projektoren nødvendig.</p>
+
+  <div class="sektion">
+    <h2>Dagens sæson</h2>
+    <div class="saeson-gruppe" id="saeson-gruppe">
+
+      <button class="saeson-knap" data-mode="stille">
+        <span class="ikon">🌿</span>
+        <span class="txt">
+          <b>Stille dag</b>
+          <span>Få elever eller tomme stationer. Op til 3 vilde NPC-dyr udfylder habitatet og sikrer at der altid er interaktion at se. Jagttakten er lettere hurtigere for at kompensere for det lave antal.</span>
+        </span>
+        <span class="aktiv-maerke" style="display:none">Aktiv</span>
+      </button>
+
+      <button class="saeson-knap" data-mode="auto">
+        <span class="ikon">⚖️</span>
+        <span class="txt">
+          <b>Auto (anbefalet)</b>
+          <span>Habitatet tilpasser sig automatisk. Planter, sygdom, formering og jagttakt skalerer med antal dyr på skærmen — fungerer fra 1 til 20+ elever.</span>
+        </span>
+        <span class="aktiv-maerke" style="display:none">Aktiv</span>
+      </button>
+
+      <button class="saeson-knap" data-mode="myldretid">
+        <span class="ikon">🏫</span>
+        <span class="txt">
+          <b>Myldretid</b>
+          <span>Mange klasser eller åbent hus. Jagttakten bremses ekstra og NPC-dyr spawner ikke — skærmen bevarer sin ro selv med 20+ dyr i gang.</span>
+        </span>
+        <span class="aktiv-maerke" style="display:none">Aktiv</span>
+      </button>
+
+    </div>
+  </div>
+
+  <div class="sektion">
+    <h2>Status</h2>
+    <div class="status-boks" id="status-boks">Indlæser...</div>
+  </div>
+
+  <a class="tilbage" href="index.html">← Tilbage til startsiden</a>
+</div>
+
+<script>
+  const NOEGLE = 'saeson';
+  const knapper = document.querySelectorAll('.saeson-knap');
+  const statusBoks = document.getElementById('status-boks');
+
+  const BESKRIVELSE = {
+    stille:    'Stille dag er aktiv — op til 3 NPC-dyr spawner, jagttakt ×0,7.',
+    auto:      'Auto er aktiv — habitatet tilpasser sig automatisk til belastningen.',
+    myldretid: 'Myldretid er aktiv — jagttakt ×2, ingen NPC-dyr.'
+  };
+
+  function læsTilstand() {
+    return localStorage.getItem(NOEGLE) || 'auto';
+  }
+
+  function opdaterUI() {
+    const aktiv = læsTilstand();
+    knapper.forEach(knap => {
+      const erAktiv = knap.dataset.mode === aktiv;
+      knap.classList.toggle('aktiv', erAktiv);
+      knap.querySelector('.aktiv-maerke').style.display = erAktiv ? '' : 'none';
+    });
+    statusBoks.textContent = BESKRIVELSE[aktiv] || 'Ukendt tilstand.';
+  }
+
+  knapper.forEach(knap => {
+    knap.addEventListener('click', () => {
+      localStorage.setItem(NOEGLE, knap.dataset.mode);
+      opdaterUI();
+    });
+  });
+
+  opdaterUI();
+</script>
+</body>
+</html>
