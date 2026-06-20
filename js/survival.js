@@ -18,7 +18,8 @@ const HABITAT_SCORE = {
     hudtype:    { pels: 1, fjer: 1, skael: 0, glat: 0 },
     // alleaeder: sænket +2→+1 så specialister bliver konkurrencedygtige
     kost:       { planteaeder: 1, koedaeder: 0, alleaeder: 1 },
-    storrelse:  { lille: 0, mellem: 1, stor: -1 },
+    // lille: hævet 0→1 — åbner flere top-builds (lille koster kun 1 energi vs. mellems 2)
+    storrelse:  { lille: 1, mellem: 1, stor: -1 },
     aktivitet:  { dagaktiv: 1, nataktiv: 0 },
     forsvar:    { giftig: 1, pigge: 1, flugt: 2, ingen: -1 }
   },

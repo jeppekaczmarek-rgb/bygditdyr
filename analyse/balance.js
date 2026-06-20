@@ -1,8 +1,9 @@
 // Balance-analyse af overlevelsesmodellen (replikerer survival.js)
 // OPDATERET 19. juni 2026: alleaeder -1 i skov+ørken, pels energi 2→1,
 // arktis stor +2→+3 + flugt 1→2 + glat -2→-1, glat 0 i skov, ørken forsvar spredt
+// OPDATERET 20. juni 2026: skov lille 0→1 (spreder top-builds)
 const HABITAT_SCORE = {
-  skov: { stofskifte:{hojt:1,lavt:-1}, hudtype:{pels:1,fjer:1,skael:0,glat:0}, kost:{planteaeder:1,koedaeder:0,alleaeder:1}, storrelse:{lille:0,mellem:1,stor:-1}, aktivitet:{dagaktiv:1,nataktiv:0}, forsvar:{giftig:1,pigge:1,flugt:2,ingen:-1} },
+  skov: { stofskifte:{hojt:1,lavt:-1}, hudtype:{pels:1,fjer:1,skael:0,glat:0}, kost:{planteaeder:1,koedaeder:0,alleaeder:1}, storrelse:{lille:1,mellem:1,stor:-1}, aktivitet:{dagaktiv:1,nataktiv:0}, forsvar:{giftig:1,pigge:1,flugt:2,ingen:-1} },
   arktis:{ stofskifte:{hojt:2,lavt:-2}, hudtype:{pels:2,fjer:1,skael:-2,glat:-1}, kost:{planteaeder:-1,koedaeder:2,alleaeder:1}, storrelse:{lille:-1,mellem:1,stor:3}, aktivitet:{dagaktiv:1,nataktiv:-2}, forsvar:{giftig:0,pigge:1,flugt:2,ingen:-1} },
   oerken:{ stofskifte:{hojt:-1,lavt:2}, hudtype:{pels:-2,fjer:1,skael:2,glat:-1}, kost:{planteaeder:1,koedaeder:1,alleaeder:1}, storrelse:{lille:1,mellem:0,stor:-1}, aktivitet:{dagaktiv:-1,nataktiv:2}, forsvar:{giftig:1,pigge:1,flugt:1,ingen:-1} }
 };
