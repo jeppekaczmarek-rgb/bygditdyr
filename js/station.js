@@ -399,6 +399,10 @@ function sendDyr() {
   const score = Survival.beregnHabitatScore({ egenskaber: valg }, aktivtHabitat);
   const levetid = Survival.beregnOverlevelsestid(score);
 
+  // Station-ID: brug URL-param ?station=X eller generer lokalt ID
+  const stationId = new URLSearchParams(window.location.search).get('station')
+    || (sessionStorage.stationId ||= `S${Math.floor(Math.random() * 99) + 1}`);
+
   const dyr = {
     id: crypto.randomUUID(),
     artsnavn: Names.genererArtsnavn(valg),
@@ -408,7 +412,8 @@ function sendDyr() {
     overlevelsesScore: score,
     position: { x: Math.random() * 80 + 10, y: Math.random() * 60 + 20 },
     levetid: levetid,
-    levende: true
+    levende: true,
+    stationId: stationId
   };
 
   // Gem ID + artsnavn til at tracke live-feedback (arten = elevens dyr + afkom)
@@ -504,6 +509,14 @@ if (window.Broadcast && window.Broadcast.lyt) {
         // Et enkelt individ af elevens art er dødt
         if (besked.artsnavn === minArtsnavn) {
           visIndividDoed(besked);
+        }
+        break;
+      case 'DYR_JAGES':
+        // Jagt — vis hvis elevens art er involveret (som bytte eller jæger)
+        if (besked.bytte_artsnavn === minArtsnavn) {
+          tilfoejEvent(`🎯 Din ${besked.bytte_danskNavn} jages af ${besked.jaeger_danskNavn}!`);
+        } else if (besked.jaeger_artsnavn === minArtsnavn) {
+          tilfoejEvent(`🥩 Din ${besked.jaeger_danskNavn} jagter ${besked.bytte_danskNavn}.`);
         }
         break;
       case 'DYR_EVENT':

@@ -669,3 +669,40 @@ body {
   transform: translateX(-50%) translateY(8px);
   pointer-events: none;
 }
+
+/* ============================================================
+   PULS-PANEL — økosystem-overblik
+   ============================================================ */
+#puls-panel {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: rgba(26, 26, 18, 0.82);
+  border: 1px solid rgba(212, 168, 67, 0.35);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  color: var(--tekst-dempet);
+  min-width: 140px;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  line-height: 1.6;
+}
+
+#puls-panel .puls-linje {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#puls-panel .puls-tal {
+  color: var(--okker-lys);
+  font-weight: 600;
+}
+
+#puls-panel .puls-advarsel {
+  color: #e05a4a;
+  font-weight: 700;
+  margin-top: 4px;
+  font-size: 0.7rem;
+}

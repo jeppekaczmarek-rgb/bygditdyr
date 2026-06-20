@@ -807,7 +807,17 @@ function opdaterJagt(nu) {
     jaeger.ambushFase = 'naermer';
 
     if (window.Audio) Audio.jagt();
-    Broadcast.send({ type: 'DYR_JAGES', bytte_id: bytte.id, jaeger_id: jaeger.id });
+    Broadcast.send({
+      type: 'DYR_JAGES',
+      bytte_id: bytte.id,
+      jaeger_id: jaeger.id,
+      bytte_artsnavn: bytte.artsnavn,
+      bytte_danskNavn: bytte.danskNavn,
+      jaeger_artsnavn: jaeger.artsnavn,
+      jaeger_danskNavn: jaeger.danskNavn,
+      jaeger_stationId: jaeger.stationId || null,
+      bytte_stationId: bytte.stationId || null
+    });
 
     // Forsvar afgør udfaldet
     let udfald;
@@ -1394,6 +1404,39 @@ function tjekFortaellerBegivenheder(nu) {
   if (!trofiskKaskade) fortaellerFlags.kaskadeVist = false;
 }
 
+// ============================================================
+// PULS-PANEL — live-overblik over økosystemets tilstand
+// ============================================================
+let pulsPanelEl = null;
+let pulsPanelSidste = 0; // opdateres maks. hvert 2. sekund
+
+function opdaterPulsPanel() {
+  const nu = performance.now();
+  if (nu - pulsPanelSidste < 2000) return;
+  pulsPanelSidste = nu;
+
+  if (!pulsPanelEl) pulsPanelEl = document.getElementById('puls-panel');
+  if (!pulsPanelEl) return;
+
+  const levende = dyrListe.filter(d => !d.doedsTid);
+  const arter = new Set(levende.map(d => d.artsnavn));
+  const planteaedere = levende.filter(d => d.egenskaber.kost === 'planteaeder').length;
+  const koedaedere  = levende.filter(d => d.egenskaber.kost === 'koedaeder').length;
+  const alleaedere  = levende.filter(d => d.egenskaber.kost === 'alleaeder').length;
+
+  // Ustabilitetssignal: ingen planteædere + rovdyr til stede, eller kun 1 art
+  const ustabil = (planteaedere === 0 && koedaedere > 0) || (levende.length > 3 && arter.size === 1);
+
+  pulsPanelEl.innerHTML = `
+    <div class="puls-linje"><span>Individer</span><span class="puls-tal">${levende.length}</span></div>
+    <div class="puls-linje"><span>Arter</span><span class="puls-tal">${arter.size}</span></div>
+    <div class="puls-linje"><span>🌿 Planteæd.</span><span class="puls-tal">${planteaedere}</span></div>
+    <div class="puls-linje"><span>🥩 Kødæd.</span><span class="puls-tal">${koedaedere}</span></div>
+    <div class="puls-linje"><span>🍽️ Alleæd.</span><span class="puls-tal">${alleaedere}</span></div>
+    ${ustabil ? '<div class="puls-advarsel">⚠️ Ustabilt fødenet</div>' : ''}
+  `;
+}
+
 // State-flags til fortæller-throttling
 const fortaellerFlags = {
   foersteKoedaeder: false,
@@ -1663,6 +1706,7 @@ function simulationsLoop(timestamp) {
   sendArterStatus(timestamp);
   tjekFortaellerBegivenheder(timestamp);
   tjekNpcSpawn(timestamp);
+  opdaterPulsPanel();
   if (window.Telemetri) Telemetri.tik(dyrListe, dt, timestamp, trofiskKaskade);
   opdaterAnimation(timestamp);
   renderPlanter();
