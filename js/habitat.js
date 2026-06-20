@@ -1381,6 +1381,19 @@ function tjekDoed(nu) {
     const levetidSek = Math.round(levetMs / 1000);
     const aarsag = bestemDoedsaarsag(dyr);
 
+    // 03E: Trofisk afhængighed — berig dødsbeskeden når rovdyr sulter pga. byttedyr-kollaps
+    let afhængighedKontekst = '';
+    if (aarsag.aarsag === 'sult' && dyr.egenskaber.kost === 'koedaeder') {
+      const levende = dyrListe.filter(d => !d.doedsTid);
+      const harBytte = levende.some(d =>
+        d.egenskaber.kost === 'planteaeder' || d.egenskaber.kost === 'alleaeder'
+      );
+      if (!harBytte) {
+        afhængighedKontekst = ' — alle planteædere forsvandt, og fødekæden kollapsede';
+        visFortaeller('Et rovdyr sultede fordi alle planteædere forsvandt. Fødekæden kan ikke overleve uden byttet i bunden.');
+      }
+    }
+
     // Tjek artsudslettelse FØR vi markerer dyret som dødt
     const sidsteAfArt = erSidsteAfArt(dyr);
 
@@ -1432,7 +1445,7 @@ function tjekDoed(nu) {
         aarsag: aarsag.aarsag,
         levetid: levetidSek,
         erStamdyr: dyr.erStamdyr || false,
-        kortTekst: kortTekst
+        kortTekst: kortTekst + afhængighedKontekst
       });
     }
   }

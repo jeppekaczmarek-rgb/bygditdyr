@@ -9,6 +9,7 @@ const BYGGETRIN = [
   {
     kategori: 'stofskifte',
     titel: 'Stofskifte',
+    fagord: 'Stofskiftet er kroppens motor. Varmblodige dyr (pattedyr, fugle) producerer selv varme — dyrt i energi, men uafhængigt af vejret. Koldblodige dyr (krybdyr, frøer) låner solen — gratis, men hjælpeløse i kulde.',
     spørgsmaal: 'Laver din krop selv varme — eller låner du solens?',
     valg: [
       { vaerdi: 'hojt', emoji: '🔥', navn: 'Højt stofskifte', beskrivelse: 'Holder selv varmen — som en ulv. Energikrævende, men aktiv selv i frost.' },
@@ -18,6 +19,7 @@ const BYGGETRIN = [
   {
     kategori: 'hudtype',
     titel: 'Hudtype',
+    fagord: 'Det ydre lag der dækker kroppen. Pels, fjer, skæl og glat hud er alle evolutionære løsninger på samme problem: beskyt kroppen mod vejr, tørke og fjender. Hvert valg er en afvejning af varme, vægt og vandtab.',
     spørgsmaal: 'Hvad dækker kroppen udenpå? Det første forsvar mod vejr og kulde.',
     valg: [
       { vaerdi: 'pels',  emoji: '🧥', navn: 'Pels',     beskrivelse: 'Holder på kropsvarmen. Isbjørnens hemmelighed — perfekt i kulde, en katastrofe i ørken.' },
@@ -29,6 +31,7 @@ const BYGGETRIN = [
   {
     kategori: 'kost',
     titel: 'Kost',
+    fagord: 'Hvad et dyr spiser bestemmer dets plads i fødekæden. Planteædere er grundlaget — uden dem kollapser alt ovenover. Kødædere regulerer bestanden af planteædere. Alleædere fylder de pladser andre efterlader.',
     spørgsmaal: 'Hvad spiser du? Det bestemmer hvem du konkurrerer med — og hvem der jager dig.',
     valg: [
       { vaerdi: 'planteaeder', emoji: '🌿', navn: 'Planteæder', beskrivelse: 'Planter er altid tilgængelige — men næringsfattige. Som en elefant: lang tid på at samle nok energi.' },
@@ -39,6 +42,7 @@ const BYGGETRIN = [
   {
     kategori: 'storrelse',
     titel: 'Størrelse',
+    fagord: 'Kropsstørrelse er et af biologiens stærkeste afvejninger. Store dyr bevarer varme og har færre fjender — men kræver langt mere mad. Små dyr er sparsommelige og lette at gemme — men mister varme hurtigt og er lettere at spise.',
     spørgsmaal: 'Stor er svær at dræbe — men kræver mere mad. Lille er hurtig — men lettere at spise.',
     valg: [
       { vaerdi: 'lille',  emoji: '🐭', navn: 'Lille',  beskrivelse: 'Let at gemme sig overalt. Som en mus — hurtig og sparsommelig, men mister varme i kulde.' },
@@ -49,6 +53,7 @@ const BYGGETRIN = [
   {
     kategori: 'aktivitet',
     titel: 'Aktivitetstid',
+    fagord: 'Hvornår et dyr er aktivt bestemmer hvem det møder — og hvem der kan møde det. Mange rovdyr er dagaktive, så nataktive dyr undgår dem. Men om natten er det mørkere, koldere og sværere at finde mad. Det er altid en afvejning.',
     spørgsmaal: 'Hvornår du er aktiv bestemmer hvem du møder — og hvem der kan møde dig.',
     valg: [
       { vaerdi: 'dagaktiv', emoji: '☀️', navn: 'Dagaktiv', beskrivelse: 'Udnytter lyset og varmen fuldt ud. Som en ørn — produktiv, men synlig for fjender.' },
@@ -58,6 +63,7 @@ const BYGGETRIN = [
   {
     kategori: 'forsvar',
     titel: 'Forsvar',
+    fagord: 'Alle dyr møder rovdyr — spørgsmålet er hvad der sker derefter. Gift, pigge og hurtig flugt er tre vidt forskellige biologiske strategier. "Intet forsvar" er faktisk også en strategi: spar energien og stol på at du er godt skjult.',
     spørgsmaal: 'Hvad sker der, når et rovdyr finder dig?',
     valg: [
       { vaerdi: 'giftig', emoji: '☠️',  navn: 'Giftig',       beskrivelse: 'Rovdyr lærer at holde sig væk. Men gift er biologisk dyrt at producere.' },
@@ -159,6 +165,7 @@ function opretTrin() {
 
     div.innerHTML = `
       <h2 class="trin-titel">${trin.titel}</h2>
+      ${trin.fagord ? `<details class="fagord-detaljer"><summary>Hvad er ${trin.titel.toLowerCase()}?</summary><p>${trin.fagord}</p></details>` : ''}
       ${trin.spørgsmaal ? `<p class="trin-spoergsmaal">${trin.spørgsmaal}</p>` : ''}
       <div class="kort-grid">
         ${trin.valg.map(v => `
