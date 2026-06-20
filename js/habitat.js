@@ -26,14 +26,16 @@ const FORMERING_FART_LANGSOM = 100 / 240;  // %/sek (score < 3)
 // Mutation — sandsynlighed for at ét træk muterer ved formering (sæt 0 for at slå fra)
 const MUTATION_RATE = 0.08;
 
-// Sygdom
-const SYGDOM_THRESHOLD = 20;    // antal levende af samme art før crash
+// Sygdom — tærskel beregnes nu dynamisk (se sygdomsTaerskel())
+const SYGDOM_THRESHOLD_FAST = 20; // kun brugt som fallback
 const SMITTE_RADIUS = 150;      // px
 const SMITTE_FASE_VARIGHED = 4000;  // ms
 const SYGDOM_DOEDS_INTERVAL = 500;  // ms mellem dødsfald
 
-// Planter
-const PLANTE_ANTAL = { skov: 12, arktis: 8, oerken: 4 }; // arktis hævet 5→8: fouragering var kun 1,3%
+// Planter — dynamisk bærekapacitet skalerer med antal levende arter
+const PLANTE_BASIS  = { skov: 6, arktis: 4, oerken: 3 };
+const PLANTE_PR_ART = { skov: 3, arktis: 2, oerken: 1.5 };
+const PLANTE_LOFT   = { skov: 26, arktis: 16, oerken: 10 };
 const PLANTE_SPISE_RADIUS = 15;    // px
 const PLANTE_FADE_TID = 1.5;       // sekunder for opacity-fade
 const PLANTE_RESPAWN_MIN = 10000;   // ms
@@ -116,6 +118,7 @@ const OEKONOMI_MAX = 8;        // antal dyr vist på ressource-tavlen
 let aktivSygdom = null;        // Aktiv sygdoms-event
 let planter = [];              // Plante-objekter
 let trofiskKaskade = false;    // v2: sandt når et stort rovdyr er på skærmen
+let sidsteNpcTjek = 0;         // throttling af NPC-spawn-tjek
 
 // --- DOM-referencer ---
 const habitatVerden = document.getElementById('habitat-verden');
@@ -285,12 +288,104 @@ function tilfoejDyr(dyr) {
 }
 
 // ============================================================
+// SKALERING: DYNAMISK BÆREKAPACITET
+// ============================================================
+
+// Mål antal levende individer + distinkte arter (proxy for aktive spillere)
+function maalBelastning() {
+  let individer = 0;
+  const arter = new Set();
+  for (const d of dyrListe) {
+    if (d.doedsTid) continue;
+    individer++;
+    if (!d._npc) arter.add(d.artsnavn);
+  }
+  return { individer, arter: Math.max(1, arter.size) };
+}
+
+// Dynamisk plantmål: vokser med antal arter, men aftagende (loft)
+function planteMaal(habitat, arterAntal) {
+  return Math.round(Math.min(
+    PLANTE_LOFT[habitat] || 16,
+    (PLANTE_BASIS[habitat] || 6) + (PLANTE_PR_ART[habitat] || 2) * arterAntal
+  ));
+}
+
+// Sygdomstærskel: andel af bærekapaciteten (ikke fast tal)
+function sygdomsTaerskel(habitat, arterAntal) {
+  return Math.max(8, Math.round(planteMaal(habitat, arterAntal) * 1.5));
+}
+
+// Formerings-dæmpning: logistisk vækst mod artens kapacitet
+function formeringsDaempning(artensAntal, habitat, arterAntal) {
+  const K = Math.max(4, planteMaal(habitat, arterAntal) / 2);
+  return Math.max(0, 1 - artensAntal / K);
+}
+
+// Juster antal planter løbende mod dynamisk mål
+function justerPlanteAntal(habitat, arterAntal) {
+  const maal = planteMaal(habitat, arterAntal);
+  const aktive = planter.filter(p => !p.spises && p.opacity > 0).length;
+  if (aktive < maal) {
+    // Tilføj én ny plante
+    const bredde = habitatVerden.clientWidth;
+    const hoejde = habitatVerden.clientHeight;
+    const margin = 60;
+    planter.push({
+      x: margin + Math.random() * (bredde - margin * 2),
+      y: margin + Math.random() * (hoejde - margin * 2),
+      opacity: 1, spises: false, respawnTid: 0
+    });
+  }
+}
+
+// --- NPC-dyr i lavsæson (< 2 distinkte spillere) ---
+const NPC_DEFS = {
+  skov: [
+    { danskNavn: 'Skovræv', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'koedaeder', storrelse: 'lille', aktivitet: 'nataktiv', forsvar: 'flugt' } },
+    { danskNavn: 'Skovhare', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'planteaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'flugt' } }
+  ],
+  arktis: [
+    { danskNavn: 'Polarræv', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'koedaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'flugt' } },
+    { danskNavn: 'Læming', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'planteaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'ingen' } }
+  ],
+  oerken: [
+    { danskNavn: 'Ørkenvaran', egenskaber: { stofskifte: 'lavt', hudtype: 'skael', kost: 'koedaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'flugt' } },
+    { danskNavn: 'Ørkengerbil', egenskaber: { stofskifte: 'lavt', hudtype: 'glat', kost: 'planteaeder', storrelse: 'lille', aktivitet: 'nataktiv', forsvar: 'flugt' } }
+  ]
+};
+
+let npcSpawnet = false;
+const NPC_COOLDOWN = 20000; // ms mellem NPC-tjek
+
+function tjekNpcSpawn(nu) {
+  if (nu - sidsteNpcTjek < NPC_COOLDOWN) return;
+  sidsteNpcTjek = nu;
+  const { arter } = maalBelastning();
+  const harNpc = dyrListe.some(d => d._npc && !d.doedsTid);
+  if (arter < 2 && !harNpc) {
+    const defs = NPC_DEFS[aktivtHabitat] || [];
+    const def = defs[Math.floor(Math.random() * defs.length)];
+    if (!def) return;
+    const npc = {
+      id: crypto.randomUUID(),
+      artsnavn: `NPC_${def.danskNavn.replace(/ /g, '_')}`,
+      danskNavn: def.danskNavn,
+      egenskaber: { ...def.egenskaber },
+      _npc: true
+    };
+    tilfoejDyr(npc);
+    console.log(`NPC spawnet: ${npc.danskNavn}`);
+  }
+}
+
+// ============================================================
 // PLANTER
 // ============================================================
 
 function initPlanter() {
   planter = [];
-  const antal = PLANTE_ANTAL[aktivtHabitat] || 8;
+  const antal = planteMaal(aktivtHabitat, 1); // start med ét arts-ækvivalent
   const bredde = habitatVerden.clientWidth;
   const hoejde = habitatVerden.clientHeight;
   const margin = 60;
@@ -840,6 +935,16 @@ function opdaterKaskade() {
 function opdaterFormering(dt) {
   const bredde = habitatVerden.clientWidth;
   const hoejde = habitatVerden.clientHeight;
+  const { arter } = maalBelastning();
+
+  // Tæl individer pr. art til logistisk dæmpning
+  const artsTael = {};
+  for (const d of dyrListe) {
+    if (!d.doedsTid) artsTael[d.artsnavn] = (artsTael[d.artsnavn] || 0) + 1;
+  }
+
+  // Juster plantemængden løbende mod dynamisk mål
+  justerPlanteAntal(aktivtHabitat, arter);
 
   for (const dyr of dyrListe) {
     if (dyr.doedsTid || dyr.smittet) continue;
@@ -848,7 +953,9 @@ function opdaterFormering(dt) {
     // bygger mod afkom. Dyr i underskud formerer sig ikke → arten svinder.
     const trives = dyr.energi >= FORM_ENERGI_MIN &&
                    Oekonomi.beregnNetto(dyr.ressourcer) >= FORM_NETTO_MIN;
-    if (trives) dyr.formeringPct += dyr.formeringFart * dt;
+    // Logistisk dæmpning: formering bremser når arten nærmer sig kapaciteten
+    const daempning = formeringsDaempning(artsTael[dyr.artsnavn] || 1, aktivtHabitat, arter);
+    if (trives) dyr.formeringPct += dyr.formeringFart * dt * daempning;
 
     // Opdater visuel bar
     const fyld = dyr.el.querySelector('.formering-fyld');
@@ -928,9 +1035,11 @@ function opdaterSygdom(nu) {
     tael[d.artsnavn] = (tael[d.artsnavn] || 0) + 1;
   }
 
-  // Tjek om nogen art rammer tærsklen
+  // Tjek om nogen art rammer den dynamiske tærskel
+  const { arter } = maalBelastning();
+  const taerskel = sygdomsTaerskel(aktivtHabitat, arter);
   for (const [art, antal] of Object.entries(tael)) {
-    if (antal >= SYGDOM_THRESHOLD) {
+    if (antal >= taerskel) {
       startSygdomsCrash(art, nu);
       return;
     }
@@ -1553,6 +1662,7 @@ function simulationsLoop(timestamp) {
   tjekDoed(timestamp);
   sendArterStatus(timestamp);
   tjekFortaellerBegivenheder(timestamp);
+  tjekNpcSpawn(timestamp);
   if (window.Telemetri) Telemetri.tik(dyrListe, dt, timestamp, trofiskKaskade);
   opdaterAnimation(timestamp);
   renderPlanter();
