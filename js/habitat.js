@@ -23,14 +23,19 @@ const FORMERING_FART_HURTIG = 100 / 50;    // %/sek (score ≥ 6)
 const FORMERING_FART_MIDDEL = 100 / 120;   // %/sek (score 3-5)
 const FORMERING_FART_LANGSOM = 100 / 240;  // %/sek (score < 3)
 
-// Sygdom
-const SYGDOM_THRESHOLD = 20;    // antal levende af samme art før crash
+// Mutation — sandsynlighed for at ét træk muterer ved formering (sæt 0 for at slå fra)
+const MUTATION_RATE = 0.08;
+
+// Sygdom — tærskel beregnes nu dynamisk (se sygdomsTaerskel())
+const SYGDOM_THRESHOLD_FAST = 20; // kun brugt som fallback
 const SMITTE_RADIUS = 150;      // px
 const SMITTE_FASE_VARIGHED = 4000;  // ms
 const SYGDOM_DOEDS_INTERVAL = 500;  // ms mellem dødsfald
 
-// Planter
-const PLANTE_ANTAL = { skov: 12, arktis: 8, oerken: 4 }; // arktis hævet 5→8: fouragering var kun 1,3%
+// Planter — dynamisk bærekapacitet skalerer med antal levende arter
+const PLANTE_BASIS  = { skov: 6, arktis: 4, oerken: 3 };
+const PLANTE_PR_ART = { skov: 3, arktis: 2, oerken: 1.5 };
+const PLANTE_LOFT   = { skov: 26, arktis: 16, oerken: 10 };
 const PLANTE_SPISE_RADIUS = 15;    // px
 const PLANTE_FADE_TID = 1.5;       // sekunder for opacity-fade
 const PLANTE_RESPAWN_MIN = 10000;   // ms
@@ -113,6 +118,7 @@ const OEKONOMI_MAX = 8;        // antal dyr vist på ressource-tavlen
 let aktivSygdom = null;        // Aktiv sygdoms-event
 let planter = [];              // Plante-objekter
 let trofiskKaskade = false;    // v2: sandt når et stort rovdyr er på skærmen
+let sidsteNpcTjek = 0;         // throttling af NPC-spawn-tjek
 
 // --- DOM-referencer ---
 const habitatVerden = document.getElementById('habitat-verden');
@@ -165,9 +171,11 @@ function tilfoejDyr(dyr) {
   const score = Survival.beregnHabitatScore(dyr, aktivtHabitat);
   const levetid = Survival.beregnOverlevelsestid(score);
 
-  // Beregn startfart baseret på størrelse
+  // Beregn startfart baseret på størrelse; glat hud giver fartbonus
   const fartMap = { lille: FART_LILLE, mellem: FART_MELLEM, stor: FART_STOR };
-  const basisFart = fartMap[dyr.egenskaber.storrelse] || FART_BASIS;
+  const GLAT_FART_MOD = 1.25; // glat hud: smidig krop = 25% hurtigere
+  const basisFart = (fartMap[dyr.egenskaber.storrelse] || FART_BASIS)
+    * (dyr.egenskaber.hudtype === 'glat' ? GLAT_FART_MOD : 1);
 
   // Tilfældig startretning
   const vinkel = Math.random() * Math.PI * 2;
@@ -253,13 +261,20 @@ function tilfoejDyr(dyr) {
   el.className = 'habitat-dyr';
   if (dyr.egenskaber.kost === 'koedaeder') el.classList.add('koedaeder');
   el.dataset.id = dyr.id;
+  // Generationsmærke (gen 2+ vises) og mutatations-spark
+  const genMaerke = (dyr._generation && dyr._generation > 1)
+    ? ` <span class="gen-maerke">gen ${dyr._generation}${dyr._muteret ? ' ✨' : ''}</span>`
+    : '';
   el.innerHTML = `
     <span class="tilstand-indikator cue-skjult"></span>
     <span class="res-badge"></span>
     <div class="dyr-sprite">${Sprites.genererSprite(dyr)}</div>
     <div class="formering-bar"><div class="formering-fyld"></div></div>
-    <span class="dyr-label">${dyr.danskNavn}</span>
+    <span class="dyr-label">${dyr.danskNavn}${genMaerke}</span>
   `;
+  // Stamdyr-markering: synlig ring så barnet kan følge sit eget første dyr
+  if (erStamdyr) el.classList.add('stamdyr');
+
   dyrContainer.appendChild(el);
   simDyr.el = el;
 
@@ -273,12 +288,104 @@ function tilfoejDyr(dyr) {
 }
 
 // ============================================================
+// SKALERING: DYNAMISK BÆREKAPACITET
+// ============================================================
+
+// Mål antal levende individer + distinkte arter (proxy for aktive spillere)
+function maalBelastning() {
+  let individer = 0;
+  const arter = new Set();
+  for (const d of dyrListe) {
+    if (d.doedsTid) continue;
+    individer++;
+    if (!d._npc) arter.add(d.artsnavn);
+  }
+  return { individer, arter: Math.max(1, arter.size) };
+}
+
+// Dynamisk plantmål: vokser med antal arter, men aftagende (loft)
+function planteMaal(habitat, arterAntal) {
+  return Math.round(Math.min(
+    PLANTE_LOFT[habitat] || 16,
+    (PLANTE_BASIS[habitat] || 6) + (PLANTE_PR_ART[habitat] || 2) * arterAntal
+  ));
+}
+
+// Sygdomstærskel: andel af bærekapaciteten (ikke fast tal)
+function sygdomsTaerskel(habitat, arterAntal) {
+  return Math.max(8, Math.round(planteMaal(habitat, arterAntal) * 1.5));
+}
+
+// Formerings-dæmpning: logistisk vækst mod artens kapacitet
+function formeringsDaempning(artensAntal, habitat, arterAntal) {
+  const K = Math.max(4, planteMaal(habitat, arterAntal) / 2);
+  return Math.max(0, 1 - artensAntal / K);
+}
+
+// Juster antal planter løbende mod dynamisk mål
+function justerPlanteAntal(habitat, arterAntal) {
+  const maal = planteMaal(habitat, arterAntal);
+  const aktive = planter.filter(p => !p.spises && p.opacity > 0).length;
+  if (aktive < maal) {
+    // Tilføj én ny plante
+    const bredde = habitatVerden.clientWidth;
+    const hoejde = habitatVerden.clientHeight;
+    const margin = 60;
+    planter.push({
+      x: margin + Math.random() * (bredde - margin * 2),
+      y: margin + Math.random() * (hoejde - margin * 2),
+      opacity: 1, spises: false, respawnTid: 0
+    });
+  }
+}
+
+// --- NPC-dyr i lavsæson (< 2 distinkte spillere) ---
+const NPC_DEFS = {
+  skov: [
+    { danskNavn: 'Skovræv', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'koedaeder', storrelse: 'lille', aktivitet: 'nataktiv', forsvar: 'flugt' } },
+    { danskNavn: 'Skovhare', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'planteaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'flugt' } }
+  ],
+  arktis: [
+    { danskNavn: 'Polarræv', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'koedaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'flugt' } },
+    { danskNavn: 'Læming', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'planteaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'ingen' } }
+  ],
+  oerken: [
+    { danskNavn: 'Ørkenvaran', egenskaber: { stofskifte: 'lavt', hudtype: 'skael', kost: 'koedaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'flugt' } },
+    { danskNavn: 'Ørkengerbil', egenskaber: { stofskifte: 'lavt', hudtype: 'glat', kost: 'planteaeder', storrelse: 'lille', aktivitet: 'nataktiv', forsvar: 'flugt' } }
+  ]
+};
+
+let npcSpawnet = false;
+const NPC_COOLDOWN = 20000; // ms mellem NPC-tjek
+
+function tjekNpcSpawn(nu) {
+  if (nu - sidsteNpcTjek < NPC_COOLDOWN) return;
+  sidsteNpcTjek = nu;
+  const { arter } = maalBelastning();
+  const harNpc = dyrListe.some(d => d._npc && !d.doedsTid);
+  if (arter < 2 && !harNpc) {
+    const defs = NPC_DEFS[aktivtHabitat] || [];
+    const def = defs[Math.floor(Math.random() * defs.length)];
+    if (!def) return;
+    const npc = {
+      id: crypto.randomUUID(),
+      artsnavn: `NPC_${def.danskNavn.replace(/ /g, '_')}`,
+      danskNavn: def.danskNavn,
+      egenskaber: { ...def.egenskaber },
+      _npc: true
+    };
+    tilfoejDyr(npc);
+    console.log(`NPC spawnet: ${npc.danskNavn}`);
+  }
+}
+
+// ============================================================
 // PLANTER
 // ============================================================
 
 function initPlanter() {
   planter = [];
-  const antal = PLANTE_ANTAL[aktivtHabitat] || 8;
+  const antal = planteMaal(aktivtHabitat, 1); // start med ét arts-ækvivalent
   const bredde = habitatVerden.clientWidth;
   const hoejde = habitatVerden.clientHeight;
   const margin = 60;
@@ -700,7 +807,17 @@ function opdaterJagt(nu) {
     jaeger.ambushFase = 'naermer';
 
     if (window.Audio) Audio.jagt();
-    Broadcast.send({ type: 'DYR_JAGES', bytte_id: bytte.id, jaeger_id: jaeger.id });
+    Broadcast.send({
+      type: 'DYR_JAGES',
+      bytte_id: bytte.id,
+      jaeger_id: jaeger.id,
+      bytte_artsnavn: bytte.artsnavn,
+      bytte_danskNavn: bytte.danskNavn,
+      jaeger_artsnavn: jaeger.artsnavn,
+      jaeger_danskNavn: jaeger.danskNavn,
+      jaeger_stationId: jaeger.stationId || null,
+      bytte_stationId: bytte.stationId || null
+    });
 
     // Forsvar afgør udfaldet
     let udfald;
@@ -828,6 +945,16 @@ function opdaterKaskade() {
 function opdaterFormering(dt) {
   const bredde = habitatVerden.clientWidth;
   const hoejde = habitatVerden.clientHeight;
+  const { arter } = maalBelastning();
+
+  // Tæl individer pr. art til logistisk dæmpning
+  const artsTael = {};
+  for (const d of dyrListe) {
+    if (!d.doedsTid) artsTael[d.artsnavn] = (artsTael[d.artsnavn] || 0) + 1;
+  }
+
+  // Juster plantemængden løbende mod dynamisk mål
+  justerPlanteAntal(aktivtHabitat, arter);
 
   for (const dyr of dyrListe) {
     if (dyr.doedsTid || dyr.smittet) continue;
@@ -836,7 +963,9 @@ function opdaterFormering(dt) {
     // bygger mod afkom. Dyr i underskud formerer sig ikke → arten svinder.
     const trives = dyr.energi >= FORM_ENERGI_MIN &&
                    Oekonomi.beregnNetto(dyr.ressourcer) >= FORM_NETTO_MIN;
-    if (trives) dyr.formeringPct += dyr.formeringFart * dt;
+    // Logistisk dæmpning: formering bremser når arten nærmer sig kapaciteten
+    const daempning = formeringsDaempning(artsTael[dyr.artsnavn] || 1, aktivtHabitat, arter);
+    if (trives) dyr.formeringPct += dyr.formeringFart * dt * daempning;
 
     // Opdater visuel bar
     const fyld = dyr.el.querySelector('.formering-fyld');
@@ -856,29 +985,47 @@ function spawnAfkom(foraeldrer, bredde, hoejde) {
   const nx = Math.max(30, Math.min(bredde - 30, foraeldrer.x + Math.cos(vinkel) * afstand));
   const ny = Math.max(30, Math.min(hoejde - 30, foraeldrer.y + Math.sin(vinkel) * afstand));
 
+  // Arv egenskaber; lille chance for ét tilfældigt muteret træk
+  const egenskaber = { ...foraeldrer.egenskaber };
+  let muteret = false;
+  if (Math.random() < MUTATION_RATE) {
+    const kategorier = Object.keys(Survival.ENERGI_OMKOSTNING);
+    const kat = kategorier[Math.floor(Math.random() * kategorier.length)];
+    const muligeVaerdier = Object.keys(Survival.ENERGI_OMKOSTNING[kat]);
+    const nyVaerdi = muligeVaerdier[Math.floor(Math.random() * muligeVaerdier.length)];
+    if (nyVaerdi !== egenskaber[kat]) {
+      egenskaber[kat] = nyVaerdi;
+      muteret = true;
+    }
+  }
+
+  const generation = (foraeldrer._generation || 1) + 1;
+
   const barn = {
     id: crypto.randomUUID(),
     artsnavn: foraeldrer.artsnavn,
     danskNavn: foraeldrer.danskNavn,
-    egenskaber: { ...foraeldrer.egenskaber },
+    egenskaber,
     _startX: nx,
     _startY: ny,
-    _afkom: true
+    _afkom: true,
+    _generation: generation,
+    _muteret: muteret
   };
 
   tilfoejDyr(barn);
-  if (window.Telemetri) Telemetri.registrer('foedsel');
+  if (window.Telemetri) Telemetri.registrer('foedsel', { muteret });
 
   // Tæl fødsler + send "foedsel"-event til stationerne
   fodselTael[foraeldrer.artsnavn] = (fodselTael[foraeldrer.artsnavn] || 0) + 1;
   sendDyrEvent(foraeldrer, 'foedsel', performance.now());
 
-  // Vis hjerte over forælderen
+  // Vis hjerte over forælderen (✨ ved mutation)
   const hjerte = document.createElement('span');
   hjerte.className = 'formering-hjerte';
-  hjerte.textContent = '♥';
+  hjerte.textContent = muteret ? '✨' : '♥';
   foraeldrer.el.appendChild(hjerte);
-  setTimeout(() => hjerte.remove(), 1000);
+  setTimeout(() => hjerte.remove(), muteret ? 1800 : 1000);
 }
 
 // ============================================================
@@ -898,9 +1045,11 @@ function opdaterSygdom(nu) {
     tael[d.artsnavn] = (tael[d.artsnavn] || 0) + 1;
   }
 
-  // Tjek om nogen art rammer tærsklen
+  // Tjek om nogen art rammer den dynamiske tærskel
+  const { arter } = maalBelastning();
+  const taerskel = sygdomsTaerskel(aktivtHabitat, arter);
   for (const [art, antal] of Object.entries(tael)) {
-    if (antal >= SYGDOM_THRESHOLD) {
+    if (antal >= taerskel) {
       startSygdomsCrash(art, nu);
       return;
     }
@@ -1202,6 +1351,100 @@ function visArtsudslettelse(dyr, levetidSek, doedsTekst) {
 }
 
 // ============================================================
+// FORTÆLLER-STRIBE
+// Viser ét stort øjeblik ad gangen — throttlet, biologisk sprog
+// ============================================================
+let fortaellerEl = null;
+let fortaellerTid = 0;
+const FORTAELLER_VARIGHED = 5000; // ms synlig
+const FORTAELLER_COOLDOWN = 12000; // ms mellem fortæller-beskeder
+
+function visFortaeller(tekst) {
+  if (!fortaellerEl) fortaellerEl = document.getElementById('fortaeller-stribe');
+  if (!fortaellerEl) return;
+  const nu = performance.now();
+  if (nu - fortaellerTid < FORTAELLER_COOLDOWN) return;
+  fortaellerTid = nu;
+
+  fortaellerEl.textContent = tekst;
+  fortaellerEl.classList.remove('fortaeller-skjult');
+  clearTimeout(fortaellerEl._timer);
+  fortaellerEl._timer = setTimeout(() => {
+    if (fortaellerEl) fortaellerEl.classList.add('fortaeller-skjult');
+  }, FORTAELLER_VARIGHED);
+}
+
+// Kaldes fra simulationsloopet ved nøglebegivenheder
+function tjekFortaellerBegivenheder(nu) {
+  const levende = dyrListe.filter(d => !d.doedsTid);
+  const antalArter = new Set(levende.map(d => d.artsnavn)).size;
+  const antalIndivider = levende.length;
+
+  // Første kødæder ankommer
+  if (!fortaellerFlags.foersteKoedaeder && levende.some(d => d.egenskaber.kost === 'koedaeder')) {
+    fortaellerFlags.foersteKoedaeder = true;
+    visFortaeller('Et rovdyr er ankommet. Nu er planteæderne ikke længere alene.');
+  }
+
+  // Mange ens dyr tæt sammen (monokultur-advarsel)
+  const tael = {};
+  for (const d of levende) tael[d.artsnavn] = (tael[d.artsnavn] || 0) + 1;
+  const storsteArt = Math.max(...Object.values(tael), 0);
+  if (storsteArt >= 8 && !fortaellerFlags.monokuluturAdvaret) {
+    fortaellerFlags.monokuluturAdvaret = true;
+    visFortaeller('Mange ens dyr tæt sammen. I naturen er det farligt — sygdom spreder sig let.');
+  }
+  if (storsteArt < 5) fortaellerFlags.monokuluturAdvaret = false; // nulstil når arten falder
+
+  // Trofisk kaskade aktiveret
+  if (trofiskKaskade && !fortaellerFlags.kaskadeVist) {
+    fortaellerFlags.kaskadeVist = true;
+    visFortaeller('Et stort rovdyr dominerer habitatet — alle planteædere er på vagt. Planterne vokser tilbage.');
+  }
+  if (!trofiskKaskade) fortaellerFlags.kaskadeVist = false;
+}
+
+// ============================================================
+// PULS-PANEL — live-overblik over økosystemets tilstand
+// ============================================================
+let pulsPanelEl = null;
+let pulsPanelSidste = 0; // opdateres maks. hvert 2. sekund
+
+function opdaterPulsPanel() {
+  const nu = performance.now();
+  if (nu - pulsPanelSidste < 2000) return;
+  pulsPanelSidste = nu;
+
+  if (!pulsPanelEl) pulsPanelEl = document.getElementById('puls-panel');
+  if (!pulsPanelEl) return;
+
+  const levende = dyrListe.filter(d => !d.doedsTid);
+  const arter = new Set(levende.map(d => d.artsnavn));
+  const planteaedere = levende.filter(d => d.egenskaber.kost === 'planteaeder').length;
+  const koedaedere  = levende.filter(d => d.egenskaber.kost === 'koedaeder').length;
+  const alleaedere  = levende.filter(d => d.egenskaber.kost === 'alleaeder').length;
+
+  // Ustabilitetssignal: ingen planteædere + rovdyr til stede, eller kun 1 art
+  const ustabil = (planteaedere === 0 && koedaedere > 0) || (levende.length > 3 && arter.size === 1);
+
+  pulsPanelEl.innerHTML = `
+    <div class="puls-linje"><span>Individer</span><span class="puls-tal">${levende.length}</span></div>
+    <div class="puls-linje"><span>Arter</span><span class="puls-tal">${arter.size}</span></div>
+    <div class="puls-linje"><span>🌿 Planteæd.</span><span class="puls-tal">${planteaedere}</span></div>
+    <div class="puls-linje"><span>🥩 Kødæd.</span><span class="puls-tal">${koedaedere}</span></div>
+    <div class="puls-linje"><span>🍽️ Alleæd.</span><span class="puls-tal">${alleaedere}</span></div>
+    ${ustabil ? '<div class="puls-advarsel">⚠️ Ustabilt fødenet</div>' : ''}
+  `;
+}
+
+// State-flags til fortæller-throttling
+const fortaellerFlags = {
+  foersteKoedaeder: false,
+  monokuluturAdvaret: false,
+  kaskadeVist: false
+};
+
+// ============================================================
 // SPRITE-ANIMATION (frame cycling)
 // ============================================================
 function opdaterAnimation(nu) {
@@ -1461,6 +1704,9 @@ function simulationsLoop(timestamp) {
   opdaterSygdom(timestamp);
   tjekDoed(timestamp);
   sendArterStatus(timestamp);
+  tjekFortaellerBegivenheder(timestamp);
+  tjekNpcSpawn(timestamp);
+  opdaterPulsPanel();
   if (window.Telemetri) Telemetri.tik(dyrListe, dt, timestamp, trofiskKaskade);
   opdaterAnimation(timestamp);
   renderPlanter();
@@ -1476,14 +1722,18 @@ function simulationsLoop(timestamp) {
 // Stationen matcher på artsnavn og viser status/events/scoreboard.
 // ============================================================
 
-// Korte, børnevenlige event-tekster (bruger artens danske navn)
+// Event-tekster: fortæller HVORFOR, ikke kun hvad der sker
 const EVENT_TEKST = {
-  ankom:    d => `🐾 ${d.danskNavn} ankom til habitatet`,
-  spiser:   d => `🌿 ${d.danskNavn} leder efter mad`,
-  jager:    d => `🎯 ${d.danskNavn} jager et bytte`,
-  flygter:  d => `💨 ${d.danskNavn} flygter fra fare`,
-  foedsel:  d => `💕 ${d.danskNavn} fik et afkom`,
-  jaget:    d => `⚠️ ${d.danskNavn} blev fanget af et rovdyr`
+  ankom:   d => `🐾 ${d.danskNavn} er sendt ud i habitatet — nu afgør naturen om den slags klarer sig`,
+  spiser:  d => d.egenskaber.kost === 'planteaeder'
+    ? `🌿 ${d.danskNavn} æder planter — planteædere bruger meget tid på at samle nok energi`
+    : d.egenskaber.kost === 'koedaeder'
+      ? `🎯 ${d.danskNavn} jager — kød giver masser af energi, men hver jagt kan slå fejl`
+      : `🍽️ ${d.danskNavn} leder efter mad — alleædere finder altid noget at spise`,
+  jager:   d => `🎯 ${d.danskNavn} er på jagt — kød giver energi til at få unger`,
+  flygter: d => `💨 ${d.danskNavn} flygter — hver flugt brænder energi den ellers skulle bruge på afkom`,
+  foedsel: d => `💕 ${d.danskNavn} fik en unge — den klarede sig godt nok til at føre arten videre`,
+  jaget:   d => `⚠️ ${d.danskNavn} blev fanget — den slags dyr får færre unger her`
 };
 
 // Send et event for en art (throttlet pr. art + event-type)
