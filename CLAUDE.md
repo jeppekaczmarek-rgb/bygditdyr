@@ -6,154 +6,168 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (19. juni 2026)
+## Aktuel status (23. juni 2026)
 
-**Spillet er bygget og LIVE:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html). Arbejdsgang: ret lokalt → dobbeltklik `udgiv.bat` → online ca. 1 min senere.
+**Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
-Survival-logik, simulation (v2 tilstandsmaskine + ressource-økonomi), navne, lyd og online-relay (Supabase Realtime) er færdige. Asset-sporet (fjer/glat/skæl-turnarounds + base1-rig i Blender) kører sideløbende — se Assets-sektionen.
+Kerne-spiludviklingen er **færdig**. Alle 5 forbedringspakker fra den kritiske analyse (18. juni) er implementeret:
 
-**Næste arbejde = forbedrings-roadmap fra den kritiske analyse (18. juni).** Fulde specs i `analyse/` (`00-hovedanalyse-og-roadmap.md` + `01`–`05` + kørbar `balance.js`). Rækkefølge: **Sprint A = 01 (feedback-loop) + 05 (balance/data, inkl. mutation ved formering) → 04 → 02 → 03.** Afkrydselig opgaveliste + start-prompt ligger i Notion under projekt-hubben.
+| Pakke | Indhold | Status |
+|---|---|---|
+| 01 | Egenskabs-checklist, individ-dødsbeskeder, stamdyr-markør (★), habitat-match-måler | ✅ |
+| 02 | Dynamisk skalering: NPC-dyr i lavsæson, bærekapacitet, logistisk sygdom/formering | ✅ |
+| 03 | Cross-player: jagt-attribution, puls-panel, niche-markering, trofiske afhæng. | ✅ |
+| 04 | Biologiske byggekort, Linné-nedbrydning, event-forklaringer, fortæller-stribe | ✅ |
+| 05 | Balance (MIN_LEVETID→20s, allæder, arktis, glat hud) + mutation 8 % ved formering | ✅ |
 
-**Arbejdsgang i dispatch:** foreslå og vent på Jeppes ok ved HVERT trin — vis plan/diff, implementér efter ok, kør tests (`node analyse/balance.js` ved matrix-ændringer + `node --check js/*.js`), vent på ok før udgivelse (web/GitHub: åbn en PR og merg den med det samme uden at spørge → Pages udgiver automatisk · lokalt: `udgiv.bat`). Overlevelsesmatrixen har historisk været "bevidst urørt"; pakke 05 ÆNDRER den bevidst — behandl matrix-ændringer som eksplicitte beslutninger. Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
+**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), sæsonfarvetone pr. habitat, levende baggrundspuls.
+
+**Næste arbejde:**
+
+1. **Blender-pipeline** (brugerens offline-opgave): `base1_generalist` er omformet fra katte-krop til grævling/mustelid — kræver re-rigging og re-animation i Blender. Kun `side`-turnarounds er regenereret; trekvart/front/bag for base1 udestår. `base2_slank` og `base3_kraftig` er urørte. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
+2. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
+3. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
+
+**Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
+
+---
 
 ## Teknisk stack
 
 - **Sprog:** Vanilla HTML + CSS + JavaScript. INGEN frameworks. INGEN build-tools.
-- **Kommunikation:** Abstraktionslaget `window.Broadcast` (send/lyt). To transporter, samme API: Supabase Realtime Broadcast (online, på tværs af enheder) ELLER BroadcastChannel (lokalt, samme enhed) — vælges automatisk i `js/broadcast.js` ud fra `js/config.js`.
-- **Lyd:** Web Audio API
-- **Grafik:** Hybrid lag-rendering bagt til `ImageBitmap` ved spawn (se "Assets & rendering") + requestAnimationFrame
-- **Deployment:** Lokalt: åbn index.html i Chrome (bruger BroadcastChannel-fallback). Online fler-enheds-test: statisk hosting (Netlify Drop / GitHub Pages) + Supabase Realtime relay. Deploy KUN runtime-filer (html/css/js + assets/sprites + assets/backgrounds ≈ 26 MB) — IKKE Blender-kilder eller rå frames. Vejledning: `VEJLEDNING-online-test.md`. **Bemærk:** Linux-hosts er case-sensitive — mappenavne i kode skal matche disken præcist (fx `walk/base`, ikke `Walk/Base`).
+- **Kommunikation:** Abstraktionslaget `window.Broadcast` (send/lyt). To transporter, samme API: Supabase Realtime Broadcast (online, tværs af enheder) ELLER BroadcastChannel (lokalt, samme enhed) — vælges automatisk i `js/broadcast.js` ud fra `js/config.js`.
+- **Lyd:** Web Audio API — alt syntetiseret i realtid via `js/audio.js`, ingen lydfiler.
+- **Grafik:** Hybrid lag-rendering bagt til `ImageBitmap` ved spawn (`js/render.js`) + requestAnimationFrame.
+- **Deployment:** Lokalt: åbn index.html i Chrome (bruger BroadcastChannel-fallback). Online: GitHub Pages auto-udgiver ved push til `main` + Supabase Realtime relay. Deploy KUN runtime-filer (html/css/js + assets/sprites + assets/backgrounds) — IKKE Blender-kilder eller rå frames. **Bemærk:** Linux er case-sensitive — mappenavne i kode skal matche disken præcist (fx `walk/base`, ikke `Walk/Base`).
 
 ## Filstruktur
 
 ```
 bygditdyr/
-├── index.html          # Startside — vælg: station eller habitat
-├── station.html        # Byggest  ation (5 stk i produktion)
-├── habitat.html        # Habitatskærm (1 stk i produktion)
+├── index.html             # Startside — vælg: station eller habitat
+├── station.html           # Byggestation (5 stk i produktion)
+├── habitat.html           # Habitatskærm (1 stk i produktion)
+├── indstillinger.html     # Personalemenu: statistik, sæsonindstilling, Supabase-log
 ├── css/
 │   ├── station.css
 │   └── habitat.css
 ├── js/
-│   ├── station.js      # Byggeflow, energimåler, navnegenerator
-│   ├── habitat.js      # Simulationsloop, tidslinje, jagt
-│   ├── broadcast.js    # Kommunikation: Supabase Realtime ELLER BroadcastChannel (samme API)
-│   ├── config.js       # Runtime-config: Supabase-endpoint + kanalnavn (online relay)
-│   ├── names.js        # Linneansk navnegenerator
-│   ├── render.js       # Lag-compositing + bake-ved-spawn (ImageBitmap-cache)
-│   ├── survival.js     # Overlevelsesmatrix og score-beregning
-│   ├── oekonomi.js     # Ressource-regnskab (planter/bytte/flugt/angreb)
-│   ├── deathtext.js    # Biologiske dødsforklaringer
-│   └── scoreboard.js   # Rekordliste
+│   ├── station.js         # Byggeflow, energimåler, egenskabs-checklist, match-måler
+│   ├── habitat.js         # Simulationsloop, tilstandsmaskine, NPC-dyr, dag/nat-cyklus
+│   ├── broadcast.js       # Kommunikation: Supabase Realtime ELLER BroadcastChannel (samme API)
+│   ├── config.js          # Runtime-config: Supabase-endpoint + kanalnavn
+│   ├── names.js           # Linneansk navnegenerator + forklarArtsnavn() (Linné-nedbrydning)
+│   ├── render.js          # Lag-compositing + bake-ved-spawn (ImageBitmap-cache)
+│   ├── survival.js        # Overlevelsesmatrix, score-beregning, forklarEgenskaber()
+│   ├── oekonomi.js        # Ressource-regnskab (planter/bytte/flugt/angreb)
+│   ├── deathtext.js       # Biologiske dødsforklaringer (individ OG art)
+│   ├── scoreboard.js      # Rekordliste
+│   ├── audio.js           # Syntetiseret lyd via Web Audio: ambient loops + event-effekter
+│   ├── sprites.js         # PNG sprite integration
+│   └── telemetri.js       # Anonym gameplay-telemetri til Supabase (tuning-data)
 ├── assets/
-│   ├── sprites/        # Dyrenes PNG/SVG-lag
-│   ├── backgrounds/    # Habitatbaggrunde
-│   └── sounds/         # Ambientelyde + effekter
-├── analyse/            # Kritisk analyse + roadmap (00–05) + balance.js — NÆSTE ARBEJDE
+│   ├── sprites/           # Pixel art PNG sprites
+│   ├── backgrounds/       # Habitatbaggrunde
+│   └── sounds/            # (tom — lyd er syntetiseret i audio.js)
+├── analyse/               # Kritisk analyse + 5 opgavepakker — HISTORISK (alle implementeret)
+│   ├── 00-05 + balance.js
+│   └── DISPATCH-START-PROMPT.md   # Opdateres ved ny større opgave
 └── CLAUDE.md
 ```
 
 ## Kerneregler
 
 1. Hold koden simpel. Hvis noget kan løses med 10 linjer, brug ikke 50.
-2. Ingen eksterne biblioteker undtagen nødvendige lyde (Howler.js må bruges til lyd hvis Web Audio API er besværligt)
-3. Al kommunikation mellem station og habitat går via `window.Broadcast` (send/lyt) — aldrig direkte BroadcastChannel eller Supabase i spil-koden. Transporten vælges ét sted: `broadcast.js`
-4. Overlevelseslogikken er i survival.js — hold den adskilt fra visuals
-5. Kom med kommentarer på dansk i koden
+2. Ingen eksterne biblioteker (Howler.js må bruges til lyd hvis Web Audio API er besværligt).
+3. Al kommunikation mellem station og habitat går via `window.Broadcast` (send/lyt) — aldrig direkte BroadcastChannel eller Supabase i spil-koden.
+4. Overlevelseslogikken er i `survival.js` — hold den adskilt fra visuals.
+5. Kommentér på dansk i koden.
+6. `MUTATION_RATE = 0.08` i `habitat.js` styrer mutationsraten ved formering — kan sættes til 0 for at slå fra.
 
 ## Vigtige datastrukturer
 
 ### Dyr-objekt
 
-```jsx
+```js
 {
   id: "uuid",
   artsnavn: "Magnocalor venenatus piluscarnivorus",
   egenskaber: {
-    stofskifte: "hojt",     // 'hojt' | 'lavt'
-    hudtype: "pels",         // 'pels' | 'skael' | 'fjer' | 'glat'
-    kost: "koedaeder",       // 'planteaeder' | 'koedaeder' | 'alleaeder'
-    storrelse: "stor",       // 'lille' | 'mellem' | 'stor'
-    aktivitet: "dagaktiv",   // 'dagaktiv' | 'nataktiv'
-    forsvar: "giftig"        // 'giftig' | 'pigge' | 'flugt' | 'ingen'
+    stofskifte: "hojt",    // 'hojt' | 'lavt'
+    hudtype: "pels",        // 'pels' | 'skael' | 'fjer' | 'glat'
+    kost: "koedaeder",      // 'planteaeder' | 'koedaeder' | 'alleaeder'
+    storrelse: "stor",      // 'lille' | 'mellem' | 'stor'
+    aktivitet: "dagaktiv",  // 'dagaktiv' | 'nataktiv'
+    forsvar: "giftig"       // 'giftig' | 'pigge' | 'flugt' | 'ingen'
   },
   energiBrugt: 9,
-  overlevelsesScore: 0,     // beregnes ved afsendelse
+  overlevelsesScore: 0,
   position: { x: 0, y: 0 },
-  levetid: 0,               // sekunder
-  levende: true
+  levetid: 0,
+  levende: true,
+  generation: 1,           // generationsnummer; muterede afkom viser ✨
+  stationId: "station-1",  // oprindelse — bruges til cross-player attribution
+  _npc: false              // true = NPC-dyr (tæller ikke i scoreboard)
 }
 ```
 
-### BroadcastChannel beskeder
+### Broadcast-beskeder
 
-```jsx
+```js
 // Station → Habitat
 { type: 'NYT_DYR', dyr: {...} }
-{ type: 'HABITAT_REQUEST' }   // station beder om habitatinfo
+{ type: 'HABITAT_REQUEST' }
 
 // Habitat → Station
 { type: 'HABITAT_INFO', habitat: 'skov' }
-{ type: 'DYR_DOEDE', id: '...', aarsag: 'frys', levetid: 45 }
-{ type: 'DYR_JAGES', bytte_id: '...', jaeger_id: '...' }
+{ type: 'DYR_DOEDE', id, aarsag, levetid }
+{ type: 'DYR_JAGES', bytte_id, jaeger_id, jaeger_art, bytte_art }
+{ type: 'DYR_EVENT', id, type: 'spiser'|'jager'|'foedsel'|... }
+{ type: 'ARTER_STATUS', [...] }    // live-status pr. art
+{ type: 'SCOREBOARD', [...] }      // opdateret rekordliste
 ```
 
 ## Assets & rendering
 
-Besluttet 3. juni 2026, revideret 5. juni 2026, **revideret 10. juni 2026 efter bestået pilot** (base1 + pels end-to-end). Mål uændret: markant højere visuel finish end flade SVG'er, performant i ren HTML5, uden 576 fulde billeder.
+Mål: markant højere visuel finish end flade SVG'er, performant i ren HTML5, uden 576 fulde billeder.
 
-### Valgt strategi (10. juni 2026): hudtype OG kost bages ind i kroppen — 12 krop×hud-modeller
+### Strategi: 12 krop×hud-modeller
 
-To træk er svære/forkerte som lag og bages derfor ind i kroppen: **hudtype** (realistisk pels/fjer kan ikke laves manuelt i Blender — geometry-nodes-vejen droppet) og **kost** (revideret 10. juni: en ulve-agtig krop som planteæder er inkongruent — et hugtand-decal er for svagt et signal). Kost styrer i stedet hele **kropsbygningen**, som de 3 basekroppe netop repræsenterer:
+`kost` bestemmer **kropsbygning**; `hudtype` bages ind i modellen. `storrelse` skalerer uafhængigt i `render.js`.
 
-| `kost` | basekrop | læsning |
-| --- | --- | --- |
-| `koedaeder` | `base2_slank` | spinkelt jagt-rovdyr (mynde/gepard) |
+| `kost` | basekrop | |
+|---|---|---|
+| `koedaeder` | `base2_slank` | spinkelt jagt-rovdyr (gepard/mynde) |
 | `planteaeder` | `base3_kraftig` | stor planteæder (flodhest/næsehorn) |
-| `alleaeder` | `base1_generalist` | lav, kompakt altæder-krop (grævling/jærv) |
+| `alleaeder` | `base1_generalist` | lav, langstrakt mustelid (grævling/jærv) |
 
-Render-laget slår basekrop op via denne mapping (kost → basekrop); `storrelse` skalerer derefter uafhængigt, så en lille og en stor kødæder deler krop men ikke skala. Pipeline pr. model:
+3 kroppe × 4 hudtyper = 12 modeller. `pigge` er eneste lag-pass. Pipeline pr. model:
+1. **Turnaround:** Gemini image-til-image på neutral krop — side/¾/front/bag.
+2. **Meshy:** multi-view image-til-3D → mesh + tekstur (GLB, INGEN rig).
+3. **Blender:** én armatur pr. kropstype; hud-varianter parentes med Data Transfer-modifier (Vertex Groups, Nearest Face Interpolated). `base2`/`base3`: duplikér armatur, flyt knogler — samme knoglenavne = samme Action.
+4. **Render:** ortografisk walk, 24 frames, 720px WebP. Crop fra `walk/crop-info.json` SKAL bruges på alle lag-passes for at bevare registrering. Frames vender MOD HØJRE.
+5. **Runtime:** `js/render.js` baker alle lag til `ImageBitmap` ved spawn; sim-loopet blitter kun det færdige sprite.
 
-1. **Turnaround m. hud:** Nano Banana flash (image-til-image på eksisterende neutral-turnaround) tilføjer pels/skæl/fjer — samme pose/proportioner. 3 kroppe (= 3 kosttyper) × 4 hudtyper = **12 modeller** (ikke 500: generering+QA pr. model er flaskehalsen, ikke rigging).
-2. **Meshy:** multi-view image-til-3D (alle 4 vinkler) + teksturering m. side.png som reference. **Kun mesh+tekstur** — download GLB uden rig.
-3. **Blender — rig/animation genbruges:** animationen ligger på ARMATUREN, ikke mesh'et. base1 rigges+animeres ÉN gang; hud-varianter parentes til samme armatur med **Data Transfer-modifier** (Vertex Groups, Nearest Face Interpolated) fra det vægtede base-mesh — ikke Automatic Weights (fejler på løse pels-shells). base2/base3: duplikér armatur, flyt knogler i Edit Mode — samme knoglenavne = samme Action. Total: 1 walk, 3 armaturer, 12 weight-transfers.
-4. **Lag-render:** `pigge` er nu det ENESTE lag-pass (hugtand-passet udgår — kost er bagt ind i kroppen). Pigge renderes som eget transparent pass med SAMME kamera + animation, pr. hud-model (vedhæftet samme skelet) så lagene altid flugter. Render-passes er maskintid, ikke manuelt arbejde.
-5. **Efterbehandling:** frames beskæres til FÆLLES bounding box og nedskaleres til 720 px højde som WebP (1080p-originaler fylder ~200 MB dekodet pr. sæt). Crop-parametre gemmes i `walk/crop-info.json` — **samme crop skal bruges på alle lag-passes** for at bevare registrering. Frames skal vende MOD HØJRE (render.js-konvention).
-
-Egenskaberne fordeler sig:
-
-| Egenskab | Hvordan i pipelinen |
-| --- | --- |
-| `kost` | **kropsbygning** bagt ind: koedaeder→slank, planteaeder→kraftig, alleaeder→generalist |
-| `hudtype` | bagt ind i krop-modellen (12 krop×hud-modeller) |
-| `storrelse` | `scale` i `render.js`, uafhængigt af kropsbygning (ingen render) |
-| `forsvar` | pigge: eget (eneste) lag-pass pr. hud-model; giftig: advarselsfarve/decal |
-| `aktivitet` | dag/nat-tone i `render.js` (ingen render) |
-| `stofskifte` | kun mekanik: animationsfart/tone i `render.js` |
-
-**Bake-ved-spawn (uændret princip):** ved `NYT_DYR` slår `js/render.js` basekrop op fra `kost`, vælger hud-varianten fra `hudtype`, stabler evt. `pigge`-lag ovenpå, skalerer efter `storrelse`, toner efter `aktivitet`, og baker pr. frame til `ImageBitmap`. Sim-loopet (`habitat.js`) blitter kun det færdige sprite. `render.js` understøtter fart-styret frame-afspilning + procedurel idle-bob; `survival.js`/`oekonomi.js` røres ikke. Max ~30 dyr (typisk 5-15) → rigeligt råderum.
-
-### Asset-struktur (faktisk)
+**Aktuel stand (23. juni):**
+- `base1_generalist`: omformet til grævling-krop; **kræver re-rigging + re-animation** i Blender. Kun `side`-turnarounds regenereret; trekvart/front/bag udestår.
+- `base2_slank`, `base3_kraftig`: uændrede og klar til Blender-rig.
+- `base1_generalist_pels` pilot: gennemført på gammel katte-krop — skal redo på ny krop.
+- Detaljer og trin-for-trin guide: `assets/blender/LAG-RENDER-GUIDE.md`.
 
 ```
 assets/
-├── dyr/<basekrop>[_<hud>]/        # fx base1_generalist, base1_generalist_pels
-│   ├── turnaround/                # side, trekvart, front, bag (input til Meshy multi-view)
-│   ├── Walk/Base/                 # rå Blender-frames 1920×1080 (0001.png…, urørte originaler)
-│   └── walk/                      # produktionsklar:
-│       ├── crop-info.json         #   fælles crop+skala — SKAL genbruges på alle lag-passes
-│       ├── base/                  #   beskårne 720px WebP-frames (0001.webp…)
-│       └── forsvar_pigge/ m.fl.   #   lag-passes, samme crop (kommer)
-├── dele/             # enkelt-elementer (pig/, fjer/) — kun til evt. pigge-scatter
-├── blender/          # .blend + LAG-RENDER-GUIDE.md + animation-frames
-└── backgrounds/      # skov.png (malet habitat-baggrund, Gemini)
+├── dyr/<basekrop>[_<hud>]/
+│   ├── turnaround/         # side, trekvart, front, bag
+│   ├── Walk/Base/          # rå Blender-frames 1920×1080 (urørte originaler)
+│   └── walk/
+│       ├── crop-info.json  # FÆLLES crop — SKAL genbruges på alle lag-passes
+│       ├── base/           # 720px WebP frames
+│       └── forsvar_pigge/  # lag-pass (samme crop)
+├── _backup_turnarounds_15jun/  # sikkerhedskopier af gamle versioner
+└── blender/                # .blend + LAG-RENDER-GUIDE.md
 ```
 
-Basekroppe p.t.: `base1_generalist`, `base2_slank`, `base3_kraftig`; første hud-variant: `base1_generalist_pels` (pilot, godkendt 10. juni — testes i `test-pels-walk.html`). Detaljeret fremgangsmåde: `assets/blender/LAG-RENDER-GUIDE.md` (også i Notion: "Blender lag-render guide").
-
-**15. juni 2026 — base1 omformet:** `base1_generalist` (alleæder) er ændret fra en slank katte-krop til en lav, langstrakt grævling/mustelid-krop, fordi altæderen var visuelt umulig at skelne fra kødæderen (`base2_slank`). base1's hud-side-turnarounds (pels/fjer/glat/skæl) er regenereret på den nye krop med `genererHudTurnaround.py`. Gammel krop + katte-kroppede skins: `assets/dyr/_backup_turnarounds_15jun/`. **VIGTIGT:** pels-piloten og base1-armaturet skal rigges/animeres om i Blender på den nye krop (base2/base3 er urørt). P.t. er kun `side`-vinklen regenereret; de øvrige 3 neutrale vinkler for base1 (trekvart/front/bag) er stadig den gamle katte-krop og skal regenereres før Meshy.
-
-Note: habitatskærm i produktion er 15.360×1200 (8 projektorer, 360°) — separat arkitektur-opgave.
+Note: produktionsskærm er 15.360×1200 (8 projektorer, 360°) — separat arkitektur-opgave der ikke er startet.
 
 ## Fuldt GDD
 
@@ -165,11 +179,10 @@ Se: [Overlevelsesmatrix — Prototype (3 habitater)](https://www.notion.so/Overl
 
 ## Start her (dispatch, juni 2026)
 
-Spillet er FÆRDIGBYGGET og live (se "Aktuel status" øverst). Start IKKE forfra.
+Spillet er **færdigbygget og live**. Start IKKE forfra, og gå IKKE i gang med pakke 01–05 — de er implementeret.
 
-1. Læs `analyse/00-hovedanalyse-og-roadmap.md` — overblik + roadmap.
-2. Tag opgavepakkerne i rækkefølge: **01 → 05 (Sprint A) → 04 → 02 → 03**. Hver pakke (`analyse/01`–`05`) har problem, kodested, konkret forslag og "gjort-når".
-3. Pr. trin: foreslå plan → vent på ok → implementér → test (`node analyse/balance.js`, `node --check js/*.js`) → vent på ok → udgiv (web/GitHub: åbn PR og merg den med det samme uden at spørge · lokalt: `udgiv.bat`).
-4. Hold `survival.js`/`oekonomi.js` adskilt fra visuals; kommentér på dansk.
-
-*Oprindelig byggerækkefølge (historik, da spillet blev bygget forfra): survival.js → names.js → station → broadcast.js → habitat → lyd.*
+1. **Orientér dig:** `git log --oneline -10` viser hvad der sidst er lavet. Al kode er i `js/`.
+2. **Ny kodeopgave?** Spørg Jeppe hvad der er aktuelt (ingen planlagte pakker pt.). Foreslå plan → vent på ok → implementér → test → vent på ok → PR.
+3. **Blender-opgave?** Se Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`. Det er brugerens offline-arbejde.
+4. **Fejl eller tuning?** Kig på `js/habitat.js` (konstanter øverst) og `js/survival.js` (HABITAT_SCORE-matrix). Kør `node analyse/balance.js` ved matrix-ændringer.
+5. Kommentér på dansk. Hold `survival.js`/`oekonomi.js` adskilt fra visuals.
