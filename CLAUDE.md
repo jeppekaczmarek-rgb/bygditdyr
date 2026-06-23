@@ -28,7 +28,9 @@ Kerne-spiludviklingen er **færdig**. Alle 5 forbedringspakker fra den kritiske 
 2. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
 3. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
 
-**Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
+**Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
+
+> **Obligatorisk efter enhver merget PR:** opdater CLAUDE.md "Aktuel status" og tilføj en entry til Notion "Fremdrift & status" beslutningslog. Brug `/sync-projekt` som tjekliste.
 
 ---
 
