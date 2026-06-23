@@ -1,27 +1,23 @@
 # Dispatch start-prompt
 
-Kopiér alt under linjen ind i dispatch-chatten for at sætte arbejdet i gang. (Findes også i Notion: "🚀 Dispatch start-prompt".)
+Kopiér alt under linjen ind i en ny chat for at sætte arbejdet i gang. (Opdateret 23. juni 2026 — afspejler at roadmap 01–05 er implementeret.)
 
 ---
 
-Du arbejder på **Byg Dit Dyr** — et interaktivt museumsspil til Naturama (vanilla HTML/CSS/JS, ingen frameworks). Spillet er færdigbygget og LIVE på GitHub Pages (auto-udgiver når `main` opdateres). Du arbejder via GitHub: foreslå ændringer som PR'er — Jeppe merger, og Pages udgiver automatisk ca. 1 min senere.
+Du arbejder på **Byg Dit Dyr** — et interaktivt museumsspil til Naturama (vanilla HTML/CSS/JS, ingen frameworks). Spillet er **færdigbygget og LIVE** på GitHub Pages (auto-udgiver når `main` opdateres via PR).
 
-**Læs først:** `CLAUDE.md`, derefter `analyse/00-hovedanalyse-og-roadmap.md`.
+**Start med at læse:** `CLAUDE.md` i repoet — det er den primære kilde til projektets nuværende tilstand, hvad der er bygget og hvad der er næste.
 
-**Din opgave:** Implementér forbedrings-roadmappen fra den kritiske analyse, i denne rækkefølge:
-1. **Sprint A:** Opgavepakke **01** (feedback-loop) + **05** (balance/data + mutation)
-2. Derefter **04** (formidlingstekster) → **02** (skalering) → **03** (interaktion)
+**Nuværende situation (23. juni):** Alle 5 forbedringspakker fra den kritiske analyse (01–05) er implementeret. Kør `git log --oneline -10` for at se hvad der senest er gjort. Der er ingen planlagte kodepakker pt. — spørg Jeppe hvad der er aktuelt.
 
-Hver pakke har en fil i `analyse/` (`01`–`05`) med problem, kodested, konkret forslag og "gjort-når". Følg dem.
+**Mulige opgavetyper:**
+- Kode-fix eller tuning baseret på real-world test ved Naturama
+- Balancejustering efter test (kør `node analyse/balance.js` ved matrix-ændringer)
+- Eventuelle nye features aftalt med Jeppe
 
-**Arbejdsgang (vigtig — jeg er på farten):** Ét trin ad gangen. For HVERT trin: (1) vis en kort plan/diff og forklar hvad du vil ændre og hvorfor, (2) VENT på mit "ok", (3) implementér, (4) kør tests (`node analyse/balance.js` ved matrix-ændringer + `node --check js/*.js`), (5) vis resultatet og VENT på mit "ok". Åbn så en PR pr. trin — du merger den IKKE selv; jeg gennemser og merger (det udgiver via Pages). Merg/udgiv aldrig uden mit ok.
+**Arbejdsgang — vigtig:**
+Ét trin ad gangen. For HVERT trin: (1) vis kort plan og forklar hvad og hvorfor, (2) VENT på ok, (3) implementér, (4) test (`node --check js/*.js`), (5) vis resultat og VENT på ok. Åbn PR og merg den med det samme uden at spørge → Pages udgiver automatisk ~1 min.
 
-**To designvalg undervejs — spørg mig, beslut ikke selv:**
-- *Arktis-rebalance:* vis før/efter-tal fra `balance.js` for (a) billigere forsvar-energi vs. (b) lokalt arktis-budget, og lad mig vælge.
-- *Glat hud:* vis (a) tempo-bonus (`FART_MOD`) vs. (b) matrix-nudge (skov −1→0), og lad mig vælge.
+**Regler:** Vanilla JS, ingen frameworks. Kommentér på dansk. Hold `survival.js`/`oekonomi.js` adskilt fra visuals. Log beslutninger i Notion → "Fremdrift & status"; fejl i "Fejl & bugs".
 
-**Mutation ved formering ("guldægget"):** byg den ind i `habitat.js → spawnAfkom` med `MUTATION_RATE = 0.08` (ændrer netop én egenskab, kan slås fra med 0) + en lille ✨-markør. Bevidst godkendt.
-
-**Regler:** Vanilla JS, ingen frameworks. Kommentér på dansk. Hold `survival.js`/`oekonomi.js` adskilt fra visuals. Overlevelsesmatrixen ændres KUN bevidst (pakke 05). Log beslutninger i Notion → "Fremdrift & status" og fejl i "Fejl & bugs". Den fulde, afkrydselige opgaveliste ligger i Notion: "✅ Opgaveliste — roadmap (juni 2026)".
-
-Start med at læse `CLAUDE.md` + `analyse/00` + `analyse/01`, og foreslå så din plan for det første trin i pakke 01.
+Start med `CLAUDE.md` + `git log --oneline -10`.
