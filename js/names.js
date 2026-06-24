@@ -54,35 +54,37 @@ function genererArtsnavn(egenskaber) {
 
 // ============================================================
 // Dansk folkenavn-generator
-// Realistiske navne i stil med rigtige danske dyrenavne.
+// Beskrivende navne der matcher dyrets VISUELLE udseende.
 // Struktur: [Adjektiv] + [Dyrenavn], max 3 ord.
 // ============================================================
 
-// Dyrenavn baseret på kost × størrelse
+// Dyrenavn baseret på kost × hudtype — matcher de 12 visuelle modeller
 const DYRENAVN = {
-  planteaeder: {
-    lille:  ['Mus', 'Hare', 'Pindsvin'],
-    mellem: ['Rådyr', 'Bæver', 'Skildpadde'],
-    stor:   ['Bison', 'Elefant', 'Flodhest']
-  },
   koedaeder: {
-    lille:  ['Væsel', 'Hugorm', 'Gecko'],
-    mellem: ['Ræv', 'Ulv', 'Ørn'],
-    stor:   ['Bjørn', 'Løve', 'Krokodille']
+    pels:  ['Rovpels', 'Lynkrop', 'Jægerpels'],
+    skael: ['Jægerøgle', 'Lynøgle', 'Glideøgle'],
+    fjer:  ['Rovfugl', 'Strejfrap', 'Jægerfugl'],
+    glat:  ['Giftglider', 'Snoedyr', 'Giftdyr']
+  },
+  planteaeder: {
+    pels:  ['Uldkrop', 'Buskkæmpe', 'Pelsokse'],
+    skael: ['Panserkrop', 'Skjolddyr', 'Panserdyr'],
+    fjer:  ['Fjerkæmpe', 'Dunokse', 'Fjerdyr'],
+    glat:  ['Sumpkrop', 'Bredkrop', 'Bulderdyr']
   },
   alleaeder: {
-    lille:  ['Grævling', 'Vaskebjørn', 'Vildsvin'],
-    mellem: ['Grævling', 'Vaskebjørn', 'Vildsvin'],
-    stor:   ['Grævling', 'Vaskebjørn', 'Vildsvin']
+    pels:  ['Graver', 'Kratbid', 'Stribekrop'],
+    skael: ['Bånddyr', 'Kratøgle', 'Vandrer'],
+    fjer:  ['Jordfugl', 'Kratfugl', 'Jordfjer'],
+    glat:  ['Mudderkrop', 'Lerdyr', 'Kratglidder']
   }
 };
 
-// Adjektiv baseret på hudtype + aktivitet
+// Adjektiv baseret på størrelse × aktivitet
 const ADJEKTIV = {
-  pels:  { dagaktiv: ['Nordlig', 'Almindelig', 'Brun'],  nataktiv: ['Mørk', 'Grå', 'Natlig'] },
-  skael: { dagaktiv: ['Plettet', 'Stribet', 'Glinsende'], nataktiv: ['Sort', 'Skjult', 'Mørk'] },
-  fjer:  { dagaktiv: ['Hvid', 'Broget', 'Gul'],          nataktiv: ['Grå', 'Mørk', 'Nat-'] },
-  glat:  { dagaktiv: ['Blå', 'Grøn', 'Spættet'],         nataktiv: ['Sort', 'Bleg', 'Mørk'] }
+  lille:  { dagaktiv: ['Lille', 'Spæd', 'Kvik'],   nataktiv: ['Dværg', 'Sky', 'Natlig'] },
+  mellem: { dagaktiv: ['Hurtig', 'Snu', 'Vaks'],   nataktiv: ['Grå', 'Stille', 'Mørk'] },
+  stor:   { dagaktiv: ['Kæmpe', 'Vild', 'Stor'],   nataktiv: ['Tung', 'Mørk', 'Dyster'] }
 };
 
 // Simpel hash fra egenskaber (så samme dyr altid får samme navn)
@@ -101,12 +103,12 @@ function genererDanskNavn(egenskaber) {
   const e = egenskaber.egenskaber || egenskaber;
   const hash = Math.abs(egenskabsHash(e));
 
-  // Dyrenavn fra kost × størrelse
-  const navneListe = DYRENAVN[e.kost]?.[e.storrelse] || DYRENAVN.alleaeder.mellem;
+  // Dyrenavn fra kost × hudtype — matcher det visuelle
+  const navneListe = DYRENAVN[e.kost]?.[e.hudtype] || DYRENAVN.alleaeder.pels;
   const dyr = navneListe[hash % navneListe.length];
 
-  // Adjektiv fra hudtype × aktivitet
-  const adjListe = ADJEKTIV[e.hudtype]?.[e.aktivitet] || ADJEKTIV.glat.dagaktiv;
+  // Adjektiv fra størrelse × aktivitet
+  const adjListe = ADJEKTIV[e.storrelse]?.[e.aktivitet] || ADJEKTIV.mellem.dagaktiv;
   const adj = adjListe[(hash >> 3) % adjListe.length];
 
   return `${adj} ${dyr}`;
@@ -201,14 +203,14 @@ window.Names = { genererArtsnavn, genererDanskNavn, forklarArtsnavn };
     console.log(`  ${status} ${resultat} (forventet: ${forventet})`);
   });
 
-  console.log('=== Danske navne test ===');
+  console.log('=== Danske navne test (kost × hudtype → visuelt korrekt) ===');
   const dkTests = [
-    { storrelse: 'stor', stofskifte: 'hojt', hudtype: 'pels', kost: 'koedaeder', forsvar: 'giftig', aktivitet: 'dagaktiv' },
-    { storrelse: 'lille', stofskifte: 'lavt', hudtype: 'skael', kost: 'planteaeder', forsvar: 'ingen', aktivitet: 'nataktiv' },
-    { storrelse: 'mellem', stofskifte: 'hojt', hudtype: 'fjer', kost: 'alleaeder', forsvar: 'flugt', aktivitet: 'dagaktiv' },
-    { storrelse: 'mellem', stofskifte: 'lavt', hudtype: 'glat', kost: 'planteaeder', forsvar: 'pigge', aktivitet: 'nataktiv' },
-    { storrelse: 'lille', stofskifte: 'hojt', hudtype: 'pels', kost: 'planteaeder', forsvar: 'ingen', aktivitet: 'dagaktiv' },
-    { storrelse: 'stor', stofskifte: 'lavt', hudtype: 'skael', kost: 'koedaeder', forsvar: 'flugt', aktivitet: 'nataktiv' },
+    { storrelse: 'stor',  stofskifte: 'hojt', hudtype: 'pels',  kost: 'koedaeder',  forsvar: 'giftig', aktivitet: 'dagaktiv' }, // → Kæmpe Rovpels/Lynkrop/Jægerpels
+    { storrelse: 'lille', stofskifte: 'lavt', hudtype: 'skael', kost: 'planteaeder', forsvar: 'ingen',  aktivitet: 'nataktiv' }, // → Dværg Panserkrop/Skjolddyr/Panserdyr
+    { storrelse: 'mellem',stofskifte: 'hojt', hudtype: 'fjer',  kost: 'alleaeder',  forsvar: 'flugt',  aktivitet: 'dagaktiv' }, // → Hurtig Jordfugl/Kratfugl/Jordfjer
+    { storrelse: 'mellem',stofskifte: 'lavt', hudtype: 'glat',  kost: 'planteaeder', forsvar: 'pigge',  aktivitet: 'nataktiv' }, // → Grå Sumpkrop/Bredkrop/Bulderdyr
+    { storrelse: 'lille', stofskifte: 'hojt', hudtype: 'pels',  kost: 'planteaeder', forsvar: 'ingen',  aktivitet: 'dagaktiv' }, // → Lille Uldkrop/Buskkæmpe/Pelsokse
+    { storrelse: 'stor',  stofskifte: 'lavt', hudtype: 'skael', kost: 'koedaeder',  forsvar: 'flugt',  aktivitet: 'nataktiv' }, // → Dyster Jægerøgle/Lynøgle/Glideøgle
   ];
   dkTests.forEach(e => {
     const dansk = genererDanskNavn(e);
