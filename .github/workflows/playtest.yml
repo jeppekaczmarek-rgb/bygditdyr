@@ -1,0 +1,79 @@
+name: Playtest (visuel)
+
+# Kører byg-dit-dyr-craft-playtesten i skyen, så den ikke kræver en tændt PC.
+# GitHub-runneren henter Chromium, server spillet lokalt, spiller byggeflowet
+# igennem, uploader screenshots som artifact OG publicerer dem til grenen
+# 'playtest-results', saa online Claude Code kan laese + vurdere dem.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:   # giver en "Run workflow"-knap i Actions-fanen (manuel kørsel)
+
+permissions:
+  contents: write   # tillader at publicere screenshots til playtest-results-grenen
+
+jobs:
+  playtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer Playwright + Chromium
+        run: |
+          npm i -D playwright
+          npx playwright install --with-deps chromium
+
+      - name: Isoler relay (BroadcastChannel i CI - ror ikke museets kanal)
+        run: |
+          cat > js/config.js <<'EOF'
+          // CI-override: tom Supabase -> broadcast.js falder tilbage til BroadcastChannel.
+          // Begge skaerme korer i samme browser-context, saa de taler stadig sammen,
+          // men intet sendes til produktionskanalen 'rt-bygditdyr'.
+          window.BYGDITDYR_CONFIG = { supabaseUrl: '', supabaseAnonKey: '', kanalNavn: 'rt-bygditdyr-ci' };
+          EOF
+
+      - name: Start lokal server
+        run: |
+          python3 -m http.server 8000 &
+          sleep 2
+
+      - name: Kor playtest
+        env:
+          BDD_URL: http://localhost:8000
+          BDD_SECONDS: "20"
+        run: node .claude/skills/byg-dit-dyr-craft/scripts/playtest.js
+
+      - name: Upload screenshots + video + summary (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtest-output
+          path: .claude/skills/byg-dit-dyr-craft/playtest-output/
+          if-no-files-found: warn
+
+      - name: Publicer screenshots til playtest-results-grenen
+        if: always()
+        run: |
+          OUT=$(ls -dt .claude/skills/byg-dit-dyr-craft/playtest-output/*/ 2>/dev/null | head -1)
+          if [ -z "$OUT" ]; then echo "ingen playtest-output - springer over"; exit 0; fi
+          TMP=$(mktemp -d)
+          cp "$OUT"*.png "$TMP"/ 2>/dev/null || true
+          cp "$OUT"summary.json "$TMP"/ 2>/dev/null || true
+          cp "$OUT"log.txt "$TMP"/ 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan _resultater
+          git rm -rf . >/dev/null 2>&1 || true
+          mkdir -p seneste
+          cp "$TMP"/* seneste/ 2>/dev/null || true
+          printf "# Playtest-resultater\n\nSeneste screenshots + summary. Auto-genereret af CI (%s).\n" "$(date -u +%FT%TZ)" > README.md
+          git add seneste README.md
+          git commit -m "Playtest-resultater $(date -u +%FT%TZ) [skip ci]"
+          git push --force origin _resultater:playtest-results
+          echo "Publiceret til grenen 'playtest-results' (mappen seneste/)."

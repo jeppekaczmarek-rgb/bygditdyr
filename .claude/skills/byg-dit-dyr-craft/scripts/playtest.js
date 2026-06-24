@@ -106,9 +106,12 @@ async function measureFps(page, seconds) {
   const habitat = await context.newPage(); wire(habitat, 'habitat');
 
   note('Åbner byggestation + habitat-skærm i samme context...');
-  await builder.goto(BASE_URL, { waitUntil: 'networkidle' });
-  await habitat.goto(BASE_URL, { waitUntil: 'networkidle' });
-  // TODO: hvis habitat-skærmen har sin egen route (fx ?skaerm=habitat), naviger dertil her.
+  // Spillet har separate sider: station.html (byg) og habitat.html (storskærm).
+  const _base = BASE_URL.replace(/\/$/, '');
+  await builder.goto(_base + '/station.html', { waitUntil: 'networkidle' });
+  await habitat.goto(_base + '/habitat.html', { waitUntil: 'networkidle' });
+  // Giv relay'et (Supabase Realtime / BroadcastChannel) et øjeblik til at forbinde.
+  await builder.waitForTimeout(1500);
 
   await screenshot(builder, '01-byg-start');
   await screenshot(habitat, '01-habitat-start');
@@ -119,13 +122,41 @@ async function measureFps(page, seconds) {
   // getByText / getByRole er robuste mod layout-ændringer. Udfyld efter
   // opdagelses-kørslen ud fra interactables-byg.json og screenshots.
   // ───────────────────────────────────────────────────────────────────────
-  /*
-  for (const valg of ['Højt', 'Pels', 'Planteæder', 'Mellem', 'Dagaktiv', 'Flugt']) {
-    await builder.getByText(valg, { exact: false }).first().click();
+  // Udfyldt 24. juni 2026 — kører hele byggeflowet (Byg dit dyr → 6 valg → Send).
+  // Semantiske data-vaerdi-selektorer (robuste mod tekst/layout). Energibudget=10;
+  // dette sæt koster præcis 10 og giver skov-score +6 (lang levetid i habitatet).
+  const BYGGEVALG = [
+    { vaerdi: 'lavt',      label: 'Lavt stofskifte', energi: 1 },
+    { vaerdi: 'pels',      label: 'Pels',            energi: 2 },
+    { vaerdi: 'alleaeder', label: 'Alleæder',        energi: 2 },
+    { vaerdi: 'mellem',    label: 'Mellem',          energi: 2 },
+    { vaerdi: 'dagaktiv',  label: 'Dagaktiv',        energi: 1 },
+    { vaerdi: 'flugt',     label: 'Hurtig flugt',    energi: 2 },
+  ];
+
+  await builder.locator('#btn-start').click();            // "Byg dit dyr"
+  await builder.waitForTimeout(300);
+  await screenshot(builder, '02-byg-trin1');
+
+  for (const v of BYGGEVALG) {
+    // vælg kortet på det aktive trin; fald tilbage til billigste mulige hvis for dyrt
+    const kort = builder.locator(`.trin.aktiv .valgkort[data-vaerdi="${v.vaerdi}"]:not(.for-dyrt)`);
+    if (await kort.count()) {
+      await kort.first().click();
+    } else {
+      await builder.locator('.trin.aktiv .valgkort:not(.for-dyrt)').first().click();
+      note(`⚠ "${v.label}" var for dyrt — valgte billigste mulige i stedet.`);
+    }
+    await builder.waitForTimeout(150);
+    await builder.locator('#btn-naeste').click();          // "Næste →" / sidst "Se dit dyr →"
+    await builder.waitForTimeout(200);
   }
-  await screenshot(builder, '02-byg-valgt');
-  await builder.getByRole('button', { name: /send til habitat/i }).click();
-  */
+
+  await screenshot(builder, '03-bekraeftelse');            // artsnavn + valgoversigt
+  await builder.locator('#btn-send').click();              // "Send til habitatet 🚀"
+  await builder.waitForTimeout(600);
+  await screenshot(builder, '04-byg-afsendt');
+  note('Dyr bygget og sendt til habitatet.');
 
   note(`Lader habitatet leve i ${FLOW_SECONDS}s og tager screenshots undervejs...`);
   const shots = 5;
