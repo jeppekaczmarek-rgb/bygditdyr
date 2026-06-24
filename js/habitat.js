@@ -120,6 +120,8 @@ const EVENT_COOLDOWN = 3500;   // ms mellem samme event-type pr. art
 const STATUS_INTERVAL = 1500;  // ms mellem live-status-broadcasts
 const OEKONOMI_INTERVAL = 500; // ms mellem opdateringer af ressource-tavlen
 const OEKONOMI_MAX = 8;        // antal dyr vist på ressource-tavlen
+let tidslinjeSidste = 0;       // ms timestamp — tidslinje gentegnes kun hvert TIDSLINJE_INTERVAL
+const TIDSLINJE_INTERVAL = 500; // ms — tidslinjens data ændrer sig ikke hurtigere
 let aktivSygdom = null;        // Aktiv sygdoms-event
 let planter = [];              // Plante-objekter
 let trofiskKaskade = false;    // v2: sandt når et stort rovdyr er på skærmen
@@ -283,6 +285,12 @@ function tilfoejDyr(dyr) {
 
   dyrContainer.appendChild(el);
   simDyr.el = el;
+  // Cache sub-elementer én gang ved spawn — undgår querySelector hvert frame
+  simDyr._elSprite    = el.querySelector('.dyr-sprite');
+  simDyr._elBadge     = el.querySelector('.res-badge');
+  simDyr._elInd       = el.querySelector('.tilstand-indikator');
+  simDyr._elFormering = el.querySelector('.formering-fyld');
+  simDyr._elImg       = el.querySelector('.dyr-sprite img');
 
   dyrListe.push(simDyr);
   if (window.Telemetri) Telemetri.registrer('ankomst', { egenskaber: simDyr.egenskaber, score });
@@ -290,6 +298,9 @@ function tilfoejDyr(dyr) {
 
   // Send "ankom"-event til stationerne (kun for nyligt byggede dyr, ikke afkom)
   if (!dyr._afkom) sendDyrEvent(simDyr, 'ankom', simDyr.ankomstTid);
+
+  // Spawn-fanfare: ring + navnebanner + lyd for spillerdyr
+  if (!dyr._npc && !dyr._afkom) visSpawnFanfare(simDyr);
 
   console.log(`Nyt dyr: ${dyr.artsnavn} (score: ${score}, levetid: ${levetid}s)`);
 }
@@ -878,6 +889,24 @@ function visFangstFlash() {
   setTimeout(() => el.remove(), 250);
 }
 
+// Spawn-fanfare: ekspanderende ring + navnebanner + lyd for spillerdyr
+function visSpawnFanfare(dyr) {
+  if (!dyr.el) return;
+
+  const ring = document.createElement('div');
+  ring.className = 'spawn-ring';
+  dyr.el.appendChild(ring);
+  setTimeout(() => ring.remove(), 1000);
+
+  const navn = document.createElement('div');
+  navn.className = 'spawn-navn';
+  navn.textContent = dyr.danskNavn;
+  dyr.el.appendChild(navn);
+  setTimeout(() => navn.remove(), 1400);
+
+  if (window.Audio) Audio.spawnDyr();
+}
+
 // Stor center-celebration + flyvende hjerter ved ny generation
 let formeringCelebrationSidste = 0;
 function visFormeringsCelebration(dyr) {
@@ -1149,8 +1178,7 @@ function opdaterFormering(dt) {
     if (trives) dyr.formeringPct += dyr.formeringFart * dt * daempning;
 
     // Opdater visuel bar
-    const fyld = dyr.el.querySelector('.formering-fyld');
-    if (fyld) fyld.style.width = Math.min(100, dyr.formeringPct) + '%';
+    if (dyr._elFormering) dyr._elFormering.style.width = Math.min(100, dyr.formeringPct) + '%';
 
     if (dyr.formeringPct >= 100) {
       dyr.formeringPct = 0;
@@ -1752,8 +1780,7 @@ function opdaterAnimation(nu) {
         suffix = `-walk-${dyr.animFrame + 1}`;
     }
 
-    const img = dyr.el.querySelector('.dyr-sprite img');
-    if (img) img.src = `assets/sprites/${dyr.spriteBase}${suffix}.png`;
+    if (dyr._elImg) dyr._elImg.src = `assets/sprites/${dyr.spriteBase}${suffix}.png`;
   }
 }
 
@@ -1766,14 +1793,13 @@ function renderDyr() {
     // Flip sprite når dyret bevæger sig mod venstre
     const flip = dyr.vx < 0 ? ' scaleX(-1)' : '';
     dyr.el.style.transform = `translate(${dyr.x}px, ${dyr.y}px)`;
-    const spriteEl = dyr.el.querySelector('.dyr-sprite');
-    if (spriteEl) spriteEl.style.transform = flip;
+    if (dyr._elSprite) dyr._elSprite.style.transform = flip;
 
     // v2 — visuelle cues: jagt-glød + tilstandsindikator
     dyr.el.classList.toggle('jager', dyr.tilstand === 'JAGER');
 
-    // Økonomi-badge: lille netto-tal over dyret (kun når det er sket noget)
-    const badge = dyr.el.querySelector('.res-badge');
+    // Økonomi-badge: lille netto-tal over dyret
+    const badge = dyr._elBadge;
     if (badge) {
       const netto = Oekonomi.beregnNetto(dyr.ressourcer);
       if (netto === 0) {
@@ -1784,7 +1810,7 @@ function renderDyr() {
         badge.className = 'res-badge ' + (netto > 0 ? 'positiv' : 'negativ');
       }
     }
-    const ind = dyr.el.querySelector('.tilstand-indikator');
+    const ind = dyr._elInd;
     if (ind) {
       const cue = dyr.tilstand === 'FLUGTER'  ? 'cue-flugt'
                 : dyr.tilstand === 'FOURAGER' ? 'cue-fourager'
@@ -1850,6 +1876,10 @@ function tilpasTidslinje() {
 }
 
 function renderTidslinje() {
+  const tsNu = performance.now();
+  if (tsNu - tidslinjeSidste < TIDSLINJE_INTERVAL) return;
+  tidslinjeSidste = tsNu;
+
   const container = document.getElementById('tidslinje');
   const w = container.clientWidth;
   const h = container.clientHeight;

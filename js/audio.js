@@ -9,7 +9,7 @@ const EFFEKT_VOL  = 0.3;
 
 // Tonefrekvenser (Hz)
 const C3 = 130.81, G3 = 196.00;
-const C4 = 261.63, E4 = 329.63, G4 = 392.00;
+const C4 = 261.63, E4 = 329.63, G4 = 392.00, C5 = 523.25;
 
 (function() {
   let ctx = null;         // AudioContext (lazy init)
@@ -297,6 +297,25 @@ const C4 = 261.63, E4 = 329.63, G4 = 392.00;
     }
   }
 
+  // Spawn: opadgående C4-E4-G4-C5 arpeggio (0.08 sek per tone, kortere og lysere end sendDyr)
+  function effektSpawnDyr() {
+    const ac = hentCtx();
+    const nu = ac.currentTime;
+    [C4, E4, G4, C5].forEach((freq, i) => {
+      const start = nu + i * 0.08;
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(EFFEKT_VOL * 0.65, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.3);
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.start(start);
+      osc.stop(start + 0.35);
+    });
+  }
+
   // Ny rekord: C4-E4-G4 arpeggio (0.15 sek per tone)
   function effektNyRekord() {
     const ac = hentCtx();
@@ -350,6 +369,7 @@ const C4 = 261.63, E4 = 329.63, G4 = 392.00;
     },
 
     sendDyr:  effektSendDyr,
+    spawnDyr: effektSpawnDyr,
     dyrDoer:  effektDyrDoer,
     jagt:     effektJagt,
     nyRekord: effektNyRekord
