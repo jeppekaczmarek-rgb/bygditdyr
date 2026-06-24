@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (23. juni 2026)
+## Aktuel status (24. juni 2026)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -19,8 +19,9 @@ Kerne-spiludviklingen er **færdig**. Alle 5 forbedringspakker fra den kritiske 
 | 03 | Cross-player: jagt-attribution, puls-panel, niche-markering, trofiske afhæng. | ✅ |
 | 04 | Biologiske byggekort, Linné-nedbrydning, event-forklaringer, fortæller-stribe | ✅ |
 | 05 | Balance (MIN_LEVETID→20s, allæder, arktis, glat hud) + mutation 8 % ved formering | ✅ |
+| Playtest | FPS +74% (querySelector-cache + tidslinje-throttle), levende baggrunde, spawn-fanfare | ✅ |
 
-**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), sæsonfarvetone pr. habitat, levende baggrundspuls.
+**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), sæsonfarvetone pr. habitat, levende baggrundspuls. `byg-dit-dyr-craft`-skill + CI playtest-workflow (PR #10–11). Visuel playtest-rapport 24. juni → PR #12.
 
 **Næste arbejde:**
 
@@ -38,7 +39,7 @@ Kerne-spiludviklingen er **færdig**. Alle 5 forbedringspakker fra den kritiske 
 
 - **Sprog:** Vanilla HTML + CSS + JavaScript. INGEN frameworks. INGEN build-tools.
 - **Kommunikation:** Abstraktionslaget `window.Broadcast` (send/lyt). To transporter, samme API: Supabase Realtime Broadcast (online, tværs af enheder) ELLER BroadcastChannel (lokalt, samme enhed) — vælges automatisk i `js/broadcast.js` ud fra `js/config.js`.
-- **Lyd:** Web Audio API — alt syntetiseret i realtid via `js/audio.js`, ingen lydfiler.
+- **Lyd:** Web Audio API — alt syntetiseret i realtid via `js/audio.js`, ingen lydfiler. Public API: `Audio.startAmbient(habitat)`, `Audio.stopAmbient()`, `Audio.sendDyr`, `Audio.spawnDyr`, `Audio.dyrDoer`, `Audio.jagt`, `Audio.nyRekord`.
 - **Grafik:** Hybrid lag-rendering bagt til `ImageBitmap` ved spawn (`js/render.js`) + requestAnimationFrame.
 - **Deployment:** Lokalt: åbn index.html i Chrome (bruger BroadcastChannel-fallback). Online: GitHub Pages auto-udgiver ved push til `main` + Supabase Realtime relay. Deploy KUN runtime-filer (html/css/js + assets/sprites + assets/backgrounds) — IKKE Blender-kilder eller rå frames. **Bemærk:** Linux er case-sensitive — mappenavne i kode skal matche disken præcist (fx `walk/base`, ikke `Walk/Base`).
 
@@ -150,7 +151,7 @@ Mål: markant højere visuel finish end flade SVG'er, performant i ren HTML5, ud
 4. **Render:** ortografisk walk, 24 frames, 720px WebP. Crop fra `walk/crop-info.json` SKAL bruges på alle lag-passes for at bevare registrering. Frames vender MOD HØJRE.
 5. **Runtime:** `js/render.js` baker alle lag til `ImageBitmap` ved spawn; sim-loopet blitter kun det færdige sprite.
 
-**Aktuel stand (23. juni):**
+**Aktuel stand (24. juni):**
 - `base1_generalist`: omformet til grævling-krop; **kræver re-rigging + re-animation** i Blender. Kun `side`-turnarounds regenereret; trekvart/front/bag udestår.
 - `base2_slank`, `base3_kraftig`: uændrede og klar til Blender-rig.
 - `base1_generalist_pels` pilot: gennemført på gammel katte-krop — skal redo på ny krop.
@@ -188,3 +189,4 @@ Spillet er **færdigbygget og live**. Start IKKE forfra, og gå IKKE i gang med 
 3. **Blender-opgave?** Se Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`. Det er brugerens offline-arbejde.
 4. **Fejl eller tuning?** Kig på `js/habitat.js` (konstanter øverst) og `js/survival.js` (HABITAT_SCORE-matrix). Kør `node analyse/balance.js` ved matrix-ændringer.
 5. Kommentér på dansk. Hold `survival.js`/`oekonomi.js` adskilt fra visuals.
+6. **Performance:** Cache DOM-sub-elementer på `dyr`-objektet ved spawn (`_elSprite`, `_elBadge`, `_elInd`, `_elFormering`, `_elImg`) — kald aldrig `querySelector` i render-loopet. Throttle canvas-renders der ikke behøver 60 fps.
