@@ -1,0 +1,54 @@
+name: Playtest (visuel)
+
+# Kører byg-dit-dyr-craft-playtesten i skyen, så den ikke kræver en tændt PC.
+# GitHub-runneren kan hente Chromium og serve spillet lokalt (localhost),
+# spiller hele byggeflowet igennem og uploader screenshots + video som artifacts.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:   # giver en "Run workflow"-knap i Actions-fanen (manuel kørsel)
+
+jobs:
+  playtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer Playwright + Chromium
+        run: |
+          npm i -D playwright
+          npx playwright install --with-deps chromium
+
+      - name: Isoler relay (BroadcastChannel i CI - ror ikke museets kanal)
+        run: |
+          cat > js/config.js <<'EOF'
+          // CI-override: tom Supabase -> broadcast.js falder tilbage til BroadcastChannel.
+          // Begge skaerme korer i samme browser-context, saa de taler stadig sammen,
+          // men intet sendes til produktionskanalen 'rt-bygditdyr'.
+          window.BYGDITDYR_CONFIG = { supabaseUrl: '', supabaseAnonKey: '', kanalNavn: 'rt-bygditdyr-ci' };
+          EOF
+
+      - name: Start lokal server
+        run: |
+          python3 -m http.server 8000 &
+          sleep 2
+
+      - name: Kor playtest
+        env:
+          BDD_URL: http://localhost:8000
+          BDD_SECONDS: "20"
+        run: node .claude/skills/byg-dit-dyr-craft/scripts/playtest.js
+
+      - name: Upload screenshots + video + summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtest-output
+          path: .claude/skills/byg-dit-dyr-craft/playtest-output/
+          if-no-files-found: warn
