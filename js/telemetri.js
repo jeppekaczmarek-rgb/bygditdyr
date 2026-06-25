@@ -13,11 +13,13 @@
 // ============================================================
 
 (function () {
-  const VERSION = 'v2';
+  const VERSION = 'v3';
   const LOG_MAX = 500;          // maks. antal rå-hændelser der gemmes
 
   // --- Aggregeret tilstand ---
   let habitat = null;
+  let sessionId = null;         // matches window.habitatSessionId fra habitat.js
+  let uploadIntervalSat = false;
   let startMs = 0;
   let wallMs = 0;               // samlet simuleret vægur-tid (sek)
   let dyrTidSek = 0;            // samlet "dyre-sekunder" (til tilstands-%)
@@ -34,7 +36,7 @@
   const doedsaarsager = {};                 // aarsag -> antal
   const levetider = [];                     // alle levetider (sek)
   const levetidPerEgenskab = {};            // egenskab -> { vaerdi -> [sek...] }
-  const population = { kost: {}, forsvar: {}, storrelse: {}, stofskifte: {} };
+  const population = { foedevalg: {}, forsvar: {}, stofskifte: {} };
   let jagtTider = [];                        // tidsstempler (ms) for fangstforsøg
   const raaLog = [];                         // seneste hændelser (debug/eksport)
 
@@ -47,9 +49,15 @@
 
     init(h) {
       habitat = h;
+      sessionId = window.habitatSessionId || crypto.randomUUID();
       startMs = performance.now();
       injicerStil();
       byggOverlay();
+      // Periodisk session-upload hvert 5. minut
+      if (!uploadIntervalSat) {
+        uploadIntervalSat = true;
+        setInterval(() => uploadSessionTilSupabase(), 300_000);
+      }
       console.log('Telemetri klar (' + VERSION + ') — tast D for debug-overlay');
     },
 
@@ -61,9 +69,8 @@
           taeller.ankomst++;
           if (data.egenskaber) {
             const e = data.egenskaber;
-            tael(population.kost, e.kost);
+            tael(population.foedevalg, e.foedevalg);
             tael(population.forsvar, e.forsvar);
-            tael(population.storrelse, e.storrelse);
             tael(population.stofskifte, e.stofskifte);
           }
           break;
@@ -153,9 +160,8 @@
         doedsaarsager: { ...doedsaarsager },
         levetider: levetidsRapport(),
         population: {
-          kost: { ...population.kost },
-          forsvar: { ...population.forsvar },
-          storrelse: { ...population.storrelse },
+          foedevalg: { ...population.foedevalg },
+          forsvar:   { ...population.forsvar },
           stofskifte: { ...population.stofskifte }
         }
       };
@@ -197,6 +203,31 @@
       console.log('Telemetri nulstillet');
     }
   };
+
+  // ============================================================
+  // Supabase-upload
+  // ============================================================
+  async function uploadSessionTilSupabase() {
+    const cfg = window.BYGDITDYR_CONFIG;
+    if (!cfg?.supabaseUrl || taeller.ankomst === 0) return;
+    try {
+      await fetch(`${cfg.supabaseUrl}/rest/v1/telemetri_sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': cfg.supabaseAnonKey,
+          'Authorization': `Bearer ${cfg.supabaseAnonKey}`,
+          'Prefer': 'return=minimal,resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          habitat,
+          varighed_sek: Math.round(wallMs),
+          snapshot: Telemetri.snapshot()
+        })
+      });
+    } catch (_) {}
+  }
 
   // ============================================================
   // Hjælpere
@@ -293,7 +324,7 @@
     });
 
     window.addEventListener('beforeunload', () => {
-      if (taeller.ankomst > 0) { try { Telemetri.eksporter(); } catch (_) {} }
+      if (taeller.ankomst > 0) uploadSessionTilSupabase();
     });
   }
 

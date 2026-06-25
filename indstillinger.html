@@ -253,12 +253,11 @@ const DOEDS_NAVNE = {
   sygdom: 'Sygdom', udmattelse: 'Udmattelse', udkonkurreret: 'Udkonkurreret'
 };
 const EG_INFO = {
-  stofskifte: { label: 'Stofskifte', vals: { hojt: 'Højt', lavt: 'Lavt' } },
-  hudtype:    { label: 'Hudtype',    vals: { pels: 'Pels', skael: 'Skæl', fjer: 'Fjer', glat: 'Glat' } },
-  kost:       { label: 'Kost',       vals: { koedaeder: 'Kødæder', planteaeder: 'Planteæder', alleaeder: 'Alleæder' } },
-  storrelse:  { label: 'Størrelse',  vals: { stor: 'Stor', mellem: 'Mellem', lille: 'Lille' } },
-  aktivitet:  { label: 'Aktivitet',  vals: { dagaktiv: 'Dagaktiv', nataktiv: 'Nataktiv' } },
-  forsvar:    { label: 'Forsvar',    vals: { giftig: 'Giftig', pigge: 'Pigge', flugt: 'Flugt', ingen: 'Ingen' } }
+  stofskifte: { label: 'Stofskifte', vals: { varm: 'Varmblodig', kold: 'Koldblodig' } },
+  kropsform:  { label: 'Kropsform',  vals: { lille_slank: 'Lille slank', stor_slank: 'Stor slank', lille_kraftig: 'Lille kraftig', stor_kraftig: 'Stor kraftig', mega_kraftig: 'Mega kraftig', kold_lille: 'Kold lille', kold_langstrakt: 'Kold langstrakt' } },
+  hudtype:    { label: 'Hudtype',    vals: { pels: 'Pels', skael: 'Skæl', fjer: 'Fjer' } },
+  foedevalg:  { label: 'Fødeval',   vals: { koedaeder: 'Kødæder', planteaeder: 'Planteæder', altaeder: 'Altæder' } },
+  forsvar:    { label: 'Forsvar',    vals: { camouflage: 'Camouflage', mimicry: 'Mimicry', pigge: 'Pigge', hastighed: 'Hastighed', gift: 'Gift' } }
 };
 
 function filterPeriode(events, periode) {
