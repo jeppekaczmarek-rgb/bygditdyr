@@ -146,6 +146,7 @@ const dom = {
 let minArtsnavn = null;        // artsnavn på elevens seneste dyr
 let minDanskNavn = null;       // dansk navn på samme
 let artUddoed = false;         // sat når elevens art er uddød
+let sidstePopAntal = null;     // forrige populations-tal til trend-beregning
 const MAX_EVENTS = 6;          // antal events vist i feed
 const SB_HABITAT_IKON = { skov: '🌲', arktis: '🏔️', oerken: '🏜️' };
 
@@ -435,6 +436,7 @@ function sendDyr() {
   minArtsnavn = dyr.artsnavn;
   minDanskNavn = dyr.danskNavn;
   artUddoed = false;
+  sidstePopAntal = null;
   nulstilDashboard();
 
   // Afsendelses-lyd
@@ -587,25 +589,33 @@ function tilfoejEvent(tekst) {
 
 // Opdater live-status på elevens art ud fra ARTER_STATUS-data
 function opdaterLiveStatus(arter) {
-  if (!minArtsnavn || artUddoed) return;     // død-status overskrives ikke
+  if (!minArtsnavn || artUddoed) return;
   const status = arter && arter[minArtsnavn];
 
   if (status && status.antal > 0) {
-    const ind = status.antal === 1 ? '1 individ' : `${status.antal} individer`;
-    // Ressource-regnskab for hele arten (sum af alle levende individer)
+    // Trend: sammenlign med forrige aflæsning
+    const trend = sidstePopAntal === null ? '→'
+                : status.antal > sidstePopAntal ? '↑'
+                : status.antal < sidstePopAntal ? '↓'
+                : '→';
+    const trendKlasse = trend === '↑' ? 'trend-op' : trend === '↓' ? 'trend-ned' : 'trend-stabil';
+    sidstePopAntal = status.antal;
+
     const r = status.res || Oekonomi.nytRegnskab();
     const netto = Oekonomi.beregnNetto(r);
     const I = Oekonomi.RESSOURCE_IKON;
     const nettoKlasse = netto > 0 ? 'positiv' : netto < 0 ? 'negativ' : '';
-    // Egenskabs-checklist (kompakt, kun ikon + vaerdinavn + forklaring)
     const checkHTML = status.egenskaber
       ? genererChecklisteHTML(status.egenskaber, aktivtHabitat)
       : '';
     dom.liveStatus.classList.remove('doed');
     dom.liveStatus.innerHTML = `
-      <h3>Din art lige nu</h3>
-      <p class="live-navn">🟢 ${minDanskNavn}</p>
-      <p class="live-tal">${ind} i live</p>
+      <h3>Din population</h3>
+      <div class="pop-tael">
+        <span class="pop-stor-tal">${status.antal}</span>
+        <span class="pop-trend ${trendKlasse}">${trend}</span>
+      </div>
+      <p class="live-navn">${minDanskNavn}</p>
       <p class="live-detalje">Ældste: ${status.aeldsteSek} sek · Afkom: ${status.afkom}</p>
       <div class="live-res">
         <span class="live-res-stats">${I.planter} ${r.planter} &nbsp; ${I.bytte} ${r.bytte} &nbsp; ${I.flugt} ${r.flugt} &nbsp; ${I.angreb} ${r.angreb}</span>
@@ -614,9 +624,8 @@ function opdaterLiveStatus(arter) {
       ${checkHTML ? `<details class="live-checklist"><summary>Egenskaber i dette habitat</summary>${checkHTML}</details>` : ''}
     `;
   } else {
-    // Ingen levende endnu (eller lige forsvundet) — vis afventende status
     dom.liveStatus.innerHTML = `
-      <h3>Din art lige nu</h3>
+      <h3>Din population</h3>
       <p id="live-status-tekst">${minDanskNavn} er på vej ud i habitatet...</p>
     `;
   }
