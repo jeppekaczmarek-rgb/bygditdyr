@@ -41,8 +41,8 @@ const PLANTE_PR_ART = { skov: 8 };
 const PLANTE_LOFT   = { skov: 80 };
 const PLANTE_SPISE_RADIUS = 15;    // px
 const PLANTE_FADE_TID = 1.5;       // sekunder for opacity-fade
-const PLANTE_RESPAWN_MIN = 10000;   // ms
-const PLANTE_RESPAWN_MAX = 15000;   // ms
+const PLANTE_RESPAWN_MIN = 4000;    // ms (sænket 10000→4000: hurtigere respawn → dyr kan spise tilstrækkeligt)
+const PLANTE_RESPAWN_MAX = 7000;    // ms (sænket 15000→7000)
 
 // --- v2: Biologisk interaktionsdesign ---
 // Sanseradiuser (px)
@@ -51,7 +51,7 @@ const FOURAGER_BASE = 120;          // basis fourageringsradius (mad)
 // Energi (0–1)
 const ENERGI_START_MIN = 0.7;       // dyr ankommer med 70–100% energi
 const ENERGI_DEPLETION = 0.05;      // basis energitab pr. sek (hævet 0,04→0,05: HVILE var 86,8% → for lavt flow)
-const PLANTE_ENERGI = 0.15;         // genvundet ved at spise plante
+const PLANTE_ENERGI = 0.25;         // genvundet ved at spise plante (hævet 0.15→0.25: energibalancen er ellers negativ)
 const KOED_ENERGI = 0.25;           // genvundet ved at fange byttedyr
 const FOURAGER_TAERSKEL_HOJT = 0.75; // højt stofskifte fouragerer tidligt (hævet 0,7→0,75: mere fouragerings-flow)
 const FOURAGER_TAERSKEL_LAVT = 0.5; // lavt stofskifte venter længere (hævet 0,4→0,5: fouragering var kun 1,3%)
@@ -81,7 +81,7 @@ const RES_LEVETID_SEK = 3;        // sekunder levetid pr. netto-ressourcepoint
 const RES_LEVETID_MAKS = 0.8;     // justering må højst være ±80% af grundlevetiden
 const RES_LEVETID_GULV = 8;       // absolut minimum effektiv levetid (sek)
 const RES_UNDERSKUD = -3;         // netto under dette = arten døde af ressourcemangel
-const FORM_ENERGI_MIN = 0.3;      // energi krævet for at bygge mod afkom
+const FORM_ENERGI_MIN = 0.15;     // energi krævet for at bygge mod afkom (sænket 0.3→0.15: varmblodigede kan nu reproducere)
 const FORM_NETTO_MIN = 0;         // netto-ressourcer krævet for at formere (overskud)
 
 // Habitat-data (enkelt habitat: lysåben dansk skov, istidskontekst)
