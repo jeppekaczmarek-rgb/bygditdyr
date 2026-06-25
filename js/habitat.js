@@ -130,6 +130,13 @@ let planter = [];              // Plante-objekter
 let trofiskKaskade = false;    // v2: sandt når et stort rovdyr er på skærmen
 let sidsteNpcTjek = 0;         // throttling af NPC-spawn-tjek
 
+// --- Online telemetri ---
+const sessionId = crypto.randomUUID();   // unik id for denne habitatsession
+const sessionStartMs = Date.now();       // vægur-starttidspunkt (til ts-beregning)
+window.habitatSessionId = sessionId;     // deles med telemetri.js
+let popUploadIdx = 0;                    // antal population_samples der er uploadet
+let popUploadSat = false;                // guard: kun ét upload-interval
+
 // --- DOM-referencer ---
 const habitatVerden = document.getElementById('habitat-verden');
 const dyrContainer = document.getElementById('dyr-container');
@@ -169,6 +176,13 @@ function vaelgHabitat(habitat) {
 
   // Start telemetri for denne session
   if (window.Telemetri) Telemetri.init(habitat);
+
+  // Sæt periodisk population-upload i gang (kun én gang uanset habitatskift)
+  if (!popUploadSat) {
+    popUploadSat = true;
+    setInterval(flushPopSamples, 120_000);
+    window.addEventListener('beforeunload', () => { flushPopSamples(); });
+  }
 }
 
 // ============================================================
@@ -456,6 +470,40 @@ function logDoed(dyr, levetidSek, aarsag) {
     station_id: dyr.stationId || null,
     er_afkom: dyr._afkom || false
   });
+}
+
+// Batch-upload population-samples til Supabase
+async function flushPopSamples() {
+  const cfg = window.BYGDITDYR_CONFIG;
+  if (!cfg?.supabaseUrl || !aktivtHabitat) return;
+  const pending = popGrafData.slice(popUploadIdx);
+  if (pending.length === 0) return;
+  const rows = [];
+  for (const s of pending) {
+    for (const [artsnavn, antal] of Object.entries(s.artsData)) {
+      rows.push({
+        session_id: sessionId,
+        habitat: aktivtHabitat,
+        artsnavn, antal,
+        sim_tid_sek: Math.round(s.tid),
+        ts: new Date(sessionStartMs + s.tid * 1000).toISOString()
+      });
+    }
+  }
+  popUploadIdx = popGrafData.length;
+  if (rows.length === 0) return;
+  try {
+    await fetch(`${cfg.supabaseUrl}/rest/v1/population_samples`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': cfg.supabaseAnonKey,
+        'Authorization': `Bearer ${cfg.supabaseAnonKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(rows)
+    });
+  } catch (_) {}
 }
 
 // ============================================================
