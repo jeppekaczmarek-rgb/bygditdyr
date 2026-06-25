@@ -22,7 +22,7 @@ const DYR_RADIUS = { lille: 10, mellem: 15, stor: 20, mega: 28 };
 // kun score≥6-dyr reproducerede overhovedet. Nu kan alle score-niveauer producere afkom.
 const FORMERING_FART_HURTIG = 100 / 20;    // %/sek (score ≥ 6) — ~25s effektivt
 const FORMERING_FART_MIDDEL = 100 / 50;    // %/sek (score 3-5) — ~64s effektivt, passer i typisk levetid
-const FORMERING_FART_LANGSOM = 100 / 90;   // %/sek (score < 3) — ~115s, sjælden men mulig
+const FORMERING_FART_LANGSOM = 100 / 55;   // %/sek (score < 3) — 55s effektivt (sænket 90→55: score<3 dyr har levetid 68-84s, 90s var umuligt)
 
 // Mutation — sandsynlighed for at ét træk muterer ved formering (sæt 0 for at slå fra)
 const MUTATION_RATE = 0.08;
@@ -82,7 +82,7 @@ const RES_LEVETID_MAKS = 0.8;     // justering må højst være ±80% af grundle
 const RES_LEVETID_GULV = 8;       // absolut minimum effektiv levetid (sek)
 const RES_UNDERSKUD = -3;         // netto under dette = arten døde af ressourcemangel
 const FORM_ENERGI_MIN = 0.15;     // energi krævet for at bygge mod afkom (sænket 0.3→0.15: varmblodigede kan nu reproducere)
-const FORM_NETTO_MIN = 0;         // netto-ressourcer krævet for at formere (overskud)
+const FORM_NETTO_MIN = -3;        // netto-ressourcer krævet for at formere (sænket 0→-3: kødædere med lidt uheld kan stadig reproducere)
 
 // Habitat-data (enkelt habitat: lysåben dansk skov, istidskontekst)
 const HABITAT_DATA = {
@@ -1075,7 +1075,7 @@ function opdaterJagt(nu) {
     switch (bytte.egenskaber.forsvar) {
       case 'gift':
         // Karnivoren taber energi, byttet overlever
-        jaeger.levetid = Math.max(5, jaeger.levetid - 8);
+        jaeger.levetid = Math.max(5, jaeger.levetid - 5);
         jaeger.vx *= -1; jaeger.vy *= -1;
         jaeger.ressourcer.angreb++;            // økonomi: mislykket angreb
         udfald = 'gift';
@@ -1087,7 +1087,7 @@ function opdaterJagt(nu) {
           jaeger.ressourcer.angreb++;
           udfald = 'undslap';
         } else {
-          bytte.levetid = Math.max(3, bytte.levetid - 12);
+          bytte.levetid = Math.max(3, bytte.levetid - 8);
           bytte.jagtSkadet = true;
           jaeger.energi = Math.min(1, jaeger.energi + KOED_ENERGI);
           jaeger.ressourcer.bytte++;
@@ -1101,7 +1101,7 @@ function opdaterJagt(nu) {
           jaeger.ressourcer.angreb++;
           udfald = 'undslap';
         } else {
-          bytte.levetid = Math.max(3, bytte.levetid - 12);
+          bytte.levetid = Math.max(3, bytte.levetid - 8);
           bytte.jagtSkadet = true;
           jaeger.energi = Math.min(1, jaeger.energi + KOED_ENERGI);
           jaeger.ressourcer.bytte++;
@@ -1111,15 +1111,15 @@ function opdaterJagt(nu) {
       case 'pigge':
         if (Math.random() < PIGGE_GENNEMBRUD) {
           // Gennembrud: rovdyret fælder pigge-byttet trods skade
-          bytte.levetid = Math.max(3, bytte.levetid - 12);
+          bytte.levetid = Math.max(3, bytte.levetid - 8);
           bytte.jagtSkadet = true;
-          jaeger.levetid = Math.max(5, jaeger.levetid - 5); // tager stadig skade
+          jaeger.levetid = Math.max(5, jaeger.levetid - 2); // tager stadig skade
           jaeger.energi = Math.min(1, jaeger.energi + KOED_ENERGI);
           jaeger.ressourcer.bytte++;
           udfald = 'draebt';
         } else {
           // Karnivoren skadet og afvist
-          jaeger.levetid = Math.max(5, jaeger.levetid - 5);
+          jaeger.levetid = Math.max(5, jaeger.levetid - 3);
           jaeger.vx *= -1; jaeger.vy *= -1;
           jaeger.undgaaId = bytte.id;            // husk og undgå dette pigge-bytte
           jaeger.undgaaTil = nu + PIGGE_UNDGAA;
@@ -1136,7 +1136,7 @@ function opdaterJagt(nu) {
           jaeger.ressourcer.angreb++;          // økonomi: byttet slap væk
           udfald = 'undslap';
         } else {
-          bytte.levetid = Math.max(3, bytte.levetid - 12);
+          bytte.levetid = Math.max(3, bytte.levetid - 8);
           bytte.jagtSkadet = true;
           jaeger.energi = Math.min(1, jaeger.energi + KOED_ENERGI); // kød giver energi
           jaeger.ressourcer.bytte++;           // økonomi: +1 byttedyr spist
@@ -1144,7 +1144,7 @@ function opdaterJagt(nu) {
         }
         break;
       default: // ingen egentligt forsvar
-        bytte.levetid = Math.max(3, bytte.levetid - 15);
+        bytte.levetid = Math.max(3, bytte.levetid - 10);
         bytte.jagtSkadet = true;
         jaeger.energi = Math.min(1, jaeger.energi + KOED_ENERGI);
         jaeger.ressourcer.bytte++;             // økonomi: +1 byttedyr spist

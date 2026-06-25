@@ -13,7 +13,7 @@ const MIN_LEVETID = 20;        // minimum levetid i sekunder
 // Værdier fra -2 (stor ulempe) til +2 (stor fordel)
 const HABITAT_SCORE = {
   skov: {
-    stofskifte: { varm: 1, kold: 0 },
+    stofskifte: { varm: 1, kold: 1 },
     kropsform: {
       lille_slank:    0,   // hermelin/væsel — generalist
       stor_slank:     1,   // ulv/los — aktiv jæger
