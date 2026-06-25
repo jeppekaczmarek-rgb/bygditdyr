@@ -34,9 +34,11 @@ const SMITTE_FASE_VARIGHED = 4000;  // ms
 const SYGDOM_DOEDS_INTERVAL = 500;  // ms mellem dødsfald
 
 // Planter — dynamisk bærekapacitet skalerer med antal levende arter (enkelt habitat: skov)
-const PLANTE_BASIS  = { skov: 6 };
-const PLANTE_PR_ART = { skov: 3 };
-const PLANTE_LOFT   = { skov: 26 };
+// Hævet 25/6 2026: habitatet skal vise populationer (20–100 dyr), ikke enkeltindivider.
+// planteMaal(skov, 5) = min(80, 18+40) = 58 → K≈29/art → sygdomstærskel 87 total.
+const PLANTE_BASIS  = { skov: 18 };
+const PLANTE_PR_ART = { skov: 8 };
+const PLANTE_LOFT   = { skov: 80 };
 const PLANTE_SPISE_RADIUS = 15;    // px
 const PLANTE_FADE_TID = 1.5;       // sekunder for opacity-fade
 const PLANTE_RESPAWN_MIN = 10000;   // ms
@@ -382,8 +384,8 @@ function tjekNpcSpawn(nu) {
   } else if (sæsonTilstand === 'stille') {
     maksNpc = individer <= 5 ? 2 : 0;
   } else {
-    // auto: 4 NPCer baseline — habitatet skal aldrig se tomt ud
-    maksNpc = individer <= 4 ? 4 : individer <= 8 ? 2 : 0;
+    // auto: 10 NPCer baseline — habitatet skal aldrig se tomt ud
+    maksNpc = individer <= 8 ? 10 : individer <= 20 ? 4 : 0;
   }
 
   const aktiveNpc = dyrListe.filter(d => d._npc && !d.doedsTid);

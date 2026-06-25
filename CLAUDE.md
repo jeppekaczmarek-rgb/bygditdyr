@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (25. juni 2026, opdateret)
+## Aktuel status (25. juni 2026, opdateret igen)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -22,7 +22,7 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 | 06 | Byggestruktur redesign: 5-trins betinget flow, nyt egenskabs-skema, enkelt skov-habitat, MAX_ENERGI=12 | ✅ |
 | 07 | `deathtext.js` og `sprites.js` opdateret til nye egenskaber (pr. pakke 06) | ✅ |
 
-**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), levende baggrundspuls, automatiseret CI-playtest (`.github/workflows/playtest.yml`).
+**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), levende baggrundspuls, automatiseret CI-playtest (`.github/workflows/playtest.yml`), populationsgraf (kurvegraf: antal dyr over tid pr. art, rullende 180s-vindue).
 
 **Bugfixes (PR #18, 25. juni):**
 - Formering virker nu for alle score-niveauer: `FORM_ENERGI_MIN` sænket 0.5→0.3; rater hævet (HURTIG 33→20s, MIDDEL 120→50s, LANGSOM 240→90s)
@@ -30,13 +30,18 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - Stofskifte-balance: `kold: -1 → 0` i `HABITAT_SCORE.skov` — koldblodig er neutral i skov (stadig billigst i energibudget: kost 1 vs 3)
 - CI: node-version 20→24, playtest-script opdateret til pakke 06's 5-trins skema
 
+**PR #19 (25. juni):**
+- Tidslinje (Gantt) erstattet med kurvegraf der viser antal levende individer pr. art over tid
+- Rullende 180s-vindue; samples hvert 5. sekund (`POP_SAMPLE_INTERVAL`); maks 500 samples
+- NPC-dyr tælles ikke med i grafen; Y-akse og X-akse med dynamiske gridlinjer
+
 **Næste arbejde:**
 
 1. **Visuel stil — Arktis-habitat i Blender** (brugerens offline-opgave): Lav Arktis-scene med tre lag (baggrund/midterplan/forgrund), animeret sne/is/vind. Se installationsarkitektur nedenfor for tekniske krav.
 2. **Blender-pipeline for dyr** (brugerens offline-opgave): `base1_generalist` kræver re-rigging + re-animation på ny grævling-krop. `base2_slank` og `base3_kraftig` er klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
 3. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave).
 4. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
-5. **Åbne Notion-opgaver (fra Jeppe):** graf med antal dyr over tid (i stedet for tidslinje), og afklaring af om playtest-skill virker mod live GitHub Pages URL.
+5. **Flere dyr på skærmen:** Populationsstørrelserne skal op markant — habitatet skal føles som en levende vrimmel, ikke et par enkeltindivider. Justér plantekonstanter og bærekapacitet.
 6. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
@@ -66,7 +71,7 @@ bygditdyr/
 │   └── habitat.css
 ├── js/
 │   ├── station.js         # Byggeflow, energimåler, egenskabs-checklist, match-måler
-│   ├── habitat.js         # Simulationsloop, tilstandsmaskine, NPC-dyr, dag/nat-cyklus
+│   ├── habitat.js         # Simulationsloop, tilstandsmaskine, NPC-dyr, dag/nat-cyklus, populationsgraf
 │   ├── broadcast.js       # Kommunikation: Supabase Realtime ELLER BroadcastChannel (samme API)
 │   ├── config.js          # Runtime-config: Supabase-endpoint + kanalnavn
 │   ├── names.js           # Linneansk navnegenerator + genererDanskNavn() (foedevalg×hudtype→visuelt navn) + forklarArtsnavn()
@@ -101,6 +106,7 @@ bygditdyr/
 9. Enkelt habitat: kun `'skov'` (lysåben dansk skov, istidsperiode). Arktis og ørken er fjernet fra både survival.js, habitat.js og deathtext.js.
 10. Dansk dyrenavn (`genererDanskNavn`) bruger `foedevalg × hudtype` som nøgle — aldrig `foedevalg × kropsform`. Navne må ikke referere til rigtige dyr med stærke udseende-forventninger (ingen Skildpadde, Løve osv.). **NPC-dyr bruger samme navnegenerator** — ingen hardcodede dyrenavne i koden.
 11. Formerings-konstanter i `habitat.js`: `FORM_ENERGI_MIN = 0.3` (energitærskel), `FORMERING_FART_HURTIG/MIDDEL/LANGSOM = 100/20, 100/50, 100/90` (%/sek). Stofskifte: `kold: 0` i `HABITAT_SCORE.skov` — begge stofskifter er levedygtige i skov.
+12. Populationsgraf i `habitat.js`: `TIDSLINJE_VINDUE = 180` (sekunder synligt), `POP_SAMPLE_INTERVAL = 5000` (ms mellem samples). `popGrafData[]` er et array af `{ tid, artsData: { artsnavn: antal } }`. NPC-dyr (`_npc: true`) tælles ikke med.
 
 ## Vigtige datastrukturer
 
