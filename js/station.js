@@ -1,75 +1,82 @@
 // ============================================================
 // station.js — Byggeflow, energimåler, navigation
-// Styrer hele byggestationens UI og sender dyr via BroadcastChannel.
+// 5 sekventielle trin: stofskifte → kropsform → hudtype → foedevalg → forsvar
+// Trin 2 og 3 er betingede (afhænger af stofskiftevalg).
 // ============================================================
 
-// --- Byggetrin-data ---
-// Hvert trin: kategori-nøgle, visningstitel, og mulige valg
+// --- Kropsformer: afhænger af stofskifte ---
+const KROPSFORM_VARM = [
+  { vaerdi: 'lille_slank',   navn: 'Lille og slank',       beskrivelse: 'Hermelin eller væsel — hurtigt og smidig jæger i skovbunden' },
+  { vaerdi: 'stor_slank',    navn: 'Stor og slank',        beskrivelse: 'Ulv eller los — skabt til at jage i åbne skovninger' },
+  { vaerdi: 'lille_kraftig', navn: 'Lille og kraftig',     beskrivelse: 'Grævling eller pindsvin — lav, robust og sej' },
+  { vaerdi: 'stor_kraftig',  navn: 'Stor og kraftig',      beskrivelse: 'Bjørn eller urhund — imponerende og stærk allround-dyr' },
+  { vaerdi: 'mega_kraftig',  navn: 'Kæmpestor og kraftig', beskrivelse: 'Mammut eller uldhåret næsehorn — istidskolosser fra forhistorien' }
+];
+
+const KROPSFORM_KOLD = [
+  { vaerdi: 'kold_lille',      navn: 'Lille og kompakt',  beskrivelse: 'Firben eller salamander — lav profil på skovbunden' },
+  { vaerdi: 'kold_langstrakt', navn: 'Lang og smidig',    beskrivelse: 'Snog eller hugorm — glider lydløst gennem skovbunden' }
+];
+
+// --- Hudtyper: afhænger af stofskifte ---
+const HUDTYPE_VARM = [
+  { vaerdi: 'pels', navn: 'Pels',  beskrivelse: 'Naturens bedste isolering — ulvens vinterfrakke mod skovens kolde nætter' },
+  { vaerdi: 'fjer', navn: 'Fjer',  beskrivelse: 'Let og isolerende — giver mobilitet i skovens lag fra jord til krone' }
+];
+
+const HUDTYPE_KOLD = [
+  { vaerdi: 'skael', navn: 'Skæl', beskrivelse: 'Tæt og vandtæt — krybdyrenes rustning mod skovbundens fugt og sten' }
+];
+
+// --- Statiske trin ---
 const BYGGETRIN = [
   {
     kategori: 'stofskifte',
     titel: 'Stofskifte',
-    fagord: 'Stofskiftet er kroppens motor. Varmblodige dyr (pattedyr, fugle) producerer selv varme — dyrt i energi, men uafhængigt af vejret. Koldblodige dyr (krybdyr, frøer) låner solen — gratis, men hjælpeløse i kulde.',
-    spørgsmaal: 'Laver din krop selv varme — eller låner du solens?',
+    fagord: 'Stofskiftet er kroppens motor. Varmblodige dyr (pattedyr, fugle) producerer selv varme — dyrt i energi, men uafhængigt af vejret. Koldblodige dyr (krybdyr, firben) låner solens varme — gratis, men hjælpeløse i kulde.',
+    spoergsmaal: 'Laver din krop selv varme — eller låner du solens?',
     valg: [
-      { vaerdi: 'hojt', emoji: '🔥', navn: 'Højt stofskifte', beskrivelse: 'Holder selv varmen — som en ulv. Energikrævende, men aktiv selv i frost.' },
-      { vaerdi: 'lavt', emoji: '🧊', navn: 'Lavt stofskifte', beskrivelse: 'Bruger solens varme gratis — som en firben. Hjælpeløs i kulde.' }
+      { vaerdi: 'varm', emoji: '🔥', navn: 'Varmblodet', beskrivelse: 'Holder selv varmen — som en ulv. Energikrævende, men aktiv selv i frost.' },
+      { vaerdi: 'kold', emoji: '🧊', navn: 'Koldblodet', beskrivelse: 'Bruger solens varme gratis — som et firben. Billigt, men sårbart over for kulde.' }
     ]
+  },
+  {
+    kategori: 'kropsform',
+    titel: 'Kropsform',
+    fagord: 'Kropsformen bestemmer hvem du kan jage, hvem der kan jage dig, og hvad du er i stand til. Dine kroppe er formet af millioner af generationer i istidernes nordiske landskaber.',
+    spoergsmaal: 'Hvilken krop passer til din strategi i skoven?',
+    valgFn: (state) => state.stofskifte === 'kold' ? KROPSFORM_KOLD : KROPSFORM_VARM
   },
   {
     kategori: 'hudtype',
     titel: 'Hudtype',
-    fagord: 'Det ydre lag der dækker kroppen. Pels, fjer, skæl og glat hud er alle evolutionære løsninger på samme problem: beskyt kroppen mod vejr, tørke og fjender. Hvert valg er en afvejning af varme, vægt og vandtab.',
-    spørgsmaal: 'Hvad dækker kroppen udenpå? Det første forsvar mod vejr og kulde.',
-    valg: [
-      { vaerdi: 'pels',  emoji: '🧥', navn: 'Pels',     beskrivelse: 'Holder på kropsvarmen. Isbjørnens hemmelighed — perfekt i kulde, en katastrofe i ørken.' },
-      { vaerdi: 'skael', emoji: '🐟', navn: 'Skæl',     beskrivelse: 'Låser fugten inde og tåler stegende sol. Krybdyrenes ørken-trick.' },
-      { vaerdi: 'fjer',  emoji: '🪶', navn: 'Fjer',     beskrivelse: 'Isolerer og afskærmer mod sol. Pingvinen i kulden, ørnen i vinden — virker næsten overalt.' },
-      { vaerdi: 'glat',  emoji: '🦎', navn: 'Glat hud', beskrivelse: 'Smidig og hurtig i fugt. Som en frø eller ål — men tørrer ud i ekstrem kulde og varme.' }
-    ]
+    fagord: 'Det ydre lag der dækker kroppen. Pels, fjer og skæl er alle evolutionære løsninger på samme problem: beskyt kroppen mod vejr, tørke og fjender.',
+    spoergsmaal: 'Hvad dækker din krop? Det første lag mod skovens vejr og rovdyr.',
+    valgFn: (state) => state.stofskifte === 'kold' ? HUDTYPE_KOLD : HUDTYPE_VARM,
+    autoVaelgEen: true  // koldblodige har kun skæl — springes over automatisk
   },
   {
-    kategori: 'kost',
-    titel: 'Kost',
-    fagord: 'Hvad et dyr spiser bestemmer dets plads i fødekæden. Planteædere er grundlaget — uden dem kollapser alt ovenover. Kødædere regulerer bestanden af planteædere. Alleædere fylder de pladser andre efterlader.',
-    spørgsmaal: 'Hvad spiser du? Det bestemmer hvem du konkurrerer med — og hvem der jager dig.',
+    kategori: 'foedevalg',
+    titel: 'Føde',
+    fagord: 'Hvad et dyr spiser bestemmer dets plads i fødekæden. Planteædere er grundlaget — uden dem kollapser alt ovenover. Kødædere regulerer planteædernes bestand. Altædere fylder de pladser andre efterlader.',
+    spoergsmaal: 'Hvad spiser du? Det bestemmer hvem du konkurrerer med — og hvem der jager dig.',
     valg: [
-      { vaerdi: 'planteaeder', emoji: '🌿', navn: 'Planteæder', beskrivelse: 'Planter er altid tilgængelige — men næringsfattige. Som en elefant: lang tid på at samle nok energi.' },
-      { vaerdi: 'koedaeder',   emoji: '🥩', navn: 'Kødæder',   beskrivelse: 'Kød giver masser af energi på én gang. Som en løve — men hver jagt kan slå fejl.' },
-      { vaerdi: 'alleaeder',   emoji: '🍽️', navn: 'Alleæder',   beskrivelse: 'Fleksibel som en krage. Ikke specialiseret — men aldrig helt uden mad.' }
-    ]
-  },
-  {
-    kategori: 'storrelse',
-    titel: 'Størrelse',
-    fagord: 'Kropsstørrelse er et af biologiens stærkeste afvejninger. Store dyr bevarer varme og har færre fjender — men kræver langt mere mad. Små dyr er sparsommelige og lette at gemme — men mister varme hurtigt og er lettere at spise.',
-    spørgsmaal: 'Stor er svær at dræbe — men kræver mere mad. Lille er hurtig — men lettere at spise.',
-    valg: [
-      { vaerdi: 'lille',  emoji: '🐭', navn: 'Lille',  beskrivelse: 'Let at gemme sig overalt. Som en mus — hurtig og sparsommelig, men mister varme i kulde.' },
-      { vaerdi: 'mellem', emoji: '🐺', navn: 'Mellem', beskrivelse: 'God balance. Som en ræv — stærk nok til at jage, lille nok til at gemme sig.' },
-      { vaerdi: 'stor',   emoji: '🦣', navn: 'Stor',   beskrivelse: 'Ingen tør angribe den, og varmen bevares bedst. Som en bjørn — men kræver enorm mængde mad.' }
-    ]
-  },
-  {
-    kategori: 'aktivitet',
-    titel: 'Aktivitetstid',
-    fagord: 'Hvornår et dyr er aktivt bestemmer hvem det møder — og hvem der kan møde det. Mange rovdyr er dagaktive, så nataktive dyr undgår dem. Men om natten er det mørkere, koldere og sværere at finde mad. Det er altid en afvejning.',
-    spørgsmaal: 'Hvornår du er aktiv bestemmer hvem du møder — og hvem der kan møde dig.',
-    valg: [
-      { vaerdi: 'dagaktiv', emoji: '☀️', navn: 'Dagaktiv', beskrivelse: 'Udnytter lyset og varmen fuldt ud. Som en ørn — produktiv, men synlig for fjender.' },
-      { vaerdi: 'nataktiv', emoji: '🌙', navn: 'Nataktiv', beskrivelse: 'Undgår middagsheden og de fleste rovdyr. Som en ugle — men svag i arktis mørketid.' }
+      { vaerdi: 'planteaeder', emoji: '🌿', navn: 'Planteæder', beskrivelse: 'Skoven bugner af planter — men næringsfattige. Som en rentyr: lang tid på at samle nok.' },
+      { vaerdi: 'koedaeder',   emoji: '🥩', navn: 'Kødæder',   beskrivelse: 'Kød giver masser af energi på én gang. Som en los — men hver jagt kan slå fejl.' },
+      { vaerdi: 'altaeder',    emoji: '🍽️', navn: 'Altæder',   beskrivelse: 'Fleksibel som en grævling. Ikke specialiseret — men aldrig helt uden mad.' }
     ]
   },
   {
     kategori: 'forsvar',
     titel: 'Forsvar',
-    fagord: 'Alle dyr møder rovdyr — spørgsmålet er hvad der sker derefter. Gift, pigge og hurtig flugt er tre vidt forskellige biologiske strategier. "Intet forsvar" er faktisk også en strategi: spar energien og stol på at du er godt skjult.',
-    spørgsmaal: 'Hvad sker der, når et rovdyr finder dig?',
+    fagord: 'Alle dyr møder rovdyr — spørgsmålet er hvad der sker derefter. Gift, pigge, mimicry, camouflage og fart er fem vidt forskellige biologiske strategier.',
+    spoergsmaal: 'Hvad sker der, når et rovdyr finder dig?',
     valg: [
-      { vaerdi: 'giftig', emoji: '☠️',  navn: 'Giftig',       beskrivelse: 'Rovdyr lærer at holde sig væk. Men gift er biologisk dyrt at producere.' },
-      { vaerdi: 'pigge',  emoji: '🦔', navn: 'Pigge',        beskrivelse: 'Solid fysisk beskyttelse. Som en pindsvin — virker i næsten alle habitater.' },
-      { vaerdi: 'flugt',  emoji: '🏃', navn: 'Hurtig flugt', beskrivelse: 'Fart er det eneste forsvar. Som en gazelle — hurtig, men aldrig rigtig tryg.' },
-      { vaerdi: 'ingen',  emoji: '🚫', navn: 'Intet forsvar', beskrivelse: 'Sparer al energi til at overleve og få unger. Men ethvert møde med et rovdyr kan blive det sidste.' }
+      { vaerdi: 'camouflage', emoji: '🌿', navn: 'Camouflage',  beskrivelse: 'Farver der smelter ind i skoven — du er næsten usynlig for fjender.' },
+      { vaerdi: 'hastighed',  emoji: '🏃', navn: 'Hastighed',   beskrivelse: 'Fart er dit eneste forsvar. Som en hare — hurtig, men altid på flugt.' },
+      { vaerdi: 'pigge',      emoji: '🦔', navn: 'Pigge',       beskrivelse: 'Solid fysisk beskyttelse. Som et pindsvin — de fleste rovdyr tænker sig om to gange.' },
+      { vaerdi: 'mimicry',    emoji: '⚠️', navn: 'Mimicry',     beskrivelse: 'Advarselsfarver der ligner giftigt dyr — narrer mange, men ikke alle rovdyr.' },
+      { vaerdi: 'gift',       emoji: '☠️', navn: 'Gift',        beskrivelse: 'Rovdyr lærer hurtigt at holde sig væk. Men gift er biologisk dyrt at producere.' }
     ]
   }
 ];
@@ -77,34 +84,34 @@ const BYGGETRIN = [
 // Pæne navne til bekræftelsesskærmen
 const KATEGORI_NAVNE = {
   stofskifte: 'Stofskifte',
-  hudtype: 'Hudtype',
-  kost: 'Kost',
-  storrelse: 'Størrelse',
-  aktivitet: 'Aktivitetstid',
-  forsvar: 'Forsvar'
+  kropsform:  'Kropsform',
+  hudtype:    'Hudtype',
+  foedevalg:  'Fødevalg',
+  forsvar:    'Forsvar'
 };
 
 const VAERDI_NAVNE = {
-  hojt: 'Højt (varmblodigt)', lavt: 'Lavt (koldblodigt)',
-  pels: 'Pels', skael: 'Skæl', fjer: 'Fjer', glat: 'Glat hud',
-  planteaeder: 'Planteæder', koedaeder: 'Kødæder', alleaeder: 'Alleæder',
-  lille: 'Lille', mellem: 'Mellem', stor: 'Stor',
-  dagaktiv: 'Dagaktiv', nataktiv: 'Nataktiv',
-  giftig: 'Giftig', pigge: 'Pigge', flugt: 'Hurtig flugt', ingen: 'Ingen'
-};
-
-// Habitat-data (bruges til velkomstskærmen)
-const HABITAT_DATA = {
-  skov:   { navn: 'Tempereret Skov', ikon: '🌲' },
-  arktis: { navn: 'Arktis / Tundra', ikon: '🏔️' },
-  oerken: { navn: 'Ørken',           ikon: '🏜️' }
+  // Stofskifte
+  varm: 'Varmblodet', kold: 'Koldblodet',
+  // Kropsform
+  lille_slank: 'Lille og slank', stor_slank: 'Stor og slank',
+  lille_kraftig: 'Lille og kraftig', stor_kraftig: 'Stor og kraftig',
+  mega_kraftig: 'Kæmpestor og kraftig',
+  kold_lille: 'Lille og kompakt', kold_langstrakt: 'Lang og smidig',
+  // Hudtype
+  pels: 'Pels', fjer: 'Fjer', skael: 'Skæl',
+  // Foedevalg
+  planteaeder: 'Planteæder', koedaeder: 'Kødæder', altaeder: 'Altæder',
+  // Forsvar
+  camouflage: 'Camouflage', hastighed: 'Hastighed',
+  pigge: 'Pigge', mimicry: 'Mimicry', gift: 'Gift'
 };
 
 // --- Tilstand ---
 let aktivtTrin = 0;
-let valg = {};                // { stofskifte: 'hojt', hudtype: 'pels', ... }
-let aktivtHabitat = 'skov';   // standard, kan opdateres via BroadcastChannel
-let sidsteSendtId = null;     // ID på seneste afsendte dyr
+let valg = {};                // { stofskifte: 'varm', kropsform: 'stor_slank', ... }
+const AKTIVT_HABITAT = 'skov'; // enkelt habitat: lysåben dansk skov
+let sidsteSendtId = null;
 
 // --- DOM-referencer ---
 const skaerme = {
@@ -115,8 +122,6 @@ const skaerme = {
 };
 
 const dom = {
-  habitatLabel:    document.getElementById('habitat-label'),
-  habitatIkon:     document.querySelector('.habitat-ikon'),
   trinLabel:       document.getElementById('trin-label'),
   fremgangFyld:    document.getElementById('fremgang-fyld'),
   energiFyld:      document.getElementById('energi-fyld'),
@@ -143,12 +148,27 @@ const dom = {
 };
 
 // --- Live-feedback tilstand ---
-let minArtsnavn = null;        // artsnavn på elevens seneste dyr
-let minDanskNavn = null;       // dansk navn på samme
-let artUddoed = false;         // sat når elevens art er uddød
-let sidstePopAntal = null;     // forrige populations-tal til trend-beregning
-const MAX_EVENTS = 6;          // antal events vist i feed
-const SB_HABITAT_IKON = { skov: '🌲', arktis: '🏔️', oerken: '🏜️' };
+let minArtsnavn = null;
+let minDanskNavn = null;
+let artUddoed = false;
+let sidstePopAntal = null;
+const MAX_EVENTS = 6;
+
+// --- Hjælpefunktioner ---
+
+// Returnér aktuelle valgmuligheder for et trin (håndterer betingede trin)
+function hentAktuelleValg(trin) {
+  if (trin.valgFn) return trin.valgFn(valg);
+  return trin.valg || [];
+}
+
+// Returnér antal synlige trin (eksklusive auto-valgte trin)
+function synligeTrinAntal() {
+  return BYGGETRIN.filter(trin => {
+    if (!trin.autoVaelgEen) return true;
+    return hentAktuelleValg(trin).length > 1;
+  }).length;
+}
 
 // --- Skærmskift ---
 function visSkaerm(navn) {
@@ -156,35 +176,37 @@ function visSkaerm(navn) {
   skaerme[navn].classList.add('aktiv');
 }
 
-// --- Generer trin-HTML ---
+// --- Trin-rendering ---
 function opretTrin() {
   dom.trinContainer.innerHTML = '';
   BYGGETRIN.forEach((trin, i) => {
     const div = document.createElement('div');
     div.className = 'trin' + (i === 0 ? ' aktiv' : '');
     div.dataset.index = i;
-
-    div.innerHTML = `
-      <h2 class="trin-titel">${trin.titel}</h2>
-      ${trin.fagord ? `<details class="fagord-detaljer"><summary>Hvad er ${trin.titel.toLowerCase()}?</summary><p>${trin.fagord}</p></details>` : ''}
-      ${trin.spørgsmaal ? `<p class="trin-spoergsmaal">${trin.spørgsmaal}</p>` : ''}
-      <div class="kort-grid">
-        ${trin.valg.map(v => `
-          <div class="valgkort" data-kategori="${trin.kategori}" data-vaerdi="${v.vaerdi}">
-            <span class="kort-emoji">${v.emoji}</span>
-            <span class="kort-navn">${v.navn}</span>
-            <span class="kort-beskrivelse">${v.beskrivelse}</span>
-            <span class="kort-energi">⚡ ${Survival.ENERGI_OMKOSTNING[trin.kategori][v.vaerdi]}</span>
-          </div>
-        `).join('')}
-      </div>
-    `;
-
+    div.innerHTML = renderTrinIndhold(trin);
     dom.trinContainer.appendChild(div);
   });
-
-  // Klik-handler på valgkort (delegation)
   dom.trinContainer.addEventListener('click', haandterValgKlik);
+}
+
+// Generer HTML for ét trins kortgrid (gendannes ved navigation til betingede trin)
+function renderTrinIndhold(trin) {
+  const valgListe = hentAktuelleValg(trin);
+  return `
+    <h2 class="trin-titel">${trin.titel}</h2>
+    ${trin.fagord ? `<details class="fagord-detaljer"><summary>Hvad er ${trin.titel.toLowerCase()}?</summary><p>${trin.fagord}</p></details>` : ''}
+    ${trin.spoergsmaal ? `<p class="trin-spoergsmaal">${trin.spoergsmaal}</p>` : ''}
+    <div class="kort-grid">
+      ${valgListe.map(v => `
+        <div class="valgkort" data-kategori="${trin.kategori}" data-vaerdi="${v.vaerdi}">
+          ${v.emoji ? `<span class="kort-emoji">${v.emoji}</span>` : ''}
+          <span class="kort-navn">${v.navn}</span>
+          <span class="kort-beskrivelse">${v.beskrivelse}</span>
+          <span class="kort-energi">⚡ ${Survival.ENERGI_OMKOSTNING[trin.kategori]?.[v.vaerdi] ?? 0}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
 // --- Valgkort klik ---
@@ -202,15 +224,19 @@ function haandterValgKlik(e) {
   // Gem valget
   valg[kategori] = vaerdi;
 
-  // Opdater energi og UI
+  // Stofskiftevalg ændrer hvad der er tilgængeligt i trin 2+3 → nulstil dem
+  if (kategori === 'stofskifte') {
+    delete valg.kropsform;
+    delete valg.hudtype;
+  }
+
   opdaterEnergi();
   opdaterNavigation();
-  opdaterSpritePreview();
+  opdaterDyrPreview();
 }
 
 // --- Energimåler ---
 function beregnBrugtEnergi() {
-  // Beregn energi fra alle hidtidige valg
   let brugt = 0;
   for (const [kat, vaerdi] of Object.entries(valg)) {
     brugt += Survival.ENERGI_OMKOSTNING[kat]?.[vaerdi] ?? 0;
@@ -226,32 +252,22 @@ function opdaterEnergi() {
   dom.energiFyld.style.width = procent + '%';
   dom.energiTal.textContent = `${rest} / ${Survival.MAX_ENERGI}`;
 
-  // Farveindikator
   dom.energiFyld.classList.remove('lav', 'kritisk');
   if (rest <= 2) dom.energiFyld.classList.add('kritisk');
   else if (rest <= 4) dom.energiFyld.classList.add('lav');
 
-  // Marker kort der er for dyre på kommende trin
   opdaterForDyreKort(rest);
-
-  // Opdater habitat-match-måler (kvalitativ — ikke et råt tal eleven kan min-maxe)
   opdaterMatchMaaler();
 }
 
-// Habitat-match: vis "svag/middel/god/rigtig god" afhængig af score
-// Vises kun når mindst ét valg er truffet
+// Habitat-match: kvalitativ indikator (ikke råt tal eleven kan min-maxe)
 function opdaterMatchMaaler() {
-  const antalValg = Object.keys(valg).length;
   if (!dom.matchSektion) return;
-  if (antalValg === 0) {
-    dom.matchSektion.style.display = 'none';
-    return;
-  }
+  if (Object.keys(valg).length === 0) { dom.matchSektion.style.display = 'none'; return; }
   dom.matchSektion.style.display = '';
 
-  const score = Survival.beregnHabitatScore({ egenskaber: valg }, aktivtHabitat);
-  // Score-spænd ca. -8 til +11; vi normaliserer til 0–100%
-  const MIN_SCORE = -8, MAX_SCORE = 11;
+  const score = Survival.beregnHabitatScore({ egenskaber: valg }, AKTIVT_HABITAT);
+  const MIN_SCORE = -4, MAX_SCORE = 8;
   const pct = Math.round(Math.max(0, Math.min(100,
     (score - MIN_SCORE) / (MAX_SCORE - MIN_SCORE) * 100)));
 
@@ -263,29 +279,20 @@ function opdaterMatchMaaler() {
 }
 
 function opdaterForDyreKort(restEnergi) {
-  // Tjek hvert kort i fremtidige trin
   BYGGETRIN.forEach((trin, trinIndex) => {
-    if (trinIndex < aktivtTrin) return; // Spring overstået trin over
-
+    if (trinIndex < aktivtTrin) return;
     const trinDiv = dom.trinContainer.children[trinIndex];
     if (!trinDiv) return;
 
     trinDiv.querySelectorAll('.valgkort').forEach(kort => {
       const kat = kort.dataset.kategori;
       const vaerdi = kort.dataset.vaerdi;
-      const pris = Survival.ENERGI_OMKOSTNING[kat][vaerdi];
+      const pris = Survival.ENERGI_OMKOSTNING[kat]?.[vaerdi] ?? 0;
 
-      // Energi tilgængelig for dette kort = rest + evt. allerede valgt i denne kategori
       let tilgaengelig = restEnergi;
-      if (valg[kat]) {
-        tilgaengelig += Survival.ENERGI_OMKOSTNING[kat][valg[kat]];
-      }
+      if (valg[kat]) tilgaengelig += Survival.ENERGI_OMKOSTNING[kat]?.[valg[kat]] ?? 0;
 
-      if (pris > tilgaengelig) {
-        kort.classList.add('for-dyrt');
-      } else {
-        kort.classList.remove('for-dyrt');
-      }
+      kort.classList.toggle('for-dyrt', pris > tilgaengelig);
     });
   });
 }
@@ -293,28 +300,40 @@ function opdaterForDyreKort(restEnergi) {
 // --- Navigation ---
 function opdaterNavigation() {
   const harValg = valg[BYGGETRIN[aktivtTrin].kategori] !== undefined;
+  const synligeTrin = synligeTrinAntal();
+  // Synligt trin-nummer: spring auto-valgte trin over
+  let synligtNr = 0;
+  for (let i = 0; i <= aktivtTrin; i++) {
+    const t = BYGGETRIN[i];
+    if (!(t.autoVaelgEen && hentAktuelleValg(t).length === 1)) synligtNr++;
+  }
 
   dom.btnTilbage.disabled = aktivtTrin === 0;
   dom.btnNaeste.disabled = !harValg;
-
-  dom.trinLabel.textContent = `Trin ${aktivtTrin + 1} af ${BYGGETRIN.length}`;
-  dom.fremgangFyld.style.width = ((aktivtTrin + 1) / BYGGETRIN.length * 100) + '%';
-
-  // Opdater knaptekst på sidste trin
+  dom.trinLabel.textContent = `Trin ${synligtNr} af ${synligeTrin}`;
+  dom.fremgangFyld.style.width = (synligtNr / synligeTrin * 100) + '%';
   dom.btnNaeste.textContent = aktivtTrin === BYGGETRIN.length - 1 ? 'Se dit dyr →' : 'Næste →';
 }
 
+// Vis et specifikt trin (re-render kortgrid for betingede trin)
 function visTrin(index) {
   aktivtTrin = index;
+  const trin = BYGGETRIN[index];
+
+  // Re-render trin-indholdet (nødvendigt for betingede trin 2+3)
+  const trinDiv = dom.trinContainer.children[index];
+  if (trinDiv) {
+    trinDiv.innerHTML = renderTrinIndhold(trin);
+  }
+
   dom.trinContainer.querySelectorAll('.trin').forEach((t, i) => {
     t.classList.toggle('aktiv', i === index);
   });
 
   // Gendan evt. tidligere valg visuelt
-  const trin = BYGGETRIN[index];
   if (valg[trin.kategori]) {
-    const trinDiv = dom.trinContainer.children[index];
-    const kort = trinDiv.querySelector(`[data-vaerdi="${valg[trin.kategori]}"]`);
+    const div = dom.trinContainer.children[index];
+    const kort = div?.querySelector(`[data-vaerdi="${valg[trin.kategori]}"]`);
     if (kort) kort.classList.add('valgt');
   }
 
@@ -324,30 +343,74 @@ function visTrin(index) {
 
 function gaaNaeste() {
   if (aktivtTrin < BYGGETRIN.length - 1) {
-    visTrin(aktivtTrin + 1);
+    let naeste = aktivtTrin + 1;
+
+    // Tjek om næste trin skal auto-springes (kun ét valg)
+    const naesteTrin = BYGGETRIN[naeste];
+    const valgListe = hentAktuelleValg(naesteTrin);
+    if (naesteTrin.autoVaelgEen && valgListe.length === 1) {
+      // Auto-vælg og vis kort autovelg-besked
+      valg[naesteTrin.kategori] = valgListe[0].vaerdi;
+      visAutoVaelgBesked(naesteTrin.titel, valgListe[0].navn);
+      naeste++;
+    }
+
+    if (naeste < BYGGETRIN.length) {
+      visTrin(naeste);
+    } else {
+      visBekraeftelse();
+    }
   } else {
-    // Alle trin gennemført — vis bekræftelse
     visBekraeftelse();
   }
 }
 
 function gaaTilbage() {
   if (aktivtTrin > 0) {
-    visTrin(aktivtTrin - 1);
+    let forrige = aktivtTrin - 1;
+    // Spring over auto-valgte trin ved tilbagenavigation
+    const forrigeTrin = BYGGETRIN[forrige];
+    const valgListe = hentAktuelleValg(forrigeTrin);
+    if (forrigeTrin.autoVaelgEen && valgListe.length === 1) forrige--;
+    if (forrige >= 0) visTrin(forrige);
   }
 }
 
-// --- Sprite-preview ---
-function opdaterSpritePreview() {
-  const antalValg = Object.keys(valg).length;
-  if (antalValg === 0) {
+// Kort flash-besked når hudtype auto-vælges
+function visAutoVaelgBesked(trinNavn, vaelgNavn) {
+  const besked = document.createElement('div');
+  besked.className = 'auto-vaelg-besked';
+  besked.textContent = `${trinNavn}: ${vaelgNavn} (automatisk valgt)`;
+  dom.trinContainer.appendChild(besked);
+  setTimeout(() => besked.remove(), 1800);
+}
+
+// --- Dyr-preview (vises under byggeflowet) ---
+function opdaterDyrPreview() {
+  // Preview vises kun når mindst kropsform er valgt
+  if (!valg.kropsform) {
     dom.spritePreview.innerHTML = '';
     dom.spritePreview.classList.remove('har-valg');
     return;
   }
   dom.spritePreview.classList.add('har-valg');
-  // Generer sprite med standarder for manglende egenskaber
-  dom.spritePreview.innerHTML = Sprites.genererSprite(valg);
+
+  // Forsøg at vise et forhåndsgenereret billede; fald tilbage til tekst-placeholder
+  const noegle = [valg.stofskifte, valg.kropsform, valg.hudtype, valg.foedevalg, valg.forsvar]
+    .filter(Boolean).join('_');
+  const billedSti = `assets/dyrbygger/${noegle}.webp`;
+
+  dom.spritePreview.innerHTML = `
+    <img src="${billedSti}"
+         alt="Dit dyr"
+         class="dyr-byggerbillede"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+    />
+    <div class="dyr-placeholder" style="display:none">
+      <span class="placeholder-form">${valg.kropsform?.replace(/_/g, ' ')}</span>
+      ${valg.hudtype ? `<span class="placeholder-hud">${VAERDI_NAVNE[valg.hudtype] || valg.hudtype}</span>` : ''}
+    </div>
+  `;
 }
 
 // Tegn-ikon og CSS-klasse for et checklistepunkt
@@ -357,7 +420,6 @@ function checklisteTegn(tegn) {
   return                         { ikon: '➖', klasse: 'check-neutral' };
 }
 
-// Generer HTML til egenskabs-checklisten (bekræftelse + live-status)
 function genererChecklisteHTML(egenskaber, habitat) {
   const forklaringer = Survival.forklarEgenskaber({ egenskaber }, habitat);
   return forklaringer.map(f => {
@@ -382,7 +444,6 @@ function visBekraeftelse() {
   const artsnavn = Names.genererArtsnavn(valg);
   const danskNavn = Names.genererDanskNavn(valg);
 
-  // Linné-navn med nedbrydning af hvert led
   const navneLed = Names.forklarArtsnavn(artsnavn);
   const navneForklaring = navneLed.map(l =>
     `<span class="linne-led"><em>${l.led}</em> = <span class="linne-bety">${l.betydning}</span></span>`
@@ -394,14 +455,12 @@ function visBekraeftelse() {
     <span class="linne-forklaring">${navneForklaring}</span>
   `;
 
-  // Egenskabs-checklist med habitat-match (erstatter simpel valg-oversigt)
-  const score = Survival.beregnHabitatScore({ egenskaber: valg }, aktivtHabitat);
+  const score = Survival.beregnHabitatScore({ egenskaber: valg }, AKTIVT_HABITAT);
   const levetidSek = Survival.beregnOverlevelsestid(score);
-  const habitatNavn = HABITAT_DATA[aktivtHabitat]?.navn || aktivtHabitat;
   dom.valgOversigt.innerHTML = `
-    <p class="check-overskrift">DIT DYR I ${habitatNavn.toUpperCase()}</p>
-    ${genererChecklisteHTML(valg, aktivtHabitat)}
-    <p class="check-bundlinje">Samlet: din art starter på <strong>${levetidSek} sekunder</strong></p>
+    <p class="check-overskrift">DIT DYR I LYSÅBEN SKOV</p>
+    ${genererChecklisteHTML(valg, AKTIVT_HABITAT)}
+    <p class="check-bundlinje">Din art starter på <strong>${levetidSek} sekunder</strong></p>
   `;
 
   dom.energiBrugt.textContent = beregnBrugtEnergi();
@@ -411,10 +470,9 @@ function visBekraeftelse() {
 // --- Afsendelse ---
 function sendDyr() {
   const energiBrugt = beregnBrugtEnergi();
-  const score = Survival.beregnHabitatScore({ egenskaber: valg }, aktivtHabitat);
+  const score = Survival.beregnHabitatScore({ egenskaber: valg }, AKTIVT_HABITAT);
   const levetid = Survival.beregnOverlevelsestid(score);
 
-  // Station-ID: brug URL-param ?station=X eller generer lokalt ID
   const stationId = new URLSearchParams(window.location.search).get('station')
     || (sessionStorage.stationId ||= `S${Math.floor(Math.random() * 99) + 1}`);
 
@@ -431,7 +489,6 @@ function sendDyr() {
     stationId: stationId
   };
 
-  // Gem ID + artsnavn til at tracke live-feedback (arten = elevens dyr + afkom)
   sidsteSendtId = dyr.id;
   minArtsnavn = dyr.artsnavn;
   minDanskNavn = dyr.danskNavn;
@@ -439,18 +496,12 @@ function sendDyr() {
   sidstePopAntal = null;
   nulstilDashboard();
 
-  // Afsendelses-lyd
   if (window.Audio) Audio.sendDyr();
 
-  // Send via BroadcastChannel (hvis broadcast.js er loaded)
   if (window.Broadcast && window.Broadcast.send) {
     window.Broadcast.send({ type: 'NYT_DYR', dyr: dyr });
-  } else {
-    // Fallback: log til konsol
-    console.log('NYT_DYR sendt (ingen BroadcastChannel):', dyr);
   }
 
-  // Vis afsendt-skærm
   dom.afsendtArtsnavn.innerHTML = `${dyr.artsnavn}<br><span class="dansk-navn">${dyr.danskNavn}</span>`;
   visSkaerm('afsendt');
 }
@@ -464,18 +515,8 @@ function nulstil() {
   artUddoed = false;
   opretTrin();
   visTrin(0);
-  opdaterSpritePreview();
+  opdaterDyrPreview();
   visSkaerm('byggeflow');
-}
-
-// --- Habitat-opdatering ---
-function opdaterHabitat(habitat) {
-  aktivtHabitat = habitat;
-  const data = HABITAT_DATA[habitat];
-  if (data) {
-    dom.habitatLabel.textContent = data.navn;
-    dom.habitatIkon.textContent = data.ikon;
-  }
 }
 
 // --- Event listeners ---
@@ -496,15 +537,13 @@ dom.btnNytDyr.addEventListener('click', nulstil);
 
 // Tastatur-navigation
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowRight' || e.key === 'Enter') {
-    if (!dom.btnNaeste.disabled && skaerme.byggeflow.classList.contains('aktiv')) {
-      gaaNaeste();
-    }
+  if ((e.key === 'ArrowRight' || e.key === 'Enter') &&
+      !dom.btnNaeste.disabled && skaerme.byggeflow.classList.contains('aktiv')) {
+    gaaNaeste();
   }
-  if (e.key === 'ArrowLeft') {
-    if (!dom.btnTilbage.disabled && skaerme.byggeflow.classList.contains('aktiv')) {
-      gaaTilbage();
-    }
+  if (e.key === 'ArrowLeft' &&
+      !dom.btnTilbage.disabled && skaerme.byggeflow.classList.contains('aktiv')) {
+    gaaTilbage();
   }
 });
 
@@ -512,23 +551,13 @@ document.addEventListener('keydown', (e) => {
 if (window.Broadcast && window.Broadcast.lyt) {
   Broadcast.lyt((besked) => {
     switch (besked.type) {
-      case 'HABITAT_INFO':
-        opdaterHabitat(besked.habitat);
-        break;
       case 'DYR_DOEDE':
-        // Arten er uddød — vis det hvis det er elevens art
-        if (besked.artsnavn === minArtsnavn) {
-          visDyrDoede(besked);
-        }
+        if (besked.artsnavn === minArtsnavn) visDyrDoede(besked);
         break;
       case 'DYR_DOEDE_INDIVID':
-        // Et enkelt individ af elevens art er dødt
-        if (besked.artsnavn === minArtsnavn) {
-          visIndividDoed(besked);
-        }
+        if (besked.artsnavn === minArtsnavn) visIndividDoed(besked);
         break;
       case 'DYR_JAGES':
-        // Jagt — vis hvis elevens art er involveret (som bytte eller jæger)
         if (besked.bytte_artsnavn === minArtsnavn) {
           const jagerFra = besked.jaeger_stationId ? ` (station ${besked.jaeger_stationId})` : '';
           tilfoejEvent(`🎯 Din ${besked.bytte_danskNavn} jages af ${besked.jaeger_danskNavn}${jagerFra}!`);
@@ -538,29 +567,22 @@ if (window.Broadcast && window.Broadcast.lyt) {
         }
         break;
       case 'DYR_EVENT':
-        // Begivenhed i habitatet — vis kun events for elevens art
-        if (besked.artsnavn === minArtsnavn) {
-          tilfoejEvent(besked.tekst);
-        }
+        if (besked.artsnavn === minArtsnavn) tilfoejEvent(besked.tekst);
         break;
       case 'ARTER_STATUS':
-        // Live-status på elevens art
         opdaterLiveStatus(besked.arter);
         break;
       case 'SCOREBOARD':
-        // Spejl habitatets rekordliste
         renderMiniScoreboard(besked.livstid);
         break;
     }
   });
 
-  // Bed habitatet om at fortælle hvilket habitat der kører
   Broadcast.send({ type: 'HABITAT_REQUEST' });
 }
 
 // --- Live-feedback rendering ---
 
-// Nulstil dashboardet til udgangspunktet (ved ny afsendelse)
 function nulstilDashboard() {
   dom.liveStatus.classList.remove('doed');
   dom.liveStatus.innerHTML = `
@@ -568,10 +590,8 @@ function nulstilDashboard() {
     <p id="live-status-tekst">Venter på data fra habitatet...</p>
   `;
   dom.eventFeed.innerHTML = '<li class="event-tom">Venter på begivenheder...</li>';
-  // Mini-scoreboard bevares — det er fælles for alle arter
 }
 
-// Tilføj en begivenhed øverst i feedet (nyeste først, max MAX_EVENTS)
 function tilfoejEvent(tekst) {
   if (!tekst) return;
   const tom = dom.eventFeed.querySelector('.event-tom');
@@ -587,17 +607,14 @@ function tilfoejEvent(tekst) {
   }
 }
 
-// Opdater live-status på elevens art ud fra ARTER_STATUS-data
 function opdaterLiveStatus(arter) {
   if (!minArtsnavn || artUddoed) return;
   const status = arter && arter[minArtsnavn];
 
   if (status && status.antal > 0) {
-    // Trend: sammenlign med forrige aflæsning
     const trend = sidstePopAntal === null ? '→'
                 : status.antal > sidstePopAntal ? '↑'
-                : status.antal < sidstePopAntal ? '↓'
-                : '→';
+                : status.antal < sidstePopAntal ? '↓' : '→';
     const trendKlasse = trend === '↑' ? 'trend-op' : trend === '↓' ? 'trend-ned' : 'trend-stabil';
     sidstePopAntal = status.antal;
 
@@ -606,7 +623,7 @@ function opdaterLiveStatus(arter) {
     const I = Oekonomi.RESSOURCE_IKON;
     const nettoKlasse = netto > 0 ? 'positiv' : netto < 0 ? 'negativ' : '';
     const checkHTML = status.egenskaber
-      ? genererChecklisteHTML(status.egenskaber, aktivtHabitat)
+      ? genererChecklisteHTML(status.egenskaber, AKTIVT_HABITAT)
       : '';
     dom.liveStatus.classList.remove('doed');
     dom.liveStatus.innerHTML = `
@@ -631,7 +648,6 @@ function opdaterLiveStatus(arter) {
   }
 }
 
-// Spejl habitatets rekordliste (livstid) med elevens art fremhævet
 function renderMiniScoreboard(livstid) {
   if (!livstid || livstid.length === 0) {
     dom.miniScoreboard.innerHTML = '<li class="sb-tom">Ingen dyr endnu</li>';
@@ -644,29 +660,25 @@ function renderMiniScoreboard(livstid) {
         <span class="mini-sb-navn">${e.danskNavn}
           <span class="mini-sb-latin">(${e.artsnavn})</span>
         </span>
-        <span class="mini-sb-tid">${formatTid(e.levetid)} ${SB_HABITAT_IKON[e.habitat] || ''}</span>
+        <span class="mini-sb-tid">${formatTid(e.levetid)} 🌲</span>
       </li>
     `;
   }).join('');
 }
 
-// Formater sekunder til "X min Y sek"
 function formatTid(sek) {
   const min = Math.floor(sek / 60);
   const rest = sek % 60;
   return min === 0 ? `${rest} sek` : `${min} min ${rest} sek`;
 }
 
-// Vis at et enkelt individ af elevens art er dødt (i event-feedet)
 function visIndividDoed(besked) {
-  if (artUddoed) return; // artsuddøen håndteres separat
+  if (artUddoed) return;
   const ikon = besked.erStamdyr ? '💀' : '⚠️';
   const hvem = besked.erStamdyr ? 'Dit første dyr' : `Et individ af ${besked.danskNavn}`;
-  const tekst = `${ikon} ${hvem} døde efter ${besked.levetid} sek — ${besked.kortTekst}`;
-  tilfoejEvent(tekst);
+  tilfoejEvent(`${ikon} ${hvem} døde efter ${besked.levetid} sek — ${besked.kortTekst}`);
 }
 
-// Vis at elevens art er uddød på stationens skærm
 function visDyrDoede(besked) {
   if (window.Audio) Audio.dyrDoer();
   artUddoed = true;
@@ -681,11 +693,4 @@ function visDyrDoede(besked) {
   `;
 }
 
-// --- Init ---
-// Sæt standard-habitat (kan overskrives af BroadcastChannel eller URL-param)
-const urlHabitat = new URLSearchParams(window.location.search).get('habitat');
-if (urlHabitat && HABITAT_DATA[urlHabitat]) {
-  opdaterHabitat(urlHabitat);
-}
-
-console.log('Station klar. Habitat:', aktivtHabitat);
+console.log('Station klar. Habitat: Lysåben skov (enkelt)');
