@@ -3,21 +3,22 @@
 // Returnerer <img>-tags der peger på pre-genererede pixel art.
 // ============================================================
 
-// Farver til tidslinje-rendering
+// Farver til tidslinje-rendering (baseret på hudtype)
 const HUDTYPE_FARVER = {
-  pels:  { r: 139, g: 94, b: 60 },
-  skael: { r: 90, g: 122, b: 74 },
-  fjer:  { r: 107, g: 91, b: 149 },
-  glat:  { r: 168, g: 197, b: 160 }
+  pels:  { r: 139, g: 94,  b: 60  },
+  skael: { r: 90,  g: 122, b: 74  },
+  fjer:  { r: 107, g: 91,  b: 149 }
 };
 
-function beregnFarve(hudtype, aktivitet) {
-  const base = HUDTYPE_FARVER[hudtype] || HUDTYPE_FARVER.glat;
+// Beregn farve baseret på hudtype og stofskifte
+// Varmblodede: varmere tone; koldblodede: køligere tone
+function beregnFarve(hudtype, stofskifte) {
+  const base = HUDTYPE_FARVER[hudtype] || HUDTYPE_FARVER.pels;
   let r = base.r, g = base.g, b = base.b;
-  if (aktivitet === 'nataktiv') {
-    r = Math.max(0, r - 30); g = Math.max(0, g - 15); b = Math.min(255, b + 15);
-  } else {
+  if (stofskifte === 'varm') {
     r = Math.min(255, r + 15); g = Math.min(255, g + 10); b = Math.max(0, b - 10);
+  } else {
+    r = Math.max(0, r - 20); g = Math.max(0, g - 10); b = Math.min(255, b + 20);
   }
   return { krop: `rgb(${r},${g},${b})` };
 }
@@ -25,7 +26,7 @@ function beregnFarve(hudtype, aktivitet) {
 // Generer sprite-filnavn (uden extension)
 function hentSpriteBase(input) {
   const e = input.egenskaber || input;
-  return `${e.stofskifte || 'hojt'}-${e.hudtype || 'glat'}-${e.kost || 'alleaeder'}-${e.storrelse || 'mellem'}-${e.aktivitet || 'dagaktiv'}-${e.forsvar || 'ingen'}`;
+  return `${e.stofskifte || 'varm'}-${e.kropsform || 'lille_slank'}-${e.hudtype || 'pels'}-${e.foedevalg || 'altaeder'}-${e.forsvar || 'camouflage'}`;
 }
 
 // Generer IMG-tag med idle sprite
@@ -36,8 +37,8 @@ function genererSprite(input) {
 
 // Hent dominerende farve til tidslinjen
 function hentDyrFarve(input) {
-  const raa = input.egenskaber || input;
-  return beregnFarve(raa.hudtype || 'glat', raa.aktivitet || 'dagaktiv').krop;
+  const e = input.egenskaber || input;
+  return beregnFarve(e.hudtype || 'pels', e.stofskifte || 'varm').krop;
 }
 
 window.Sprites = { genererSprite, hentDyrFarve, hentSpriteBase };
