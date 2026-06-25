@@ -41,7 +41,7 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 2. **Blender-pipeline for dyr** (brugerens offline-opgave): `base1_generalist` kræver re-rigging + re-animation på ny grævling-krop. `base2_slank` og `base3_kraftig` er klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
 3. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave).
 4. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
-5. **Afklaring:** playtest-skill mod live GitHub Pages URL — CI kører mod localhost og virker; men `/byg-dit-dyr-craft` skill lokalt mod `https://jeppekaczmarek-rgb.github.io/bygditdyr/` er ikke testet. Mulig bloker: CORS/BroadcastChannel-isolation på tværs af enheder.
+5. **Flere dyr på skærmen:** Populationsstørrelserne skal op markant — habitatet skal føles som en levende vrimmel, ikke et par enkeltindivider. Justér plantekonstanter og bærekapacitet.
 6. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
