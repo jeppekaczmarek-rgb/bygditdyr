@@ -201,8 +201,9 @@ class Scoreboard {
     return this.livstid.slice();
   }
 
-  // Render scoreboard HTML ind i containeren
+  // Render scoreboard HTML ind i containeren (ingen container = kun datalagring)
   render() {
+    if (!this.container) return;
     this.container.innerHTML = this._renderListe('⏱ Dagens bedste', this.dagens) +
                                this._renderListe('🏆 Rekordlisten', this.livstid);
   }

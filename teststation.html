@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Byg Dit Dyr — Teststation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --baggrund: #1a1a2e;
+      --kort: #16213e;
+      --kant: rgba(255,255,255,0.12);
+      --tekst: #e8e4d9;
+      --dempet: rgba(232,228,217,0.55);
+      --okker: #d4a843;
+      --groen: #5cb85c;
+      --roed: #c0392b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--baggrund);
+      color: var(--tekst);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    h1 {
+      font-size: 1.4rem;
+      color: var(--okker);
+      margin-bottom: 0.3rem;
+    }
+    .undertitel {
+      font-size: 0.85rem;
+      color: var(--dempet);
+      margin-bottom: 1.5rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      max-width: 860px;
+    }
+    .sektion {
+      background: var(--kort);
+      border: 1px solid var(--kant);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+    }
+    .sektion h2 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--okker);
+      margin-bottom: 0.75rem;
+    }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--dempet);
+      margin-bottom: 0.25rem;
+    }
+    select {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      color: var(--tekst);
+      border: 1px solid var(--kant);
+      border-radius: 6px;
+      padding: 0.45rem 0.6rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+    }
+    select:focus { outline: 2px solid var(--okker); }
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .preset-knap {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--kant);
+      border-radius: 6px;
+      color: var(--tekst);
+      font-size: 0.8rem;
+      padding: 0.3rem 0.65rem;
+      cursor: pointer;
+    }
+    .preset-knap:hover { background: rgba(255,255,255,0.13); }
+    .info-boks {
+      background: rgba(212,168,67,0.08);
+      border: 1px solid rgba(212,168,67,0.25);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+    .info-linje { display: flex; justify-content: space-between; }
+    .info-vaerdi { font-weight: 700; color: var(--okker); }
+    .send-knap {
+      display: block;
+      width: 100%;
+      margin-top: 0.9rem;
+      padding: 0.8rem 1rem;
+      background: var(--okker);
+      color: #1a1a2e;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .send-knap:hover { filter: brightness(1.1); }
+    .send-knap:active { transform: scale(0.98); }
+    .send-bulk-knap {
+      display: block;
+      width: 100%;
+      margin-top: 0.5rem;
+      padding: 0.55rem 1rem;
+      background: transparent;
+      color: var(--okker);
+      border: 1px solid var(--okker);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+    .send-bulk-knap:hover { background: rgba(212,168,67,0.1); }
+    #antal-bulk {
+      width: 60px;
+      background: rgba(255,255,255,0.06);
+      color: var(--tekst);
+      border: 1px solid var(--kant);
+      border-radius: 6px;
+      padding: 0.4rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .log {
+      max-height: 220px;
+      overflow-y: auto;
+      margin-top: 0.5rem;
+    }
+    .log-linje {
+      font-size: 0.8rem;
+      padding: 0.2rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      color: var(--dempet);
+    }
+    .log-linje .art { color: var(--tekst); }
+    .log-linje .tid { color: var(--dempet); float: right; }
+    .status-ok { color: var(--groen); font-size: 0.82rem; margin-top: 0.4rem; }
+    .status-fejl { color: var(--roed); font-size: 0.82rem; margin-top: 0.4rem; }
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>🧪 Teststation — Byg Dit Dyr</h1>
+<p class="undertitel">Send dyr direkte til habitatet uden at gå igennem det fulde stationsflow.</p>
+
+<div class="grid">
+
+  <!-- Egenskaber -->
+  <div class="sektion">
+    <h2>Egenskaber</h2>
+
+    <label for="sel-stofskifte">Stofskifte</label>
+    <select id="sel-stofskifte">
+      <option value="varm">🔥 Varmblodet</option>
+      <option value="kold">🧊 Koldblodet</option>
+    </select>
+
+    <label for="sel-kropsform">Kropsform</label>
+    <select id="sel-kropsform"></select>
+
+    <label for="sel-hudtype">Hudtype</label>
+    <select id="sel-hudtype"></select>
+
+    <label for="sel-foedevalg">Fødevalg</label>
+    <select id="sel-foedevalg">
+      <option value="planteaeder">🌿 Planteæder</option>
+      <option value="koedaeder">🥩 Kødæder</option>
+      <option value="altaeder">🍽️ Altæder</option>
+    </select>
+
+    <label for="sel-forsvar">Forsvar</label>
+    <select id="sel-forsvar">
+      <option value="camouflage">🌿 Camouflage</option>
+      <option value="hastighed">🏃 Hastighed</option>
+      <option value="pigge">🦔 Pigge</option>
+      <option value="mimicry">⚠️ Mimicry</option>
+      <option value="gift">☠️ Gift</option>
+    </select>
+  </div>
+
+  <!-- Presets + info + send -->
+  <div class="sektion">
+    <h2>Hurtige presets</h2>
+    <div class="presets" id="presets"></div>
+
+    <h2 style="margin-top:1rem">Beregnet score</h2>
+    <div class="info-boks" id="info-boks">
+      <div class="info-linje">
+        <span>Art:</span>
+        <span class="info-vaerdi" id="info-art">–</span>
+      </div>
+      <div class="info-linje">
+        <span>Overlevelsesscore:</span>
+        <span class="info-vaerdi" id="info-score">–</span>
+      </div>
+      <div class="info-linje">
+        <span>Estimeret levetid:</span>
+        <span class="info-vaerdi" id="info-levetid">–</span>
+      </div>
+      <div class="info-linje">
+        <span>Energi brugt:</span>
+        <span class="info-vaerdi" id="info-energi">–</span>
+      </div>
+    </div>
+
+    <button class="send-knap" id="btn-send">Send ét dyr til habitatet 🚀</button>
+
+    <div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.5rem">
+      <input type="number" id="antal-bulk" value="5" min="1" max="50">
+      <button class="send-bulk-knap" id="btn-bulk" style="flex:1;margin-top:0">Send bulk</button>
+    </div>
+
+    <div id="send-status"></div>
+
+    <h2 style="margin-top:1rem">Log</h2>
+    <div class="log" id="log"></div>
+  </div>
+
+</div>
+
+<script src="js/survival.js"></script>
+<script src="js/oekonomi.js"></script>
+<script src="js/names.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/broadcast.js"></script>
+<script>
+
+// --- Kropsform-muligheder pr. stofskifte ---
+const KROPSFORM = {
+  varm: [
+    { v: 'lille_slank',   n: 'Lille og slank' },
+    { v: 'stor_slank',    n: 'Stor og slank' },
+    { v: 'lille_kraftig', n: 'Lille og kraftig' },
+    { v: 'stor_kraftig',  n: 'Stor og kraftig' },
+    { v: 'mega_kraftig',  n: 'Kæmpestor og kraftig' }
+  ],
+  kold: [
+    { v: 'kold_lille',      n: 'Lille og kompakt' },
+    { v: 'kold_langstrakt', n: 'Lang og smidig' }
+  ]
+};
+
+const HUDTYPE = {
+  varm: [
+    { v: 'pels', n: 'Pels' },
+    { v: 'fjer', n: 'Fjer' }
+  ],
+  kold: [
+    { v: 'skael', n: 'Skæl' }
+  ]
+};
+
+// Hurtige presets: [stofskifte, kropsform, hudtype, foedevalg, forsvar]
+const PRESETS = [
+  { navn: 'Rovdyr',    e: ['varm', 'stor_slank',    'pels', 'koedaeder', 'hastighed'] },
+  { navn: 'Planteæder',e: ['varm', 'stor_kraftig',  'pels', 'planteaeder', 'pigge']  },
+  { navn: 'Altæder',   e: ['varm', 'lille_kraftig', 'pels', 'altaeder',   'camouflage'] },
+  { navn: 'Krybdyr',   e: ['kold', 'kold_lille',    'skael','planteaeder','camouflage'] },
+  { navn: 'Slange',    e: ['kold', 'kold_langstrakt','skael','koedaeder', 'gift'] },
+  { navn: 'Kolos',     e: ['varm', 'mega_kraftig',  'pels', 'planteaeder','pigge'] }
+];
+
+// --- DOM ---
+const selStofskifte = document.getElementById('sel-stofskifte');
+const selKropsform  = document.getElementById('sel-kropsform');
+const selHudtype    = document.getElementById('sel-hudtype');
+const selFoedevalg  = document.getElementById('sel-foedevalg');
+const selForsvar    = document.getElementById('sel-forsvar');
+
+function opdaterBetingedeValg() {
+  const stype = selStofskifte.value;
+
+  // Kropsform
+  const gammelKrop = selKropsform.value;
+  selKropsform.innerHTML = KROPSFORM[stype].map(o =>
+    `<option value="${o.v}">${o.n}</option>`
+  ).join('');
+  if (KROPSFORM[stype].find(o => o.v === gammelKrop)) selKropsform.value = gammelKrop;
+
+  // Hudtype
+  const gammelHud = selHudtype.value;
+  selHudtype.innerHTML = HUDTYPE[stype].map(o =>
+    `<option value="${o.v}">${o.n}</option>`
+  ).join('');
+  if (HUDTYPE[stype].find(o => o.v === gammelHud)) selHudtype.value = gammelHud;
+
+  opdaterInfo();
+}
+
+function hentEgenskaber() {
+  return {
+    stofskifte: selStofskifte.value,
+    kropsform:  selKropsform.value,
+    hudtype:    selHudtype.value,
+    foedevalg:  selFoedevalg.value,
+    forsvar:    selForsvar.value
+  };
+}
+
+function opdaterInfo() {
+  const eg = hentEgenskaber();
+  const score   = Survival.beregnHabitatScore({ egenskaber: eg }, 'skov');
+  const levetid = Survival.beregnOverlevelsestid(score);
+  const energi  = Object.entries(Survival.ENERGI_OMKOSTNING)
+    .reduce((sum, [kat, map]) => sum + (map[eg[kat]] ?? 0), 0);
+
+  document.getElementById('info-art').textContent     = Names.genererDanskNavn(eg);
+  document.getElementById('info-score').textContent   = score;
+  document.getElementById('info-levetid').textContent = `${levetid}s`;
+  document.getElementById('info-energi').textContent  = `${energi} / 12`;
+}
+
+function byggDyr(egenskaber) {
+  const score   = Survival.beregnHabitatScore({ egenskaber }, 'skov');
+  const levetid = Survival.beregnOverlevelsestid(score);
+  const energi  = Object.entries(Survival.ENERGI_OMKOSTNING)
+    .reduce((sum, [kat, map]) => sum + (map[egenskaber[kat]] ?? 0), 0);
+
+  return {
+    id:               crypto.randomUUID(),
+    artsnavn:         Names.genererArtsnavn(egenskaber),
+    danskNavn:        Names.genererDanskNavn(egenskaber),
+    egenskaber:       { ...egenskaber },
+    energiBrugt:      energi,
+    overlevelsesScore:score,
+    position:         { x: Math.random() * 80 + 10, y: Math.random() * 60 + 20 },
+    levetid:          levetid,
+    levende:          true,
+    stationId:        'TEST',
+    generation:       1,
+    _npc:             false
+  };
+}
+
+function sendDyr(dyr) {
+  if (window.Broadcast && window.Broadcast.send) {
+    window.Broadcast.send({ type: 'NYT_DYR', dyr });
+    return true;
+  }
+  return false;
+}
+
+function tilfoejLog(dyr) {
+  const log = document.getElementById('log');
+  const linje = document.createElement('div');
+  linje.className = 'log-linje';
+  const tid = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  linje.innerHTML = `<span class="art">${dyr.danskNavn}</span> <em style="font-size:0.75rem;color:var(--dempet)">${dyr.artsnavn}</em> — score ${dyr.overlevelsesScore}, ${dyr.levetid}s <span class="tid">${tid}</span>`;
+  log.prepend(linje);
+}
+
+function visStatus(tekst, fejl = false) {
+  const el = document.getElementById('send-status');
+  el.textContent = tekst;
+  el.className = fejl ? 'status-fejl' : 'status-ok';
+  setTimeout(() => el.textContent = '', 3000);
+}
+
+// --- Knapper ---
+document.getElementById('btn-send').addEventListener('click', () => {
+  const eg  = hentEgenskaber();
+  const dyr = byggDyr(eg);
+  if (sendDyr(dyr)) {
+    tilfoejLog(dyr);
+    visStatus(`✓ Sendt: ${dyr.danskNavn}`);
+  } else {
+    visStatus('Broadcast ikke klar — åbn habitat.html i et andet vindue', true);
+  }
+});
+
+document.getElementById('btn-bulk').addEventListener('click', () => {
+  const antal = Math.min(50, Math.max(1, parseInt(document.getElementById('antal-bulk').value) || 5));
+  const eg = hentEgenskaber();
+  for (let i = 0; i < antal; i++) {
+    const dyr = byggDyr(eg);
+    sendDyr(dyr);
+    tilfoejLog(dyr);
+  }
+  visStatus(`✓ Sendte ${antal} dyr`);
+});
+
+// --- Presets ---
+const presetContainer = document.getElementById('presets');
+PRESETS.forEach(p => {
+  const btn = document.createElement('button');
+  btn.className = 'preset-knap';
+  btn.textContent = p.navn;
+  btn.addEventListener('click', () => {
+    selStofskifte.value = p.e[0];
+    opdaterBetingedeValg();
+    selKropsform.value  = p.e[1];
+    selHudtype.value    = p.e[2];
+    selFoedevalg.value  = p.e[3];
+    selForsvar.value    = p.e[4];
+    opdaterInfo();
+  });
+  presetContainer.appendChild(btn);
+});
+
+// --- Init ---
+selStofskifte.addEventListener('change', opdaterBetingedeValg);
+[selKropsform, selHudtype, selFoedevalg, selForsvar].forEach(s =>
+  s.addEventListener('change', opdaterInfo)
+);
+opdaterBetingedeValg();
+
+</script>
+</body>
+</html>
