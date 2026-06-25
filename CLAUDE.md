@@ -6,11 +6,11 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (23. juni 2026)
+## Aktuel status (25. juni 2026)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
-Kerne-spiludviklingen er **færdig**. Alle 5 forbedringspakker fra den kritiske analyse (18. juni) er implementeret:
+Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 
 | Pakke | Indhold | Status |
 |---|---|---|
@@ -19,14 +19,17 @@ Kerne-spiludviklingen er **færdig**. Alle 5 forbedringspakker fra den kritiske 
 | 03 | Cross-player: jagt-attribution, puls-panel, niche-markering, trofiske afhæng. | ✅ |
 | 04 | Biologiske byggekort, Linné-nedbrydning, event-forklaringer, fortæller-stribe | ✅ |
 | 05 | Balance (MIN_LEVETID→20s, allæder, arktis, glat hud) + mutation 8 % ved formering | ✅ |
+| 06 | Byggestruktur redesign: 5-trins betinget flow, nyt egenskabs-skema, enkelt skov-habitat, MAX_ENERGI=12 | ✅ |
+| 07 | `deathtext.js` og `sprites.js` opdateret til nye egenskaber (pr. pakke 06) | ✅ |
 
-**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), sæsonfarvetone pr. habitat, levende baggrundspuls.
+**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), levende baggrundspuls.
 
 **Næste arbejde:**
 
-1. **Blender-pipeline** (brugerens offline-opgave): `base1_generalist` er omformet fra katte-krop til grævling/mustelid — kræver re-rigging og re-animation i Blender. Kun `side`-turnarounds er regenereret; trekvart/front/bag for base1 udestår. `base2_slank` og `base3_kraftig` er urørte. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
-2. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
-3. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
+1. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Station viser placeholder indtil de er klar. Genereres med Google image API (offline-opgave).
+2. **Blender-pipeline** (brugerens offline-opgave): `base1_generalist` er omformet fra katte-krop til grævling/mustelid — kræver re-rigging og re-animation i Blender. Kun `side`-turnarounds er regenereret; trekvart/front/bag for base1 udestår. `base2_slank` og `base3_kraftig` er urørte. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
+3. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
+4. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
 
@@ -85,6 +88,9 @@ bygditdyr/
 4. Overlevelseslogikken er i `survival.js` — hold den adskilt fra visuals.
 5. Kommentér på dansk i koden.
 6. `MUTATION_RATE = 0.08` i `habitat.js` styrer mutationsraten ved formering — kan sættes til 0 for at slå fra.
+7. `MAX_ENERGI = 12` i `survival.js` — energibudget for byggestationen. Egenskabs-omkostninger er defineret i `ENERGI_OMKOSTNING`.
+8. Størrelse afledes altid fra `kropsform` via `Survival.kropsformTilStorrelse()` — der er IKKE et selvstændigt `storrelse`-felt på dyr-objektet.
+9. Enkelt habitat: kun `'skov'` (lysåben dansk skov, istidsperiode). Arktis og ørken er fjernet fra både survival.js, habitat.js og deathtext.js.
 
 ## Vigtige datastrukturer
 
@@ -94,22 +100,27 @@ bygditdyr/
 {
   id: "uuid",
   artsnavn: "Magnocalor venenatus piluscarnivorus",
+  danskNavn: "Skovræv",
   egenskaber: {
-    stofskifte: "hojt",    // 'hojt' | 'lavt'
-    hudtype: "pels",        // 'pels' | 'skael' | 'fjer' | 'glat'
-    kost: "koedaeder",      // 'planteaeder' | 'koedaeder' | 'alleaeder'
-    storrelse: "stor",      // 'lille' | 'mellem' | 'stor'
-    aktivitet: "dagaktiv",  // 'dagaktiv' | 'nataktiv'
-    forsvar: "giftig"       // 'giftig' | 'pigge' | 'flugt' | 'ingen'
+    stofskifte: "varm",      // 'varm' | 'kold'
+    kropsform:  "stor_slank", // 'lille_slank' | 'stor_slank' | 'lille_kraftig' | 'stor_kraftig'
+                              // | 'mega_kraftig' | 'kold_lille' | 'kold_langstrakt'
+                              // (kold_* er kun tilgængelige hvis stofskifte='kold')
+    hudtype:    "pels",       // 'pels' | 'skael' | 'fjer'
+                              // (kold → automatisk 'skael', trin 3 auto-springes over)
+    foedevalg:  "koedaeder",  // 'planteaeder' | 'koedaeder' | 'altaeder'
+    forsvar:    "gift"        // 'camouflage' | 'mimicry' | 'pigge' | 'hastighed' | 'gift'
   },
-  energiBrugt: 9,
+  energiBrugt: 9,             // maks MAX_ENERGI = 12 (defineret i survival.js)
   overlevelsesScore: 0,
   position: { x: 0, y: 0 },
   levetid: 0,
   levende: true,
-  generation: 1,           // generationsnummer; muterede afkom viser ✨
-  stationId: "station-1",  // oprindelse — bruges til cross-player attribution
-  _npc: false              // true = NPC-dyr (tæller ikke i scoreboard)
+  generation: 1,              // generationsnummer; muterede afkom viser ✨
+  stationId: "station-1",     // oprindelse — bruges til cross-player attribution
+  _npc: false                 // true = NPC-dyr (tæller ikke i scoreboard)
+  // BEMÆRK: størrelse AFLEDES — brug Survival.kropsformTilStorrelse(egenskaber.kropsform)
+  // → 'lille' | 'mellem' | 'stor' | 'mega'
 }
 ```
 
@@ -118,11 +129,10 @@ bygditdyr/
 ```js
 // Station → Habitat
 { type: 'NYT_DYR', dyr: {...} }
-{ type: 'HABITAT_REQUEST' }
 
 // Habitat → Station
 { type: 'HABITAT_INFO', habitat: 'skov' }
-{ type: 'DYR_DOEDE', id, aarsag, levetid }
+{ type: 'DYR_DOEDE', id, aarsag, levetid, artsnavn }
 { type: 'DYR_JAGES', bytte_id, jaeger_id, jaeger_art, bytte_art }
 { type: 'DYR_EVENT', id, type: 'spiser'|'jager'|'foedsel'|... }
 { type: 'ARTER_STATUS', [...] }    // live-status pr. art
@@ -135,13 +145,13 @@ Mål: markant højere visuel finish end flade SVG'er, performant i ren HTML5, ud
 
 ### Strategi: 12 krop×hud-modeller
 
-`kost` bestemmer **kropsbygning**; `hudtype` bages ind i modellen. `storrelse` skalerer uafhængigt i `render.js`.
+`foedevalg` bestemmer **kropsbygning**; `hudtype` bages ind i modellen. Størrelse skaleres via `kropsform` i `render.js`.
 
-| `kost` | basekrop | |
+| `foedevalg` | basekrop | |
 |---|---|---|
 | `koedaeder` | `base2_slank` | spinkelt jagt-rovdyr (gepard/mynde) |
 | `planteaeder` | `base3_kraftig` | stor planteæder (flodhest/næsehorn) |
-| `alleaeder` | `base1_generalist` | lav, langstrakt mustelid (grævling/jærv) |
+| `altaeder` | `base1_generalist` | lav, langstrakt mustelid (grævling/jærv) |
 
 3 kroppe × 4 hudtyper = 12 modeller. `pigge` er eneste lag-pass. Pipeline pr. model:
 1. **Turnaround:** Gemini image-til-image på neutral krop — side/¾/front/bag.
@@ -150,7 +160,7 @@ Mål: markant højere visuel finish end flade SVG'er, performant i ren HTML5, ud
 4. **Render:** ortografisk walk, 24 frames, 720px WebP. Crop fra `walk/crop-info.json` SKAL bruges på alle lag-passes for at bevare registrering. Frames vender MOD HØJRE.
 5. **Runtime:** `js/render.js` baker alle lag til `ImageBitmap` ved spawn; sim-loopet blitter kun det færdige sprite.
 
-**Aktuel stand (23. juni):**
+**Aktuel stand (25. juni):**
 - `base1_generalist`: omformet til grævling-krop; **kræver re-rigging + re-animation** i Blender. Kun `side`-turnarounds regenereret; trekvart/front/bag udestår.
 - `base2_slank`, `base3_kraftig`: uændrede og klar til Blender-rig.
 - `base1_generalist_pels` pilot: gennemført på gammel katte-krop — skal redo på ny krop.
@@ -165,6 +175,8 @@ assets/
 │       ├── crop-info.json  # FÆLLES crop — SKAL genbruges på alle lag-passes
 │       ├── base/           # 720px WebP frames
 │       └── forsvar_pigge/  # lag-pass (samme crop)
+├── dyrbygger/              # forhåndsgenererede stationsbilleder (offline-opgave)
+│   └── {stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp
 ├── _backup_turnarounds_15jun/  # sikkerhedskopier af gamle versioner
 └── blender/                # .blend + LAG-RENDER-GUIDE.md
 ```
@@ -179,6 +191,8 @@ Se: [Game Design Document — Byg Dit Dyr](https://www.notion.so/Game-Design-Doc
 
 Se: [Overlevelsesmatrix — Prototype (3 habitater)](https://www.notion.so/Overlevelsesmatrix-Prototype-3-habitater-3396276fd47f81cf9c84db83148cbc1d?pvs=21)
 
+**Bemærk:** kun skov-kolonnen er aktiv. Kør `node analyse/balance.js` ved ændringer i `HABITAT_SCORE` i `survival.js`.
+
 ## Start her (dispatch, juni 2026)
 
 Spillet er **færdigbygget og live**. Start IKKE forfra, og gå IKKE i gang med pakke 01–05 — de er implementeret.
@@ -188,3 +202,4 @@ Spillet er **færdigbygget og live**. Start IKKE forfra, og gå IKKE i gang med 
 3. **Blender-opgave?** Se Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`. Det er brugerens offline-arbejde.
 4. **Fejl eller tuning?** Kig på `js/habitat.js` (konstanter øverst) og `js/survival.js` (HABITAT_SCORE-matrix). Kør `node analyse/balance.js` ved matrix-ændringer.
 5. Kommentér på dansk. Hold `survival.js`/`oekonomi.js` adskilt fra visuals.
+6. **Pas på gamle egenskaber:** Fra pakke 06 er skemaet ændret. De KORREKTE nøgler er `stofskifte` (varm/kold), `kropsform`, `hudtype` (pels/skael/fjer), `foedevalg` (planteaeder/koedaeder/altaeder), `forsvar` (camouflage/mimicry/pigge/hastighed/gift). Brug IKKE `kost`, `storrelse`, `aktivitet`, `alleaeder`, `giftig`, `flugt`, `hojt`, `lavt`, `glat`.
