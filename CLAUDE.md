@@ -26,10 +26,11 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 
 **Næste arbejde:**
 
-1. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Station viser placeholder indtil de er klar. Genereres med Google image API (offline-opgave).
-2. **Blender-pipeline** (brugerens offline-opgave): `base1_generalist` er omformet fra katte-krop til grævling/mustelid — kræver re-rigging og re-animation i Blender. Kun `side`-turnarounds er regenereret; trekvart/front/bag for base1 udestår. `base2_slank` og `base3_kraftig` er urørte. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
-3. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
-4. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
+1. **Visuel stil — Arktis-habitat i Blender** (brugerens offline-opgave): Lav Arktis-scene med tre lag (baggrund/midterplan/forgrund), animeret sne/is/vind. Se installationsarkitektur nedenfor for tekniske krav.
+2. **Blender-pipeline for dyr** (brugerens offline-opgave): `base1_generalist` kræver re-rigging + re-animation på ny grævling-krop. `base2_slank` og `base3_kraftig` er klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
+3. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave).
+4. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
+5. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
 
@@ -61,7 +62,7 @@ bygditdyr/
 │   ├── habitat.js         # Simulationsloop, tilstandsmaskine, NPC-dyr, dag/nat-cyklus
 │   ├── broadcast.js       # Kommunikation: Supabase Realtime ELLER BroadcastChannel (samme API)
 │   ├── config.js          # Runtime-config: Supabase-endpoint + kanalnavn
-│   ├── names.js           # Linneansk navnegenerator + forklarArtsnavn() (Linné-nedbrydning)
+│   ├── names.js           # Linneansk navnegenerator + genererDanskNavn() (foedevalg×hudtype→visuelt navn) + forklarArtsnavn()
 │   ├── render.js          # Lag-compositing + bake-ved-spawn (ImageBitmap-cache)
 │   ├── survival.js        # Overlevelsesmatrix, score-beregning, forklarEgenskaber()
 │   ├── oekonomi.js        # Ressource-regnskab (planter/bytte/flugt/angreb)
@@ -91,6 +92,7 @@ bygditdyr/
 7. `MAX_ENERGI = 12` i `survival.js` — energibudget for byggestationen. Egenskabs-omkostninger er defineret i `ENERGI_OMKOSTNING`.
 8. Størrelse afledes altid fra `kropsform` via `Survival.kropsformTilStorrelse()` — der er IKKE et selvstændigt `storrelse`-felt på dyr-objektet.
 9. Enkelt habitat: kun `'skov'` (lysåben dansk skov, istidsperiode). Arktis og ørken er fjernet fra både survival.js, habitat.js og deathtext.js.
+10. Dansk dyrenavn (`genererDanskNavn`) bruger `foedevalg × hudtype` som nøgle — aldrig `foedevalg × kropsform`. Navne må ikke referere til rigtige dyr med stærke udseende-forventninger (ingen Skildpadde, Løve osv.).
 
 ## Vigtige datastrukturer
 
@@ -181,7 +183,22 @@ assets/
 └── blender/                # .blend + LAG-RENDER-GUIDE.md
 ```
 
-Note: produktionsskærm er 15.360×1200 (8 projektorer, 360°) — separat arkitektur-opgave der ikke er startet.
+### Installationsarkitektur (fastlagt 24. juni)
+
+Produktionsskærmen er et **360° oktonalt rum** ved Naturama: 8 projektorer à 1.920×1.200 px = **15.360×1.200 px total**. Børnene står inde i habitatet, omgivet af det på alle sider.
+
+**Millumin** kører alle 8 projektorer fra én computer og outputter som ét bredt canvas. Spillet er ét enkelt `habitat.html` i én browser — Millumin distribuerer. Ingen inter-skærm-kommunikation nødvendig i spilkoden.
+
+- **Dev-config:** `NUM_PANELS = 1` → 1.920×1.200 px (normal skærm)
+- **Produktion:** `NUM_PANELS = 8` → 15.360×1.200 px (én bredde-konstant i config)
+- **Wrap-around:** dyr der løber ud af højre kant dukker op til venstre (modulo-aritmetik)
+
+**Blender-habitatscene** renderes som ét seamless bredt billede (8 kameraer i ring, identisk højde/vinkel). Tre dybdelag:
+- 0–300 px: himmel / fjerne trækroner (langsom bevægelse)
+- 300–800 px: habitatzone — dyrene lever her
+- 800–1.200 px: forgrund, græs og blade (hurtigere bevægelse)
+
+Første habitat der produceres: **Arktis**.
 
 ## Fuldt GDD
 
