@@ -31,7 +31,7 @@ function hentSpriteBase(input) {
 // Generer IMG-tag med idle sprite
 function genererSprite(input) {
   const base = hentSpriteBase(input);
-  return `<img src="assets/sprites/${base}.png" style="image-rendering:pixelated;width:64px;height:64px" draggable="false" alt="">`;
+  return `<img src="assets/sprites/${base}.png" style="image-rendering:pixelated;width:32px;height:32px" draggable="false" alt="">`;
 }
 
 // Hent dominerende farve til tidslinjen

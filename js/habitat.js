@@ -14,7 +14,7 @@ const TIDSLINJE_VINDUE = 180;  // sekunder synligt i tidslinjen
 const FADE_DOEDSTID = 8000;    // ms for dødsbesked-animation
 
 // Størrelser brugt til kollisionsberegning
-const DYR_RADIUS = { lille: 20, mellem: 30, stor: 40 };
+const DYR_RADIUS = { lille: 10, mellem: 15, stor: 20 };
 
 // Formering
 // Tuning 1/6 2026: halveret formeringstempo — overbefolkning udløste
@@ -1651,10 +1651,11 @@ function tjekFortaellerBegivenheder(nu) {
 }
 
 // ============================================================
-// PULS-PANEL — live-overblik over økosystemets tilstand
+// PULS-PANEL — per-art populationsoverblik
 // ============================================================
 let pulsPanelEl = null;
-let pulsPanelSidste = 0; // opdateres maks. hvert 2. sekund
+let pulsPanelSidste = 0;
+const popHistorie = {}; // artsnavn → sidsteAntal (forrige opdatering)
 
 function opdaterPulsPanel() {
   const nu = performance.now();
@@ -1664,23 +1665,46 @@ function opdaterPulsPanel() {
   if (!pulsPanelEl) pulsPanelEl = document.getElementById('puls-panel');
   if (!pulsPanelEl) return;
 
+  // Grupper levende ikke-NPC-dyr per art
+  const artData = {}; // artsnavn → { antal, danskNavn, farve }
+  for (const d of dyrListe) {
+    if (d.doedsTid || d._npc) continue;
+    if (!artData[d.artsnavn]) {
+      artData[d.artsnavn] = { antal: 0, danskNavn: d.danskNavn || d.artsnavn, farve: d.farve || '#d4a843' };
+    }
+    artData[d.artsnavn].antal++;
+  }
+
+  const rækker = Object.entries(artData).map(([navn, data]) => {
+    const forrige = popHistorie[navn];
+    const trend = forrige === undefined ? '→' : data.antal > forrige ? '↑' : data.antal < forrige ? '↓' : '→';
+    const trendKlasse = trend === '↑' ? 'trend-op' : trend === '↓' ? 'trend-ned' : 'trend-stabil';
+    popHistorie[navn] = data.antal;
+    return `
+      <div class="puls-art-raekke">
+        <span class="puls-art-dot" style="background:${data.farve}"></span>
+        <span class="puls-art-navn">${data.danskNavn}</span>
+        <span class="puls-art-tal">${data.antal}</span>
+        <span class="puls-art-trend ${trendKlasse}">${trend}</span>
+      </div>`;
+  });
+
+  // Tæl NPC'er samlet (ikke per art)
+  const npcAntal = dyrListe.filter(d => !d.doedsTid && d._npc).length;
+  const npcRaekke = npcAntal > 0
+    ? `<div class="puls-npc-raekke">${npcAntal} NPC-dyr</div>`
+    : '';
+
+  // Ustabilitetssignal
   const levende = dyrListe.filter(d => !d.doedsTid);
-  const arter = new Set(levende.map(d => d.artsnavn));
   const planteaedere = levende.filter(d => d.egenskaber.kost === 'planteaeder').length;
-  const koedaedere  = levende.filter(d => d.egenskaber.kost === 'koedaeder').length;
-  const alleaedere  = levende.filter(d => d.egenskaber.kost === 'alleaeder').length;
+  const koedaedere   = levende.filter(d => d.egenskaber.kost === 'koedaeder').length;
+  const ustabil = (planteaedere === 0 && koedaedere > 0) || (levende.length > 3 && Object.keys(artData).length === 1);
 
-  // Ustabilitetssignal: ingen planteædere + rovdyr til stede, eller kun 1 art
-  const ustabil = (planteaedere === 0 && koedaedere > 0) || (levende.length > 3 && arter.size === 1);
-
-  pulsPanelEl.innerHTML = `
-    <div class="puls-linje"><span>Individer</span><span class="puls-tal">${levende.length}</span></div>
-    <div class="puls-linje"><span>Arter</span><span class="puls-tal">${arter.size}</span></div>
-    <div class="puls-linje"><span>🌿 Planteæd.</span><span class="puls-tal">${planteaedere}</span></div>
-    <div class="puls-linje"><span>🥩 Kødæd.</span><span class="puls-tal">${koedaedere}</span></div>
-    <div class="puls-linje"><span>🍽️ Alleæd.</span><span class="puls-tal">${alleaedere}</span></div>
-    ${ustabil ? '<div class="puls-advarsel">⚠️ Ustabilt fødenet</div>' : ''}
-  `;
+  pulsPanelEl.innerHTML = (rækker.length > 0
+    ? `<div class="puls-overskrift">Populationer</div>${rækker.join('')}`
+    : '<div class="puls-npc-raekke">Ingen spillerdyr endnu</div>'
+  ) + npcRaekke + (ustabil ? '<div class="puls-advarsel">⚠️ Ustabilt fødenet</div>' : '');
 }
 
 // ============================================================

@@ -761,6 +761,33 @@ details[open].live-checklist summary::before { content: '▾ '; }
   color: var(--tekst-lys);
 }
 
+/* Stor populationstæller med trend-pil */
+.pop-tael {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0.3rem 0 0.2rem;
+}
+
+.pop-stor-tal {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--okker-lys);
+  font-variant-numeric: tabular-nums;
+}
+
+.pop-trend {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pop-trend.trend-op    { color: #5ec46a; }
+.pop-trend.trend-ned   { color: #e05a4a; }
+.pop-trend.trend-stabil { color: #888; }
+
+/* Behold .live-tal til eventuel fremtidig brug */
 .live-tal {
   font-size: 1.15rem;
   font-weight: 700;
