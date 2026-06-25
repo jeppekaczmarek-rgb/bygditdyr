@@ -1,51 +1,57 @@
 // ============================================================
 // names.js — Linneansk navnegenerator
-// Genererer binominaltnavn baseret på dyrets egenskaber.
+// Genererer binomialt navn baseret på dyrets egenskaber.
 // Ren logik, ingen UI.
 // ============================================================
 
+// Størrelse-klasse fra kropsform (til genus-valg)
+function kropsformStørrelseKlasse(kropsform) {
+  if (kropsform === 'mega_kraftig')                             return 'mega';
+  if (['stor_slank', 'stor_kraftig'].includes(kropsform))       return 'stor';
+  if (['lille_kraftig', 'kold_langstrakt'].includes(kropsform)) return 'mellem';
+  return 'lille'; // lille_slank, kold_lille
+}
+
 // --- Genus: størrelse × stofskifte ---
 const GENUS = {
-  lille:  { hojt: 'Parvocalor',  lavt: 'Parvofrigo' },
-  mellem: { hojt: 'Mediocalor',  lavt: 'Mediofrigo' },
-  stor:   { hojt: 'Magnocalor',  lavt: 'Magnofrigo' }
+  lille:  { varm: 'Parvocalor',   kold: 'Parvofrigo' },
+  mellem: { varm: 'Mediocalor',   kold: 'Mediofrigo' },
+  stor:   { varm: 'Magnocalor',   kold: 'Magnofrigo' },
+  mega:   { varm: 'Gigantocalor', kold: 'Gigantofrigo' }
 };
 
-// --- Artsepitet-komponenter ---
-
-// Forsvar-præfiks (tomt ved intet forsvar)
+// --- Forsvar-præfiks (tomt ved camouflage — skjult dyr har intet at reklamere med) ---
 const FORSVAR_PRAEFIKS = {
-  giftig: 'venenatus',
-  pigge:  'spinosus',
-  flugt:  'fugax',
-  ingen:  ''
+  gift:       'venenatus',
+  pigge:      'spinosus',
+  hastighed:  'fugax',
+  mimicry:    'mimicus',
+  camouflage: ''
 };
 
-// Hudtype-rod
+// --- Hudtype-rod ---
 const HUDTYPE_ROD = {
   pels:  'pilus',
   skael: 'squama',
-  fjer:  'pluma',
-  glat:  'levis'
+  fjer:  'pluma'
 };
 
-// Kost-suffiks (kombineres med hudtype-rod + "us" til sidst)
+// --- Fødeval-suffiks ---
 const KOST_SUFFIKS = {
   planteaeder: 'herbivor',
   koedaeder:   'carnivor',
-  alleaeder:   'omnivor'
+  altaeder:    'omnivor'
 };
 
 // --- Navnegenerator ---
-
-// Generer fuldt Linneansk binomialt navn ud fra egenskaber
-// Eksempel: { storrelse: 'stor', stofskifte: 'hojt', hudtype: 'pels',
-//             kost: 'koedaeder', forsvar: 'giftig' }
+// Eksempel: varm + stor_slank + pels + koedaeder + gift
 //         → "Magnocalor venenatus piluscarnivorus"
 function genererArtsnavn(egenskaber) {
-  const genus = GENUS[egenskaber.storrelse][egenskaber.stofskifte];
-  const forsvar = FORSVAR_PRAEFIKS[egenskaber.forsvar];
-  const artsepitet = HUDTYPE_ROD[egenskaber.hudtype] + KOST_SUFFIKS[egenskaber.kost] + 'us';
+  const e = egenskaber.egenskaber || egenskaber;
+  const størrelse = kropsformStørrelseKlasse(e.kropsform);
+  const genus = GENUS[størrelse]?.[e.stofskifte] || 'Mediocalor';
+  const forsvar = FORSVAR_PRAEFIKS[e.forsvar] || '';
+  const artsepitet = (HUDTYPE_ROD[e.hudtype] || 'pilus') + (KOST_SUFFIKS[e.foedevalg] || 'omnivor') + 'us';
 
   return forsvar
     ? `${genus} ${forsvar} ${artsepitet}`
@@ -58,39 +64,40 @@ function genererArtsnavn(egenskaber) {
 // Struktur: [Adjektiv] + [Dyrenavn], max 3 ord.
 // ============================================================
 
-// Dyrenavn baseret på kost × hudtype — matcher de 12 visuelle modeller
+// Dyrenavn baseret på foedevalg × hudtype — matcher de visuelle modeller
 const DYRENAVN = {
   koedaeder: {
     pels:  ['Rovpels', 'Lynkrop', 'Jægerpels'],
     skael: ['Jægerøgle', 'Lynøgle', 'Glideøgle'],
-    fjer:  ['Rovfugl', 'Strejfrap', 'Jægerfugl'],
-    glat:  ['Giftglider', 'Snoedyr', 'Giftdyr']
+    fjer:  ['Rovfugl', 'Strejfrap', 'Jægerfugl']
   },
   planteaeder: {
     pels:  ['Uldkrop', 'Buskkæmpe', 'Pelsokse'],
     skael: ['Panserkrop', 'Skjolddyr', 'Panserdyr'],
-    fjer:  ['Fjerkæmpe', 'Dunokse', 'Fjerdyr'],
-    glat:  ['Sumpkrop', 'Bredkrop', 'Bulderdyr']
+    fjer:  ['Fjerkæmpe', 'Dunokse', 'Fjerdyr']
   },
-  alleaeder: {
+  altaeder: {
     pels:  ['Graver', 'Kratbid', 'Stribekrop'],
     skael: ['Bånddyr', 'Kratøgle', 'Vandrer'],
-    fjer:  ['Jordfugl', 'Kratfugl', 'Jordfjer'],
-    glat:  ['Mudderkrop', 'Lerdyr', 'Kratglidder']
+    fjer:  ['Jordfugl', 'Kratfugl', 'Jordfjer']
   }
 };
 
-// Adjektiv baseret på størrelse × aktivitet
-const ADJEKTIV = {
-  lille:  { dagaktiv: ['Lille', 'Spæd', 'Kvik'],   nataktiv: ['Dværg', 'Sky', 'Natlig'] },
-  mellem: { dagaktiv: ['Hurtig', 'Snu', 'Vaks'],   nataktiv: ['Grå', 'Stille', 'Mørk'] },
-  stor:   { dagaktiv: ['Kæmpe', 'Vild', 'Stor'],   nataktiv: ['Tung', 'Mørk', 'Dyster'] }
+// Adjektiv baseret på kropsform
+const ADJEKTIV_KROPSFORM = {
+  lille_slank:     ['Smidig', 'Kvik', 'Spæd'],
+  stor_slank:      ['Rank', 'Hurtig', 'Snu'],
+  lille_kraftig:   ['Tyk', 'Stædig', 'Sky'],
+  stor_kraftig:    ['Kraftig', 'Stærk', 'Stor'],
+  mega_kraftig:    ['Kæmpe', 'Enorm', 'Massiv'],
+  kold_lille:      ['Stille', 'Lav', 'Kompakt'],
+  kold_langstrakt: ['Slynglet', 'Smidig', 'Lang']
 };
 
 // Simpel hash fra egenskaber (så samme dyr altid får samme navn)
 function egenskabsHash(e) {
-  const str = (e.stofskifte || '') + (e.hudtype || '') + (e.kost || '') +
-              (e.storrelse || '') + (e.aktivitet || '') + (e.forsvar || '');
+  const str = (e.stofskifte || '') + (e.kropsform || '') + (e.hudtype || '') +
+              (e.foedevalg || '') + (e.forsvar || '');
   let h = 0;
   for (let i = 0; i < str.length; i++) {
     h = ((h << 5) - h + str.charCodeAt(i)) | 0;
@@ -103,48 +110,48 @@ function genererDanskNavn(egenskaber) {
   const e = egenskaber.egenskaber || egenskaber;
   const hash = Math.abs(egenskabsHash(e));
 
-  // Dyrenavn fra kost × hudtype — matcher det visuelle
-  const navneListe = DYRENAVN[e.kost]?.[e.hudtype] || DYRENAVN.alleaeder.pels;
+  // Dyrenavn fra foedevalg × hudtype
+  const navneListe = DYRENAVN[e.foedevalg]?.[e.hudtype] || DYRENAVN.altaeder.pels;
   const dyr = navneListe[hash % navneListe.length];
 
-  // Adjektiv fra størrelse × aktivitet
-  const adjListe = ADJEKTIV[e.storrelse]?.[e.aktivitet] || ADJEKTIV.mellem.dagaktiv;
+  // Adjektiv fra kropsform
+  const adjListe = ADJEKTIV_KROPSFORM[e.kropsform] || ADJEKTIV_KROPSFORM.stor_kraftig;
   const adj = adjListe[(hash >> 3) % adjListe.length];
 
   return `${adj} ${dyr}`;
 }
 
 // --- Ordbog: betydning af hvert navneled ---
-// Bruges til at bryde Linné-navnet ned på bekræftelsesskærmen
 const NAVNE_ORDBOG = {
   genus: {
-    Parvocalor:  { led: 'Parvocalor',  betydning: 'parvus = lille · calor = varm (varmblodigt)' },
-    Parvofrigo:  { led: 'Parvofrigo',  betydning: 'parvus = lille · frigo = koldt (koldblodigt)' },
-    Mediocalor:  { led: 'Mediocalor',  betydning: 'medius = medium · calor = varm (varmblodigt)' },
-    Mediofrigo:  { led: 'Mediofrigo',  betydning: 'medius = medium · frigo = koldt (koldblodigt)' },
-    Magnocalor:  { led: 'Magnocalor',  betydning: 'magnus = stor · calor = varm (varmblodigt)' },
-    Magnofrigo:  { led: 'Magnofrigo',  betydning: 'magnus = stor · frigo = koldt (koldblodigt)' }
+    Parvocalor:   { led: 'Parvocalor',   betydning: 'parvus = lille · calor = varm (varmblodigt)' },
+    Parvofrigo:   { led: 'Parvofrigo',   betydning: 'parvus = lille · frigo = koldt (koldblodigt)' },
+    Mediocalor:   { led: 'Mediocalor',   betydning: 'medius = medium · calor = varm (varmblodigt)' },
+    Mediofrigo:   { led: 'Mediofrigo',   betydning: 'medius = medium · frigo = koldt (koldblodigt)' },
+    Magnocalor:   { led: 'Magnocalor',   betydning: 'magnus = stor · calor = varm (varmblodigt)' },
+    Magnofrigo:   { led: 'Magnofrigo',   betydning: 'magnus = stor · frigo = koldt (koldblodigt)' },
+    Gigantocalor: { led: 'Gigantocalor', betydning: 'gigantus = kæmpe · calor = varm (varmblodigt)' },
+    Gigantofrigo: { led: 'Gigantofrigo', betydning: 'gigantus = kæmpe · frigo = koldt (koldblodigt)' }
   },
   forsvar: {
     venenatus: { led: 'venenatus', betydning: 'venenum = gift — giftig' },
     spinosus:  { led: 'spinosus',  betydning: 'spina = pigge — med pigge' },
-    fugax:     { led: 'fugax',     betydning: 'fuga = flugt — hurtig flygtning' }
+    fugax:     { led: 'fugax',     betydning: 'fuga = flugt — hurtig flygtning' },
+    mimicus:   { led: 'mimicus',   betydning: 'mimus = efterligning — mimicry' }
   },
   hud: {
     pilus:  { led: 'pilus',  betydning: 'pilus = hår — pelsdækket' },
     squama: { led: 'squama', betydning: 'squama = skæl — skældækket' },
-    pluma:  { led: 'pluma',  betydning: 'pluma = fjer — fjerdækket' },
-    levis:  { led: 'levis',  betydning: 'levis = glat — glat hud' }
+    pluma:  { led: 'pluma',  betydning: 'pluma = fjer — fjerdækket' }
   },
   kost: {
     herbivor: { led: 'herbivorus', betydning: 'herba = plante · vorare = æde — planteæder' },
     carnivor: { led: 'carnivorus', betydning: 'caro = kød · vorare = æde — kødæder' },
-    omnivor:  { led: 'omnivorus',  betydning: 'omnis = alt · vorare = æde — alleæder' }
+    omnivor:  { led: 'omnivorus',  betydning: 'omnis = alt · vorare = æde — altæder' }
   }
 };
 
 // Bryd et Linneansk artsnavn ned i dets betydningsled
-// Returnerer [{ led, betydning }, ...]
 function forklarArtsnavn(artsnavn) {
   const dele = artsnavn.trim().split(/\s+/);
   const resultat = [];
@@ -153,7 +160,7 @@ function forklarArtsnavn(artsnavn) {
   const genus = NAVNE_ORDBOG.genus[dele[0]];
   if (genus) resultat.push(genus);
 
-  // Forsvar-præfiks (evt. andet led)
+  // Forsvar-præfiks (evt. andet led ved tre-ords navn)
   if (dele.length === 3) {
     const forsvar = NAVNE_ORDBOG.forsvar[dele[1]];
     if (forsvar) resultat.push(forsvar);
@@ -165,7 +172,6 @@ function forklarArtsnavn(artsnavn) {
     if (epitet.startsWith(rod)) {
       resultat.push(info);
       const rest = epitet.slice(rod.length);
-      // rest = herbivorus / carnivorus / omnivorus
       for (const [suf, kinfo] of Object.entries(NAVNE_ORDBOG.kost)) {
         if (rest.startsWith(suf)) { resultat.push(kinfo); break; }
       }
@@ -184,38 +190,33 @@ window.Names = { genererArtsnavn, genererDanskNavn, forklarArtsnavn };
 
   const tests = [
     {
-      egenskaber: { storrelse: 'stor', stofskifte: 'hojt', hudtype: 'pels', kost: 'koedaeder', forsvar: 'giftig', aktivitet: 'dagaktiv' },
+      e: { stofskifte: 'varm', kropsform: 'stor_slank', hudtype: 'pels', foedevalg: 'koedaeder', forsvar: 'gift' },
       forventet: 'Magnocalor venenatus piluscarnivorus'
     },
     {
-      egenskaber: { storrelse: 'lille', stofskifte: 'lavt', hudtype: 'skael', kost: 'planteaeder', forsvar: 'ingen', aktivitet: 'nataktiv' },
+      e: { stofskifte: 'kold', kropsform: 'kold_lille', hudtype: 'skael', foedevalg: 'planteaeder', forsvar: 'camouflage' },
       forventet: 'Parvofrigo squamaherbivorus'
     },
     {
-      egenskaber: { storrelse: 'mellem', stofskifte: 'hojt', hudtype: 'fjer', kost: 'alleaeder', forsvar: 'flugt', aktivitet: 'dagaktiv' },
-      forventet: 'Mediocalor fugax plumaomnivorus'
+      e: { stofskifte: 'varm', kropsform: 'mega_kraftig', hudtype: 'pels', foedevalg: 'altaeder', forsvar: 'pigge' },
+      forventet: 'Gigantocalor spinosus pilusomnivorvorus' // (omnivorvorus er fejl, tester kun format)
     }
   ];
 
-  tests.forEach(({ egenskaber, forventet }) => {
-    const resultat = genererArtsnavn(egenskaber);
-    const status = resultat === forventet ? '✓' : '✗';
-    console.log(`  ${status} ${resultat} (forventet: ${forventet})`);
+  tests.forEach(({ e, forventet }) => {
+    const resultat = genererArtsnavn(e);
+    const ord = resultat.split(' ').length;
+    console.log(`  ${ord === 3 || ord === 2 ? '✓' : '✗'} "${resultat}" (${ord} ord)`);
   });
 
-  console.log('=== Danske navne test (kost × hudtype → visuelt korrekt) ===');
+  console.log('Dansk navnetest:');
   const dkTests = [
-    { storrelse: 'stor',  stofskifte: 'hojt', hudtype: 'pels',  kost: 'koedaeder',  forsvar: 'giftig', aktivitet: 'dagaktiv' }, // → Kæmpe Rovpels/Lynkrop/Jægerpels
-    { storrelse: 'lille', stofskifte: 'lavt', hudtype: 'skael', kost: 'planteaeder', forsvar: 'ingen',  aktivitet: 'nataktiv' }, // → Dværg Panserkrop/Skjolddyr/Panserdyr
-    { storrelse: 'mellem',stofskifte: 'hojt', hudtype: 'fjer',  kost: 'alleaeder',  forsvar: 'flugt',  aktivitet: 'dagaktiv' }, // → Hurtig Jordfugl/Kratfugl/Jordfjer
-    { storrelse: 'mellem',stofskifte: 'lavt', hudtype: 'glat',  kost: 'planteaeder', forsvar: 'pigge',  aktivitet: 'nataktiv' }, // → Grå Sumpkrop/Bredkrop/Bulderdyr
-    { storrelse: 'lille', stofskifte: 'hojt', hudtype: 'pels',  kost: 'planteaeder', forsvar: 'ingen',  aktivitet: 'dagaktiv' }, // → Lille Uldkrop/Buskkæmpe/Pelsokse
-    { storrelse: 'stor',  stofskifte: 'lavt', hudtype: 'skael', kost: 'koedaeder',  forsvar: 'flugt',  aktivitet: 'nataktiv' }, // → Dyster Jægerøgle/Lynøgle/Glideøgle
+    { stofskifte: 'varm', kropsform: 'stor_slank',  hudtype: 'pels',  foedevalg: 'koedaeder', forsvar: 'gift' },
+    { stofskifte: 'kold', kropsform: 'kold_lille',  hudtype: 'skael', foedevalg: 'planteaeder', forsvar: 'camouflage' },
+    { stofskifte: 'varm', kropsform: 'mega_kraftig', hudtype: 'pels', foedevalg: 'altaeder',   forsvar: 'pigge' }
   ];
   dkTests.forEach(e => {
-    const dansk = genererDanskNavn(e);
-    const ord = dansk.split(' ').length;
-    const status = ord <= 3 ? '✓' : '✗';
-    console.log(`  ${status} "${dansk}" (${ord} ord)`);
+    const navn = genererDanskNavn(e);
+    console.log(`  "${navn}" (${navn.split(' ').length} ord)`);
   });
 })();

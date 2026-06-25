@@ -14,7 +14,7 @@ const TIDSLINJE_VINDUE = 180;  // sekunder synligt i tidslinjen
 const FADE_DOEDSTID = 8000;    // ms for dødsbesked-animation
 
 // Størrelser brugt til kollisionsberegning
-const DYR_RADIUS = { lille: 10, mellem: 15, stor: 20 };
+const DYR_RADIUS = { lille: 10, mellem: 15, stor: 20, mega: 28 };
 
 // Formering
 // Tuning 1/6 2026: halveret formeringstempo — overbefolkning udløste
@@ -32,10 +32,10 @@ const SMITTE_RADIUS = 150;      // px
 const SMITTE_FASE_VARIGHED = 4000;  // ms
 const SYGDOM_DOEDS_INTERVAL = 500;  // ms mellem dødsfald
 
-// Planter — dynamisk bærekapacitet skalerer med antal levende arter
-const PLANTE_BASIS  = { skov: 6, arktis: 4, oerken: 3 };
-const PLANTE_PR_ART = { skov: 3, arktis: 2, oerken: 1.5 };
-const PLANTE_LOFT   = { skov: 26, arktis: 16, oerken: 10 };
+// Planter — dynamisk bærekapacitet skalerer med antal levende arter (enkelt habitat: skov)
+const PLANTE_BASIS  = { skov: 6 };
+const PLANTE_PR_ART = { skov: 3 };
+const PLANTE_LOFT   = { skov: 26 };
 const PLANTE_SPISE_RADIUS = 15;    // px
 const PLANTE_FADE_TID = 1.5;       // sekunder for opacity-fade
 const PLANTE_RESPAWN_MIN = 10000;   // ms
@@ -69,7 +69,7 @@ const KASKADE_RADIUS = 250;         // px — trofisk kaskade-effektzone
 const KASKADE_DETEKT_BONUS = 40;    // px ekstra vagtsomhed nær store rovdyr
 const FANGST_RADIUS = 30;           // px — afstand for fangst
 
-const STORRELSE_RANG = { lille: 1, mellem: 2, stor: 3 };
+const STORRELSE_RANG = { lille: 1, mellem: 2, stor: 3, mega: 4 };
 
 // --- Økonomi → overlevelse (modifier-lag oven på grundlevetiden) ---
 // Netto-ressourcer justerer hvor længe et dyr lever: overskud (meget mad,
@@ -81,11 +81,9 @@ const RES_UNDERSKUD = -3;         // netto under dette = arten døde af ressourc
 const FORM_ENERGI_MIN = 0.5;      // energi krævet for at bygge mod afkom
 const FORM_NETTO_MIN = 0;         // netto-ressourcer krævet for at formere (overskud)
 
-// Habitat-data
+// Habitat-data (enkelt habitat: lysåben dansk skov, istidskontekst)
 const HABITAT_DATA = {
-  skov:   { navn: 'Tempereret Skov', ikon: '🌲' },
-  arktis: { navn: 'Arktis / Tundra', ikon: '🏔️' },
-  oerken: { navn: 'Ørken',           ikon: '🏜️' }
+  skov: { navn: 'Lysåben Dansk Skov', ikon: '🌲' }
 };
 
 // Dødsårsag-ikoner per habitat
@@ -178,11 +176,10 @@ function tilfoejDyr(dyr) {
   const score = Survival.beregnHabitatScore(dyr, aktivtHabitat);
   const levetid = Survival.beregnOverlevelsestid(score);
 
-  // Beregn startfart baseret på størrelse; glat hud giver fartbonus
-  const fartMap = { lille: FART_LILLE, mellem: FART_MELLEM, stor: FART_STOR };
-  const GLAT_FART_MOD = 1.25; // glat hud: smidig krop = 25% hurtigere
-  const basisFart = (fartMap[dyr.egenskaber.storrelse] || FART_BASIS)
-    * (dyr.egenskaber.hudtype === 'glat' ? GLAT_FART_MOD : 1);
+  // Beregn startfart baseret på størrelse (afledt fra kropsform)
+  const fartMap = { lille: FART_LILLE, mellem: FART_MELLEM, stor: FART_STOR, mega: Math.round(FART_STOR * 0.7) };
+  const storrelse = Survival.kropsformTilStorrelse(dyr.egenskaber.kropsform);
+  const basisFart = fartMap[storrelse] || FART_BASIS;
 
   // Tilfældig startretning
   const vinkel = Math.random() * Math.PI * 2;
@@ -266,8 +263,7 @@ function tilfoejDyr(dyr) {
   // Opret DOM-element med SVG-sprite
   const el = document.createElement('div');
   el.className = 'habitat-dyr';
-  if (dyr.egenskaber.kost === 'koedaeder') el.classList.add('koedaeder');
-  if (dyr.egenskaber.aktivitet === 'nataktiv') el.classList.add('nataktiv');
+  if (dyr.egenskaber.foedevalg === 'koedaeder') el.classList.add('koedaeder');
   el.dataset.id = dyr.id;
   // Generationsmærke (gen 2+ vises) og mutatations-spark
   const genMaerke = (dyr._generation && dyr._generation > 1)
@@ -357,19 +353,11 @@ function justerPlanteAntal(habitat, arterAntal) {
   }
 }
 
-// --- NPC-dyr i lavsæson (< 2 distinkte spillere) ---
+// --- NPC-dyr i lavsæson (< 2 distinkte spillere) — lysåben dansk skov, istidsdyr ---
 const NPC_DEFS = {
   skov: [
-    { danskNavn: 'Skovræv', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'koedaeder', storrelse: 'lille', aktivitet: 'nataktiv', forsvar: 'flugt' } },
-    { danskNavn: 'Skovhare', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'planteaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'flugt' } }
-  ],
-  arktis: [
-    { danskNavn: 'Polarræv', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'koedaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'flugt' } },
-    { danskNavn: 'Læming', egenskaber: { stofskifte: 'hojt', hudtype: 'pels', kost: 'planteaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'ingen' } }
-  ],
-  oerken: [
-    { danskNavn: 'Ørkenvaran', egenskaber: { stofskifte: 'lavt', hudtype: 'skael', kost: 'koedaeder', storrelse: 'lille', aktivitet: 'dagaktiv', forsvar: 'flugt' } },
-    { danskNavn: 'Ørkengerbil', egenskaber: { stofskifte: 'lavt', hudtype: 'glat', kost: 'planteaeder', storrelse: 'lille', aktivitet: 'nataktiv', forsvar: 'flugt' } }
+    { danskNavn: 'Skovræv',   egenskaber: { stofskifte: 'varm', kropsform: 'lille_slank',   hudtype: 'pels', foedevalg: 'koedaeder',  forsvar: 'hastighed' } },
+    { danskNavn: 'Skovhare',  egenskaber: { stofskifte: 'varm', kropsform: 'lille_kraftig',  hudtype: 'pels', foedevalg: 'planteaeder', forsvar: 'hastighed' } }
   ]
 };
 
@@ -399,9 +387,9 @@ function tjekNpcSpawn(nu) {
   if (aktiveNpc.length >= maksNpc) return;
 
   // Vælg NPC-type aktivt: sørg for én kødæder + én planteæder ved 2 NPCer
-  const harKoeNpc = aktiveNpc.some(d => d.egenskaber.kost === 'koedaeder');
-  const oensketKost = harKoeNpc ? 'planteaeder' : 'koedaeder';
-  const def = defs.find(d => d.egenskaber.kost === oensketKost)
+  const harKoeNpc = aktiveNpc.some(d => d.egenskaber.foedevalg === 'koedaeder');
+  const oensketFoedevalg = harKoeNpc ? 'planteaeder' : 'koedaeder';
+  const def = defs.find(d => d.egenskaber.foedevalg === oensketFoedevalg)
            || defs[Math.floor(Math.random() * defs.length)];
 
   const npc = {
@@ -572,15 +560,19 @@ function renderPlanter() {
 // v2 — SANSERADIUSER ("sansekredsene")
 // ============================================================
 
+// Hjælper: afled størrelseskategori fra kropsform
+function hentStorrelse(dyr) {
+  return Survival.kropsformTilStorrelse(dyr.egenskaber.kropsform);
+}
+
 // Detektionsradius: hvor langt dyret ser/lugter trusler (rovdyr)
 function beregnDetektionsRadius(dyr) {
   let r = DETEKT_BASE;                              // 150px basis
   const e = dyr.egenskaber;
-  if (e.aktivitet === 'dagaktiv') r += 50;          // ser bedre i dagslys
-  if (e.aktivitet === 'nataktiv') r += 25;          // skærpede sanser i mørke: tradeoff mod lavere fourageRadius
-  if (e.forsvar === 'flugt') r += 40;               // sky, holder altid udkig
-  if (e.storrelse === 'lille') r += 30;             // byttevilkår → ekstra vagtsom
-  if (e.forsvar === 'giftig' || e.forsvar === 'pigge') r -= 20; // konfident
+  if (e.forsvar === 'hastighed') r += 40;           // sky, holder altid udkig
+  const storrelse = hentStorrelse(dyr);
+  if (storrelse === 'lille') r += 30;               // byttevilkår → ekstra vagtsom
+  if (e.forsvar === 'gift' || e.forsvar === 'pigge') r -= 20; // konfident
   return r;
 }
 
@@ -588,14 +580,14 @@ function beregnDetektionsRadius(dyr) {
 function beregnFourageringsRadius(dyr) {
   let r = FOURAGER_BASE;                            // 120px basis
   const e = dyr.egenskaber;
-  if (e.stofskifte === 'hojt') r += 50;             // sulten, leder aktivt
-  if (e.aktivitet === 'nataktiv') r -= 20;          // sværere at finde mad visuelt i mørke
-  if (e.kost === 'planteaeder') r += 30;            // planter er statiske, nemme
-  if (e.storrelse === 'stor') r += 40;              // skal spise mere
+  if (e.stofskifte === 'varm') r += 50;             // høj stofskifte: sulten, leder aktivt
+  if (e.foedevalg === 'planteaeder') r += 30;       // planter er statiske, nemme
+  const storrelse = hentStorrelse(dyr);
+  if (storrelse === 'stor' || storrelse === 'mega') r += 40; // skal spise mere
   return r;
 }
 
-function storrelseRang(dyr) { return STORRELSE_RANG[dyr.egenskaber.storrelse] || 2; }
+function storrelseRang(dyr) { return STORRELSE_RANG[hentStorrelse(dyr)] || 2; }
 function hentDyr(id) { return dyrListe.find(d => d.id === id && !d.doedsTid) || null; }
 
 // ============================================================
@@ -605,14 +597,14 @@ function hentDyr(id) { return dyrListe.find(d => d.id === id && !d.doedsTid) || 
 // Find rovdyr inden for detektionsradius som kan true dette dyr
 function findTrusler(dyr) {
   // Giftige og piggede dyr flygter ikke — de er selvsikre
-  if (dyr.egenskaber.forsvar === 'giftig' || dyr.egenskaber.forsvar === 'pigge') return [];
+  if (dyr.egenskaber.forsvar === 'gift' || dyr.egenskaber.forsvar === 'pigge') return [];
   const radius = dyr.detektionsRadius + dyr.kaskadeBonus;
   const r2 = radius * radius;
   const minRang = storrelseRang(dyr);
   const trusler = [];
   for (const d of dyrListe) {
     if (d.doedsTid || d === dyr) continue;
-    if (d.egenskaber.kost !== 'koedaeder' && d.egenskaber.kost !== 'alleaeder') continue;
+    if (d.egenskaber.foedevalg !== 'koedaeder' && d.egenskaber.foedevalg !== 'altaeder') continue;
     if (d.artsnavn === dyr.artsnavn) continue;       // egen art er ikke en trussel
     if (storrelseRang(d) < minRang) continue;        // for lille til at true
     const dx = d.x - dyr.x, dy = d.y - dyr.y;
@@ -629,12 +621,12 @@ function findByttedyr(dyr) {
   for (const d of dyrListe) {
     if (d.doedsTid || d === dyr) continue;
     if (d.artsnavn === dyr.artsnavn) continue;        // ikke kannibalisme på egen art
-    if (d.egenskaber.forsvar === 'giftig') continue;  // rovdyr undgår gift aktivt
+    if (d.egenskaber.forsvar === 'gift') continue;    // rovdyr undgår gift aktivt
     if (d.id === dyr.undgaaId && performance.now() < dyr.undgaaTil) continue; // undgå nyligt pigge-bytte
     const byttRang = storrelseRang(d);
     // Kan jages hvis mindre — eller lige stor men ikke selv et rovdyr
     const kanJages = byttRang < jaegerRang
-      || (d.egenskaber.kost !== 'koedaeder' && byttRang <= jaegerRang);
+      || (d.egenskaber.foedevalg !== 'koedaeder' && byttRang <= jaegerRang);
     if (!kanJages) continue;
     const dx = d.x - dyr.x, dy = d.y - dyr.y;
     const a2 = dx * dx + dy * dy;
@@ -675,8 +667,8 @@ function opdaterDyrTilstand(dyr, nu) {
     return;
   }
 
-  // Prioritet 2: Jagt (kødædere/alleædere, når ikke helt mætte)
-  if ((e.kost === 'koedaeder' || e.kost === 'alleaeder') && dyr.energi < JAGER_TAERSKEL) {
+  // Prioritet 2: Jagt (kødædere/altædere, når ikke helt mætte)
+  if ((e.foedevalg === 'koedaeder' || e.foedevalg === 'altaeder') && dyr.energi < JAGER_TAERSKEL) {
     const bytte = findByttedyr(dyr);
     if (bytte) {
       if (dyr.jagtMaal !== bytte.id) dyr.ambushFase = 'naermer'; // nyt mål → reset baghold
@@ -687,8 +679,8 @@ function opdaterDyrTilstand(dyr, nu) {
   }
 
   // Prioritet 3: Fouragering på planter (når energi under tærskel)
-  const taerskel = e.stofskifte === 'hojt' ? FOURAGER_TAERSKEL_HOJT : FOURAGER_TAERSKEL_LAVT;
-  if (dyr.energi < taerskel && (e.kost === 'planteaeder' || e.kost === 'alleaeder')) {
+  const taerskel = e.stofskifte === 'varm' ? FOURAGER_TAERSKEL_HOJT : FOURAGER_TAERSKEL_LAVT;
+  if (dyr.energi < taerskel && (e.foedevalg === 'planteaeder' || e.foedevalg === 'altaeder')) {
     const plante = findNaermestePlante(dyr);
     if (plante) {
       dyr.tilstand = 'FOURAGER';
@@ -733,9 +725,9 @@ function opdaterBevægelse(nu, dt) {
   for (const dyr of dyrListe) {
     if (dyr.doedsTid) continue;
 
-    // Energi falder over tid — hurtigere ved højt stofskifte
-    const stofFaktor = dyr.egenskaber.stofskifte === 'hojt' ? 1.6
-                     : dyr.egenskaber.stofskifte === 'lavt' ? 0.6 : 1;
+    // Energi falder over tid — hurtigere ved varm stofskifte
+    const stofFaktor = dyr.egenskaber.stofskifte === 'varm' ? 1.6
+                     : dyr.egenskaber.stofskifte === 'kold' ? 0.6 : 1;
     dyr.energi = Math.max(0, dyr.energi - ENERGI_DEPLETION * stofFaktor * dt);
 
     // Sundhed aftager mod slutningen af levetiden → langsommere
@@ -790,14 +782,14 @@ function bevægFlugt(dyr, nu, fart) {
     return;
   }
 
-  // Korrekt flugt — flugt-forsvar er hurtigere; pigge gør langsommere
+  // Korrekt flugt — hastigheds-forsvar er hurtigere; pigge gør langsommere
   let faktor = 1.3;
-  if (dyr.egenskaber.forsvar === 'flugt') faktor = 1.4;
+  if (dyr.egenskaber.forsvar === 'hastighed') faktor = 1.4;
   else if (dyr.egenskaber.forsvar === 'pigge') faktor = 0.8;
   if (dyr.flugtMaal) sætFartMod(dyr, dyr.flugtMaal.x, dyr.flugtMaal.y, fart * faktor);
 
-  // Små dyr zigzagger (±30° afvigelse)
-  if (dyr.egenskaber.storrelse === 'lille') {
+  // Lille/lille_slank zigzagger (±30° afvigelse)
+  if (hentStorrelse(dyr) === 'lille') {
     const v = Math.sin(nu / 120) * (Math.PI / 6);
     const cos = Math.cos(v), sin = Math.sin(v);
     const nx = dyr.vx * cos - dyr.vy * sin;
@@ -811,7 +803,8 @@ function bevægJagt(dyr, nu, fart) {
   const maal = hentDyr(dyr.jagtMaal);
   if (!maal) { dyr.tilstand = 'HVILER'; dyr.jagtMaal = null; return; }
 
-  if (dyr.egenskaber.storrelse === 'stor') {
+  const jaegerStorrelse = hentStorrelse(dyr);
+  if (jaegerStorrelse === 'stor' || jaegerStorrelse === 'mega') {
     sætFartMod(dyr, maal.x, maal.y, fart * 1.2);     // pursuit: direkte, hurtig
     return;
   }
@@ -858,9 +851,9 @@ function bevægFourager(dyr, nu, fart) {
   }
 }
 
-// HVILER: langsom tilfældig drift (lavt stofskifte = næsten stille)
+// HVILER: langsom tilfældig drift (koldt stofskifte = næsten stille)
 function bevægHvile(dyr, dt, fart) {
-  const driftFaktor = dyr.egenskaber.stofskifte === 'lavt' ? 0.1 : 0.3;
+  const driftFaktor = dyr.egenskaber.stofskifte === 'kold' ? 0.1 : 0.3;
   if (Math.random() < RETNINGSSKIFT_CHANCE * dt) {
     const vinkel = Math.random() * Math.PI * 2;
     dyr.vx = Math.cos(vinkel) * fart * driftFaktor;
@@ -985,7 +978,7 @@ function visJagtOverlay(jaeger, bytte) {
 
 function opdaterJagt(nu) {
   // Dynamisk jagt-takt: skalerer opad med antal rovdyr for at undgå jagt-kaos
-  const rovdyrAntal = dyrListe.filter(d => !d.doedsTid && d.egenskaber.kost === 'koedaeder').length;
+  const rovdyrAntal = dyrListe.filter(d => !d.doedsTid && d.egenskaber.foedevalg === 'koedaeder').length;
   const sæsonMult = sæsonTilstand === 'stille' ? 0.7 : sæsonTilstand === 'myldretid' ? 2.0 : 1.0;
   const jagtCooldown = JAGT_COOLDOWN * Math.max(1, rovdyrAntal / 3) * sæsonMult;
   // Maks simultane fangster pr. frame: én pr. 3 rovdyr (undgår jagt-storm)
@@ -1026,12 +1019,40 @@ function opdaterJagt(nu) {
     // Forsvar afgør udfaldet
     let udfald;
     switch (bytte.egenskaber.forsvar) {
-      case 'giftig':
+      case 'gift':
         // Karnivoren taber energi, byttet overlever
         jaeger.levetid = Math.max(5, jaeger.levetid - 8);
         jaeger.vx *= -1; jaeger.vy *= -1;
         jaeger.ressourcer.angreb++;            // økonomi: mislykket angreb
         udfald = 'gift';
+        break;
+      case 'mimicry':
+        // Mimicry narrer rovdyret til at tøve — byttet slipper 50% af gangene
+        if (Math.random() < 0.5) {
+          bytte.tvungetFlugtSlut = nu + 1200;
+          jaeger.ressourcer.angreb++;
+          udfald = 'undslap';
+        } else {
+          bytte.levetid = Math.max(3, bytte.levetid - 12);
+          bytte.jagtSkadet = true;
+          jaeger.energi = Math.min(1, jaeger.energi + KOED_ENERGI);
+          jaeger.ressourcer.bytte++;
+          udfald = 'draebt';
+        }
+        break;
+      case 'camouflage':
+        // Kamuflage: byttet gemmer sig og undslipper oftere
+        if (Math.random() < 0.6) {
+          bytte.tvungetFlugtSlut = nu + 600;
+          jaeger.ressourcer.angreb++;
+          udfald = 'undslap';
+        } else {
+          bytte.levetid = Math.max(3, bytte.levetid - 12);
+          bytte.jagtSkadet = true;
+          jaeger.energi = Math.min(1, jaeger.energi + KOED_ENERGI);
+          jaeger.ressourcer.bytte++;
+          udfald = 'draebt';
+        }
         break;
       case 'pigge':
         if (Math.random() < PIGGE_GENNEMBRUD) {
@@ -1052,7 +1073,7 @@ function opdaterJagt(nu) {
           udfald = 'pigge';
         }
         break;
-      case 'flugt':
+      case 'hastighed':
         if (Math.random() < FLUGT_UNDVIGELSE) {
           // Byttet undslipper til ny position
           bytte.x = Math.random() * (habitatVerden.clientWidth - 100) + 50;
@@ -1068,7 +1089,7 @@ function opdaterJagt(nu) {
           udfald = 'draebt';
         }
         break;
-      default: // 'ingen' forsvar
+      default: // ingen egentligt forsvar
         bytte.levetid = Math.max(3, bytte.levetid - 15);
         bytte.jagtSkadet = true;
         jaeger.energi = Math.min(1, jaeger.energi + KOED_ENERGI);
@@ -1128,9 +1149,12 @@ function visKonkurrenceMaerke(dyr) {
 // v2 — TROFISK KASKADE: store rovdyr ændrer hele habitatet
 // ============================================================
 function opdaterKaskade() {
-  const storeRovdyr = dyrListe.filter(d =>
-    !d.doedsTid && d.egenskaber.storrelse === 'stor'
-    && (d.egenskaber.kost === 'koedaeder' || d.egenskaber.kost === 'alleaeder'));
+  const storeRovdyr = dyrListe.filter(d => {
+    if (d.doedsTid) return false;
+    if (d.egenskaber.foedevalg !== 'koedaeder' && d.egenskaber.foedevalg !== 'altaeder') return false;
+    const s = hentStorrelse(d);
+    return s === 'stor' || s === 'mega';
+  });
   trofiskKaskade = storeRovdyr.length > 0;
   // Stemningsændring: rødlig kant på habitatskærmen ved aktiv kaskade
   habitatVerden.classList.toggle('kaskade-aktiv', trofiskKaskade);
@@ -1138,7 +1162,7 @@ function opdaterKaskade() {
   const r2 = KASKADE_RADIUS * KASKADE_RADIUS;
   for (const dyr of dyrListe) {
     if (dyr.doedsTid) continue;
-    if (dyr.egenskaber.kost === 'koedaeder') { dyr.kaskadeBonus = 0; continue; }
+    if (dyr.egenskaber.foedevalg === 'koedaeder') { dyr.kaskadeBonus = 0; continue; }
     let bonus = 0;
     for (const r of storeRovdyr) {
       if (r === dyr) continue;
@@ -1466,18 +1490,14 @@ function bestemDoedsaarsag(dyr) {
     }
   }
 
-  // Kost-relateret → sult
-  if (vaesteKat === 'kost') return { aarsag: 'sult', ikon: DOEDS_IKON.sult };
+  // Fødeval-relateret → sult
+  if (vaesteKat === 'foedevalg') return { aarsag: 'sult', ikon: DOEDS_IKON.sult };
 
-  // Temperatur-relateret (stofskifte/hudtype) → habitat-specifik årsag
-  if (vaesteKat === 'stofskifte' || vaesteKat === 'hudtype') {
-    if (aktivtHabitat === 'arktis') return { aarsag: 'frys', ikon: DOEDS_IKON.frys };
-    if (aktivtHabitat === 'oerken') return { aarsag: 'toerke', ikon: DOEDS_IKON.toerke };
+  // Temperatur/krop-relateret i skov → udkonkurreret
+  if (vaesteKat === 'stofskifte' || vaesteKat === 'hudtype' || vaesteKat === 'kropsform') {
+    return { aarsag: 'udkonkurreret', ikon: DOEDS_IKON.udkonkurreret };
   }
 
-  // Standardårsag per habitat
-  if (aktivtHabitat === 'arktis') return { aarsag: 'frys', ikon: DOEDS_IKON.frys };
-  if (aktivtHabitat === 'oerken') return { aarsag: 'toerke', ikon: DOEDS_IKON.toerke };
   return { aarsag: 'udkonkurreret', ikon: DOEDS_IKON.udkonkurreret };
 }
 
@@ -1495,10 +1515,10 @@ function tjekDoed(nu) {
 
     // 03E: Trofisk afhængighed — berig dødsbeskeden når rovdyr sulter pga. byttedyr-kollaps
     let afhængighedKontekst = '';
-    if (aarsag.aarsag === 'sult' && dyr.egenskaber.kost === 'koedaeder') {
+    if (aarsag.aarsag === 'sult' && dyr.egenskaber.foedevalg === 'koedaeder') {
       const levende = dyrListe.filter(d => !d.doedsTid);
       const harBytte = levende.some(d =>
-        d.egenskaber.kost === 'planteaeder' || d.egenskaber.kost === 'alleaeder'
+        d.egenskaber.foedevalg === 'planteaeder' || d.egenskaber.foedevalg === 'altaeder'
       );
       if (!harBytte) {
         afhængighedKontekst = ' — alle planteædere forsvandt, og fødekæden kollapsede';
@@ -1614,7 +1634,7 @@ function tjekFortaellerBegivenheder(nu) {
   const antalIndivider = levende.length;
 
   // Første kødæder ankommer
-  if (!fortaellerFlags.foersteKoedaeder && levende.some(d => d.egenskaber.kost === 'koedaeder')) {
+  if (!fortaellerFlags.foersteKoedaeder && levende.some(d => d.egenskaber.foedevalg === 'koedaeder')) {
     fortaellerFlags.foersteKoedaeder = true;
     visFortaeller('Et rovdyr er ankommet. Nu er planteæderne ikke længere alene.');
   }
@@ -1697,8 +1717,8 @@ function opdaterPulsPanel() {
 
   // Ustabilitetssignal
   const levende = dyrListe.filter(d => !d.doedsTid);
-  const planteaedere = levende.filter(d => d.egenskaber.kost === 'planteaeder').length;
-  const koedaedere   = levende.filter(d => d.egenskaber.kost === 'koedaeder').length;
+  const planteaedere = levende.filter(d => d.egenskaber.foedevalg === 'planteaeder').length;
+  const koedaedere   = levende.filter(d => d.egenskaber.foedevalg === 'koedaeder').length;
   const ustabil = (planteaedere === 0 && koedaedere > 0) || (levende.length > 3 && Object.keys(artData).length === 1);
 
   pulsPanelEl.innerHTML = (rækker.length > 0
@@ -1717,7 +1737,7 @@ const nicheKlasseBrug = new Set(); // klasser der er i brug
 let nicheOpdaterSidste = 0;
 
 function beregnNicheNoegle(egenskaber) {
-  return `${egenskaber.kost}-${egenskaber.storrelse}-${egenskaber.aktivitet}`;
+  return `${egenskaber.foedevalg}-${egenskaber.kropsform}`;
 }
 
 function opdaterNicheMarkering(nu) {
@@ -2063,11 +2083,11 @@ function simulationsLoop(timestamp) {
 // Event-tekster: fortæller HVORFOR, ikke kun hvad der sker
 const EVENT_TEKST = {
   ankom:   d => `🐾 ${d.danskNavn} er sendt ud i habitatet — nu afgør naturen om den slags klarer sig`,
-  spiser:  d => d.egenskaber.kost === 'planteaeder'
+  spiser:  d => d.egenskaber.foedevalg === 'planteaeder'
     ? `🌿 ${d.danskNavn} æder planter — planteædere bruger meget tid på at samle nok energi`
-    : d.egenskaber.kost === 'koedaeder'
+    : d.egenskaber.foedevalg === 'koedaeder'
       ? `🎯 ${d.danskNavn} jager — kød giver masser af energi, men hver jagt kan slå fejl`
-      : `🍽️ ${d.danskNavn} leder efter mad — alleædere finder altid noget at spise`,
+      : `🍽️ ${d.danskNavn} leder efter mad — altædere finder altid noget at spise`,
   jager:   d => `🎯 ${d.danskNavn} er på jagt — kød giver energi til at få unger`,
   flygter: d => `💨 ${d.danskNavn} flygter — hver flugt brænder energi den ellers skulle bruge på afkom`,
   foedsel: d => `💕 ${d.danskNavn} fik en unge — den klarede sig godt nok til at føre arten videre`,
@@ -2149,15 +2169,8 @@ Broadcast.lyt((besked) => {
 // INIT
 // ============================================================
 function init() {
-  // Vælg habitat: URL-param eller tilfældigt
-  const urlHabitat = new URLSearchParams(window.location.search).get('habitat');
-  const habitater = ['skov', 'arktis', 'oerken'];
-
-  if (urlHabitat && HABITAT_DATA[urlHabitat]) {
-    vaelgHabitat(urlHabitat);
-  } else {
-    vaelgHabitat(habitater[Math.floor(Math.random() * habitater.length)]);
-  }
+  // Enkelt habitat: lysåben dansk skov (istidskontekst)
+  vaelgHabitat('skov');
 
   // Opsæt scoreboard
   scoreboard = new Scoreboard(document.getElementById('scoreboard'));
