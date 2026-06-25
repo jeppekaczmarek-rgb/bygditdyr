@@ -17,11 +17,11 @@ const FADE_DOEDSTID = 8000;    // ms for dødsbesked-animation
 const DYR_RADIUS = { lille: 10, mellem: 15, stor: 20, mega: 28 };
 
 // Formering
-// Tuning 1/6 2026: halveret formeringstempo — overbefolkning udløste
-// gentagne sygdomscrash der overdøvede rovdyr/byttedyr-dynamikken.
-const FORMERING_FART_HURTIG = 100 / 33;    // %/sek (score ≥ 6) — hævet 50→33: succesrige arter vokser hurtigere
-const FORMERING_FART_MIDDEL = 100 / 120;   // %/sek (score 3-5)
-const FORMERING_FART_LANGSOM = 100 / 240;  // %/sek (score < 3)
+// Tuning 25/6 2026: hævet formerings-rater — gamle rater var for lave ift. levetiden;
+// kun score≥6-dyr reproducerede overhovedet. Nu kan alle score-niveauer producere afkom.
+const FORMERING_FART_HURTIG = 100 / 20;    // %/sek (score ≥ 6) — ~25s effektivt
+const FORMERING_FART_MIDDEL = 100 / 50;    // %/sek (score 3-5) — ~64s effektivt, passer i typisk levetid
+const FORMERING_FART_LANGSOM = 100 / 90;   // %/sek (score < 3) — ~115s, sjælden men mulig
 
 // Mutation — sandsynlighed for at ét træk muterer ved formering (sæt 0 for at slå fra)
 const MUTATION_RATE = 0.08;
@@ -78,7 +78,7 @@ const RES_LEVETID_SEK = 3;        // sekunder levetid pr. netto-ressourcepoint
 const RES_LEVETID_MAKS = 0.8;     // justering må højst være ±80% af grundlevetiden
 const RES_LEVETID_GULV = 8;       // absolut minimum effektiv levetid (sek)
 const RES_UNDERSKUD = -3;         // netto under dette = arten døde af ressourcemangel
-const FORM_ENERGI_MIN = 0.5;      // energi krævet for at bygge mod afkom
+const FORM_ENERGI_MIN = 0.3;      // energi krævet for at bygge mod afkom
 const FORM_NETTO_MIN = 0;         // netto-ressourcer krævet for at formere (overskud)
 
 // Habitat-data (enkelt habitat: lysåben dansk skov, istidskontekst)
@@ -392,11 +392,12 @@ function tjekNpcSpawn(nu) {
   const def = defs.find(d => d.egenskaber.foedevalg === oensketFoedevalg)
            || defs[Math.floor(Math.random() * defs.length)];
 
+  const npcEgenskaber = { ...def.egenskaber };
   const npc = {
     id: crypto.randomUUID(),
-    artsnavn: `NPC_${def.danskNavn.replace(/ /g, '_')}`,
-    danskNavn: def.danskNavn,
-    egenskaber: { ...def.egenskaber },
+    artsnavn: Names.genererArtsnavn({ egenskaber: npcEgenskaber }),
+    danskNavn: Names.genererDanskNavn(npcEgenskaber),
+    egenskaber: npcEgenskaber,
     _npc: true
   };
   tilfoejDyr(npc);
