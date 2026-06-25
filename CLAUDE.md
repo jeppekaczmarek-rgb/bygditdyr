@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (25. juni 2026)
+## Aktuel status (25. juni 2026, opdateret)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -22,7 +22,13 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 | 06 | Byggestruktur redesign: 5-trins betinget flow, nyt egenskabs-skema, enkelt skov-habitat, MAX_ENERGI=12 | ✅ |
 | 07 | `deathtext.js` og `sprites.js` opdateret til nye egenskaber (pr. pakke 06) | ✅ |
 
-**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), levende baggrundspuls.
+**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), levende baggrundspuls, automatiseret CI-playtest (`.github/workflows/playtest.yml`).
+
+**Bugfixes (PR #18, 25. juni):**
+- Formering virker nu for alle score-niveauer: `FORM_ENERGI_MIN` sænket 0.5→0.3; rater hævet (HURTIG 33→20s, MIDDEL 120→50s, LANGSOM 240→90s)
+- NPC-dyr bruger nu `Names.genererDanskNavn()` + `Names.genererArtsnavn()` — ikke mere hardcodede navne ('Skovræv'/'Skovhare')
+- Stofskifte-balance: `kold: -1 → 0` i `HABITAT_SCORE.skov` — koldblodig er neutral i skov (stadig billigst i energibudget: kost 1 vs 3)
+- CI: node-version 20→24, playtest-script opdateret til pakke 06's 5-trins skema
 
 **Næste arbejde:**
 
@@ -30,7 +36,8 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 2. **Blender-pipeline for dyr** (brugerens offline-opgave): `base1_generalist` kræver re-rigging + re-animation på ny grævling-krop. `base2_slank` og `base3_kraftig` er klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
 3. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave).
 4. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
-5. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
+5. **Åbne Notion-opgaver (fra Jeppe):** graf med antal dyr over tid (i stedet for tidslinje), og afklaring af om playtest-skill virker mod live GitHub Pages URL.
+6. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
 
@@ -92,7 +99,8 @@ bygditdyr/
 7. `MAX_ENERGI = 12` i `survival.js` — energibudget for byggestationen. Egenskabs-omkostninger er defineret i `ENERGI_OMKOSTNING`.
 8. Størrelse afledes altid fra `kropsform` via `Survival.kropsformTilStorrelse()` — der er IKKE et selvstændigt `storrelse`-felt på dyr-objektet.
 9. Enkelt habitat: kun `'skov'` (lysåben dansk skov, istidsperiode). Arktis og ørken er fjernet fra både survival.js, habitat.js og deathtext.js.
-10. Dansk dyrenavn (`genererDanskNavn`) bruger `foedevalg × hudtype` som nøgle — aldrig `foedevalg × kropsform`. Navne må ikke referere til rigtige dyr med stærke udseende-forventninger (ingen Skildpadde, Løve osv.).
+10. Dansk dyrenavn (`genererDanskNavn`) bruger `foedevalg × hudtype` som nøgle — aldrig `foedevalg × kropsform`. Navne må ikke referere til rigtige dyr med stærke udseende-forventninger (ingen Skildpadde, Løve osv.). **NPC-dyr bruger samme navnegenerator** — ingen hardcodede dyrenavne i koden.
+11. Formerings-konstanter i `habitat.js`: `FORM_ENERGI_MIN = 0.3` (energitærskel), `FORMERING_FART_HURTIG/MIDDEL/LANGSOM = 100/20, 100/50, 100/90` (%/sek). Stofskifte: `kold: 0` i `HABITAT_SCORE.skov` — begge stofskifter er levedygtige i skov.
 
 ## Vigtige datastrukturer
 
