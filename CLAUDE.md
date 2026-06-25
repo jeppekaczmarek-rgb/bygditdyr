@@ -22,7 +22,7 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 | 06 | Byggestruktur redesign: 5-trins betinget flow, nyt egenskabs-skema, enkelt skov-habitat, MAX_ENERGI=12 | ✅ |
 | 07 | `deathtext.js` og `sprites.js` opdateret til nye egenskaber (pr. pakke 06) | ✅ |
 
-**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), levende baggrundspuls, automatiseret CI-playtest (`.github/workflows/playtest.yml`), populationsgraf (kurvegraf: antal dyr over tid pr. art, rullende 180s-vindue).
+**Derudover bygget:** statistik/personaledashboard (`indstillinger.html`), dag/nat-cyklus (60s dag / 30s nat), fangst-flash ved drab, formeringsanimation (✨), levende baggrundspuls, automatiseret CI-playtest (`.github/workflows/playtest.yml`), populationsgraf (kurvegraf: antal dyr over tid pr. art, rullende 180s-vindue), online telemetri til Supabase.
 
 **Bugfixes (PR #18, 25. juni):**
 - Formering virker nu for alle score-niveauer: `FORM_ENERGI_MIN` sænket 0.5→0.3; rater hævet (HURTIG 33→20s, MIDDEL 120→50s, LANGSOM 240→90s)
@@ -35,14 +35,31 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - Rullende 180s-vindue; samples hvert 5. sekund (`POP_SAMPLE_INTERVAL`); maks 500 samples
 - NPC-dyr tælles ikke med i grafen; Y-akse og X-akse med dynamiske gridlinjer
 
+**PR #20 (25. juni) — Populationsstørrelser:**
+- `PLANTE_BASIS` 6→18, `PLANTE_PR_ART` 3→8, `PLANTE_LOFT` 26→80 — mange flere planter = højere bærekapacitet
+- NPC-max hævet: auto-modus giver nu op til 10 NPC-dyr ved få spillere (var 4)
+
+**PR #21 (25. juni) — Telemetri v3: online populationsdata:**
+- Ny Supabase-tabel `population_samples`: tidsseriedata (artsnavn, antal, sim_tid_sek) uploadet hvert 2. minut
+- Ny Supabase-tabel `telemetri_sessions`: sessionssammendrag (flow-%, jagtrater, levetider) uploadet hvert 5. minut
+- `habitat.js` genererer `sessionId` (UUID) delt med `telemetri.js` via `window.habitatSessionId`
+- `telemetri.js` skemafiks: `population.kost` → `population.foedevalg`, `storrelse` fjernet
+- `indstillinger.html` EG_INFO opdateret til pakke 06-skema (varm/kold, foedevalg, kropsform, nye forsvar-værdier)
+- Claude kan nu forespørge Supabase direkte og vurdere om tuning-ændringer rammer 10-50 individer pr. art
+
+**PR #22 (25. juni, ÅBEN) — Energibalance for varmblodigede:**
+- Diagnose: varmblodigede dyr (stofFaktor 1.6 → 0.08 energi/sek) havde `trives=false` næsten altid — PLANTE_ENERGI=0.15 gav kun 1.9s fri reproduktionstid pr. måltid
+- `FORM_ENERGI_MIN` 0.3→0.15, `PLANTE_ENERGI` 0.15→0.25, `PLANTE_RESPAWN` 10000-15000→4000-7000ms
+- Score-4 dyr forventes nu at have `trives=true` ~75% af levetiden → formering sker inden naturlig død
+
 **Næste arbejde:**
 
-1. **Visuel stil — Arktis-habitat i Blender** (brugerens offline-opgave): Lav Arktis-scene med tre lag (baggrund/midterplan/forgrund), animeret sne/is/vind. Se installationsarkitektur nedenfor for tekniske krav.
-2. **Blender-pipeline for dyr** (brugerens offline-opgave): `base1_generalist` kræver re-rigging + re-animation på ny grævling-krop. `base2_slank` og `base3_kraftig` er klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
-3. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave).
-4. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
-5. **Flere dyr på skærmen:** Populationsstørrelserne skal op markant — habitatet skal føles som en levende vrimmel, ikke et par enkeltindivider. Justér plantekonstanter og bærekapacitet.
-6. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
+1. **Merge PR #22** og verificér via Supabase-data at populationer bygger op til 10-50 individer pr. art.
+2. **Visuel stil — Arktis-habitat i Blender** (brugerens offline-opgave): Lav Arktis-scene med tre lag (baggrund/midterplan/forgrund), animeret sne/is/vind. Se installationsarkitektur nedenfor for tekniske krav.
+3. **Blender-pipeline for dyr** (brugerens offline-opgave): `base1_generalist` kræver re-rigging + re-animation på ny grævling-krop. `base2_slank` og `base3_kraftig` er klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
+4. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave).
+5. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
+6. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater og Supabase-data.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
 
@@ -105,8 +122,9 @@ bygditdyr/
 8. Størrelse afledes altid fra `kropsform` via `Survival.kropsformTilStorrelse()` — der er IKKE et selvstændigt `storrelse`-felt på dyr-objektet.
 9. Enkelt habitat: kun `'skov'` (lysåben dansk skov, istidsperiode). Arktis og ørken er fjernet fra både survival.js, habitat.js og deathtext.js.
 10. Dansk dyrenavn (`genererDanskNavn`) bruger `foedevalg × hudtype` som nøgle — aldrig `foedevalg × kropsform`. Navne må ikke referere til rigtige dyr med stærke udseende-forventninger (ingen Skildpadde, Løve osv.). **NPC-dyr bruger samme navnegenerator** — ingen hardcodede dyrenavne i koden.
-11. Formerings-konstanter i `habitat.js`: `FORM_ENERGI_MIN = 0.3` (energitærskel), `FORMERING_FART_HURTIG/MIDDEL/LANGSOM = 100/20, 100/50, 100/90` (%/sek). Stofskifte: `kold: 0` i `HABITAT_SCORE.skov` — begge stofskifter er levedygtige i skov.
+11. Formerings-konstanter i `habitat.js`: `FORM_ENERGI_MIN = 0.15` (energitærskel, sænket fra 0.3), `PLANTE_ENERGI = 0.25`, `PLANTE_RESPAWN_MIN/MAX = 4000/7000` ms. `FORMERING_FART_HURTIG/MIDDEL/LANGSOM = 100/20, 100/50, 100/90` (%/sek). Stofskifte: `kold: 0` i `HABITAT_SCORE.skov` — begge stofskifter er levedygtige i skov. Koldblodig har stofFaktor=0.6 (0.03 energi/sek tab), varm har 1.6 (0.08/sek).
 12. Populationsgraf i `habitat.js`: `TIDSLINJE_VINDUE = 180` (sekunder synligt), `POP_SAMPLE_INTERVAL = 5000` (ms mellem samples). `popGrafData[]` er et array af `{ tid, artsData: { artsnavn: antal } }`. NPC-dyr (`_npc: true`) tælles ikke med.
+13. Online telemetri: `habitat.js` genererer `sessionId = crypto.randomUUID()` ved opstart og sætter `window.habitatSessionId`. `telemetri.js` læser det i `init()`. `flushPopSamples()` batcher `popGrafData` til Supabase-tabellen `population_samples` hvert 2. minut. `uploadSessionTilSupabase()` i `telemetri.js` sender sessionssammendrag til `telemetri_sessions` hvert 5. minut (upsert på `session_id`). Begge tabeller har RLS: anon insert + select.
 
 ## Vigtige datastrukturer
 
