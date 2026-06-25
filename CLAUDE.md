@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (25. juni 2026, opdateret igen)
+## Aktuel status (25. juni 2026, opdateret tredje gang)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -35,14 +35,19 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - Rullende 180s-vindue; samples hvert 5. sekund (`POP_SAMPLE_INTERVAL`); maks 500 samples
 - NPC-dyr tælles ikke med i grafen; Y-akse og X-akse med dynamiske gridlinjer
 
+**PR #23 (25. juni):**
+- `#oekonomi-tavle` (levende dyr ressource-tabel) fjernet fra `habitat.html` og CSS
+- Scoreboard ("Dagens bedste" + "Rekordlisten") fjernet fra `habitat.html` — `scoreboard.js` bevaret til dataindsamling og mini-scoreboard på stationen
+- `teststation.html` tilføjet: send dyr direkte til habitatet uden stationsflow, med dropdowns, 6 presets, bulk-send og live score-beregning
+- `index.html`: 🧪 Teststation-link tilføjet i fodfoden ved siden af ⚙️ Personalemenu
+
 **Næste arbejde:**
 
 1. **Visuel stil — Arktis-habitat i Blender** (brugerens offline-opgave): Lav Arktis-scene med tre lag (baggrund/midterplan/forgrund), animeret sne/is/vind. Se installationsarkitektur nedenfor for tekniske krav.
 2. **Blender-pipeline for dyr** (brugerens offline-opgave): `base1_generalist` kræver re-rigging + re-animation på ny grævling-krop. `base2_slank` og `base3_kraftig` er klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
 3. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave).
 4. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
-5. **Flere dyr på skærmen:** Populationsstørrelserne skal op markant — habitatet skal føles som en levende vrimmel, ikke et par enkeltindivider. Justér plantekonstanter og bærekapacitet.
-6. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
+5. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
 
@@ -62,10 +67,11 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 
 ```
 bygditdyr/
-├── index.html             # Startside — vælg: station eller habitat
+├── index.html             # Startside — vælg: station, habitat eller teststation
 ├── station.html           # Byggestation (5 stk i produktion)
 ├── habitat.html           # Habitatskærm (1 stk i produktion)
 ├── indstillinger.html     # Personalemenu: statistik, sæsonindstilling, Supabase-log
+├── teststation.html       # Udviklerværktøj: send dyr direkte til habitatet (dropdowns + bulk-send)
 ├── css/
 │   ├── station.css
 │   └── habitat.css
@@ -79,7 +85,7 @@ bygditdyr/
 │   ├── survival.js        # Overlevelsesmatrix, score-beregning, forklarEgenskaber()
 │   ├── oekonomi.js        # Ressource-regnskab (planter/bytte/flugt/angreb)
 │   ├── deathtext.js       # Biologiske dødsforklaringer (individ OG art)
-│   ├── scoreboard.js      # Rekordliste
+│   ├── scoreboard.js      # Rekordliste-datastruktur (vises ikke på habitat — kun mini-scoreboard på station)
 │   ├── audio.js           # Syntetiseret lyd via Web Audio: ambient loops + event-effekter
 │   ├── sprites.js         # PNG sprite integration
 │   └── telemetri.js       # Anonym gameplay-telemetri til Supabase (tuning-data)
