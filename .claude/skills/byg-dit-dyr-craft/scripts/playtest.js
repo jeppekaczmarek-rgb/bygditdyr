@@ -122,16 +122,15 @@ async function measureFps(page, seconds) {
   // getByText / getByRole er robuste mod layout-ændringer. Udfyld efter
   // opdagelses-kørslen ud fra interactables-byg.json og screenshots.
   // ───────────────────────────────────────────────────────────────────────
-  // Udfyldt 24. juni 2026 — kører hele byggeflowet (Byg dit dyr → 6 valg → Send).
-  // Semantiske data-vaerdi-selektorer (robuste mod tekst/layout). Energibudget=10;
-  // dette sæt koster præcis 10 og giver skov-score +6 (lang levetid i habitatet).
+  // Opdateret 25. juni 2026 — pakke 06 ændrede til 5-trins flow:
+  // stofskifte → kropsform → hudtype → foedevalg → forsvar (MAX_ENERGI=12).
+  // Dette sæt koster 11 energi og giver skov-score +6 (HURTIG formering).
   const BYGGEVALG = [
-    { vaerdi: 'lavt',      label: 'Lavt stofskifte', energi: 1 },
-    { vaerdi: 'pels',      label: 'Pels',            energi: 2 },
-    { vaerdi: 'alleaeder', label: 'Alleæder',        energi: 2 },
-    { vaerdi: 'mellem',    label: 'Mellem',          energi: 2 },
-    { vaerdi: 'dagaktiv',  label: 'Dagaktiv',        energi: 1 },
-    { vaerdi: 'flugt',     label: 'Hurtig flugt',    energi: 2 },
+    { vaerdi: 'varm',       label: 'Varmblodet',    energi: 3 },  // stofskifte
+    { vaerdi: 'stor_slank', label: 'Stor og slank', energi: 3 },  // kropsform
+    { vaerdi: 'pels',       label: 'Pels',          energi: 2 },  // hudtype
+    { vaerdi: 'altaeder',   label: 'Altæder',       energi: 2 },  // foedevalg
+    { vaerdi: 'camouflage', label: 'Camouflage',    energi: 1 },  // forsvar
   ];
 
   await builder.locator('#btn-start').click();            // "Byg dit dyr"
