@@ -10,7 +10,8 @@ const FART_LILLE = 85;         // hævet 50→85: dyr er synlige fra 3 meter
 const FART_MELLEM = 65;        // hævet 35→65
 const FART_STOR = 45;          // hævet 25→45
 const RETNINGSSKIFT_CHANCE = 0.3; // pr. sekund
-const TIDSLINJE_VINDUE = 180;  // sekunder synligt i tidslinjen
+const TIDSLINJE_VINDUE = 180;  // sekunder synligt i grafen
+const POP_SAMPLE_INTERVAL = 5000; // ms mellem population-snapshots
 const FADE_DOEDSTID = 8000;    // ms for dødsbesked-animation
 
 // Størrelser brugt til kollisionsberegning
@@ -118,8 +119,10 @@ const EVENT_COOLDOWN = 3500;   // ms mellem samme event-type pr. art
 const STATUS_INTERVAL = 1500;  // ms mellem live-status-broadcasts
 const OEKONOMI_INTERVAL = 500; // ms mellem opdateringer af ressource-tavlen
 const OEKONOMI_MAX = 8;        // antal dyr vist på ressource-tavlen
-let tidslinjeSidste = 0;       // ms timestamp — tidslinje gentegnes kun hvert TIDSLINJE_INTERVAL
-const TIDSLINJE_INTERVAL = 500; // ms — tidslinjens data ændrer sig ikke hurtigere
+let tidslinjeSidste = 0;       // ms timestamp — graf gentegnes kun hvert TIDSLINJE_INTERVAL
+const TIDSLINJE_INTERVAL = 500; // ms — grafens data ændrer sig ikke hurtigere
+const popGrafData = [];        // population-snapshots: [{ tid, artsData: { artsnavn: antal } }]
+let popSampleSidste = 0;       // ms — sidst taget snapshot
 let aktivSygdom = null;        // Aktiv sygdoms-event
 let planter = [];              // Plante-objekter
 let trofiskKaskade = false;    // v2: sandt når et stort rovdyr er på skærmen
@@ -1920,6 +1923,22 @@ function tilpasTidslinje() {
   ctx.scale(dpr, dpr);
 }
 
+// Tag et population-snapshot (antal levende spillerdyr pr. art)
+function tagPopulationSnapshot(nu) {
+  if (nu - popSampleSidste < POP_SAMPLE_INTERVAL) return;
+  popSampleSidste = nu;
+  const tid = (nu - simStart) / 1000;
+  const artsData = {};
+  for (const d of dyrListe) {
+    if (!d.doedsTid && !d._npc) {
+      artsData[d.artsnavn] = (artsData[d.artsnavn] || 0) + 1;
+    }
+  }
+  popGrafData.push({ tid, artsData });
+  if (popGrafData.length > 500) popGrafData.shift(); // max ~41 minutter
+}
+
+// Populationsgraf: kurvediagram med én linje pr. art over tid
 function renderTidslinje() {
   const tsNu = performance.now();
   if (tsNu - tidslinjeSidste < TIDSLINJE_INTERVAL) return;
@@ -1931,21 +1950,10 @@ function renderTidslinje() {
   const nu = (performance.now() - simStart) / 1000;
 
   ctx.clearRect(0, 0, w, h);
-
-  // Baggrund
   ctx.fillStyle = '#111109';
   ctx.fillRect(0, 0, w, h);
 
-  // Samle alle dyr der har tidslinje-data (levende + døde inden for vinduet)
-  const tidsStart = Math.max(0, nu - TIDSLINJE_VINDUE);
-  const alleDyr = dyrListe.filter(d => {
-    const ankomst = (d.ankomstTid - simStart) / 1000;
-    const doed = d.doedsTid ? (d.doedsTid - simStart) / 1000 : nu;
-    return doed >= tidsStart; // kun vis dyr der stadig er synlige i vinduet
-  });
-
-  if (alleDyr.length === 0) {
-    // Vis "venter på dyr" tekst
+  if (popGrafData.length < 2) {
     ctx.fillStyle = '#a09a82';
     ctx.font = '14px Inter, sans-serif';
     ctx.textAlign = 'center';
@@ -1953,79 +1961,85 @@ function renderTidslinje() {
     return;
   }
 
-  // Tidsakse-markører
-  ctx.strokeStyle = '#333328';
+  const tidsStart = Math.max(0, nu - TIDSLINJE_VINDUE);
+  const synlige = popGrafData.filter(s => s.tid >= tidsStart);
+  if (synlige.length < 2) return;
+
+  // Find max antal til Y-akse-skalering
+  let maxAntal = 1;
+  for (const s of synlige) {
+    for (const n of Object.values(s.artsData)) if (n > maxAntal) maxAntal = n;
+  }
+
+  // Margins
+  const ml = 28, mr = 8, mt = 8, mb = 18;
+  const gw = w - ml - mr;
+  const gh = h - mt - mb;
+
+  // Hjælper: tid → x, antal → y
+  const tx = t => ml + ((t - tidsStart) / TIDSLINJE_VINDUE) * gw;
+  const ty = n => mt + gh - (n / maxAntal) * gh;
+
+  // Y-akse grid + labels
+  ctx.strokeStyle = '#2a2a22';
   ctx.lineWidth = 1;
   ctx.fillStyle = '#666658';
   ctx.font = '10px Inter, sans-serif';
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'right';
+  const yTrin = maxAntal <= 4 ? 1 : maxAntal <= 10 ? 2 : 5;
+  for (let n = 0; n <= maxAntal; n += yTrin) {
+    const y = ty(n);
+    ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(w - mr, y); ctx.stroke();
+    ctx.fillText(n, ml - 3, y + 3);
+  }
 
-  const interval = 30; // markør hvert 30. sekund
-  const foersteMarkør = Math.ceil(tidsStart / interval) * interval;
-  for (let t = foersteMarkør; t <= nu; t += interval) {
-    const x = ((t - tidsStart) / TIDSLINJE_VINDUE) * w;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, h);
-    ctx.stroke();
+  // X-akse tidsmarkører
+  ctx.fillStyle = '#666658';
+  ctx.textAlign = 'center';
+  const xInterval = 30;
+  const foerste = Math.ceil(tidsStart / xInterval) * xInterval;
+  for (let t = foerste; t <= nu; t += xInterval) {
+    const x = tx(t);
+    ctx.beginPath(); ctx.moveTo(x, mt); ctx.lineTo(x, mt + gh); ctx.stroke();
     ctx.fillText(`${Math.round(t)}s`, x, h - 4);
   }
 
-  // Række-højde og padding
-  const padding = 12;
-  const maxRaekker = Math.floor((h - padding * 2) / 30);
-  const synlige = alleDyr.slice(-maxRaekker);
-  const raekkeHoejde = Math.min(30, (h - padding * 2) / synlige.length);
+  // Saml alle arter med farve og navn
+  const artsInfo = {};
+  for (const s of synlige) {
+    for (const artsnavn of Object.keys(s.artsData)) {
+      if (!artsInfo[artsnavn]) {
+        const dyr = dyrListe.find(d => d.artsnavn === artsnavn);
+        if (dyr) artsInfo[artsnavn] = { farve: dyr.farve, danskNavn: dyr.danskNavn };
+      }
+    }
+  }
 
-  // Tegn hvert dyr
-  synlige.forEach((dyr, i) => {
-    const y = padding + i * raekkeHoejde + raekkeHoejde / 2;
-    const ankomst = (dyr.ankomstTid - simStart) / 1000;
-    const slut = dyr.doedsTid ? (dyr.doedsTid - simStart) / 1000 : nu;
-
-    const x1 = Math.max(0, ((ankomst - tidsStart) / TIDSLINJE_VINDUE) * w);
-    const x2 = ((slut - tidsStart) / TIDSLINJE_VINDUE) * w;
-
-    // Linje
-    ctx.strokeStyle = dyr.farve;
-    ctx.lineWidth = 3;
+  // Tegn én kurve pr. art
+  for (const [artsnavn, info] of Object.entries(artsInfo)) {
+    ctx.strokeStyle = info.farve;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(x1, y);
-    ctx.lineTo(x2, y);
+    let first = true;
+    for (const s of synlige) {
+      const antal = s.artsData[artsnavn] || 0;
+      const x = tx(s.tid);
+      const y = ty(antal);
+      first ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      first = false;
+    }
     ctx.stroke();
 
-    // Cirkel-ikon ved start
-    ctx.fillStyle = dyr.farve;
-    ctx.beginPath();
-    ctx.arc(x1, y, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Kun dansk navn på tidslinjen (latin lever videre i scoreboardet)
-    ctx.fillStyle = '#f0ead6';
-    ctx.font = 'bold 13px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    const navnX = Math.max(x1 + 10, 5);
-    ctx.fillText(dyr.danskNavn || dyr.artsnavn, navnX, y - 4);
-
-    if (dyr.doedsTid) {
-      // Død: × + ikon ved enden
-      ctx.fillStyle = '#c0392b';
-      ctx.font = 'bold 12px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('×', x2, y + 1);
-      ctx.font = '11px sans-serif';
-      ctx.fillText(dyr.doedsIkon, x2 + 14, y + 1);
-    } else {
-      // Levende: pulserende cirkel
-      const puls = Math.sin(nu * 4) * 0.3 + 0.7;
-      ctx.fillStyle = dyr.farve;
-      ctx.globalAlpha = puls;
-      ctx.beginPath();
-      ctx.arc(x2, y, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
+    // Label ved seneste punkt
+    const sidst = synlige[synlige.length - 1];
+    const sidstAntal = sidst.artsData[artsnavn] || 0;
+    if (sidstAntal > 0) {
+      ctx.fillStyle = info.farve;
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(info.danskNavn, tx(sidst.tid) + 4, ty(sidstAntal) - 3);
     }
-  });
+  }
 }
 
 // ============================================================
@@ -2070,6 +2084,7 @@ function simulationsLoop(timestamp) {
   opdaterAnimation(timestamp);
   renderPlanter();
   renderDyr();
+  tagPopulationSnapshot(timestamp);
   renderTidslinje();
   renderOekonomi(timestamp);
 
