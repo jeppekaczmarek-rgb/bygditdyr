@@ -15,6 +15,26 @@ const POP_SAMPLE_INTERVAL = 5000; // ms mellem population-snapshots
 const FADE_DOEDSTID = 8000;    // ms for dødsbesked-animation (individ + sygdom)
 const FADE_UDDOED = 14000;     // ms for udslettelses-besked — holdes længere så man kan nå at læse den
 
+// ── Oblik 2.5D (skråt top-down, à la Farmwand) — placeholder-tuning ──────────
+// Habitatet ses fra en høj kameravinkel: dyr lever i den nedre "dybde-zone";
+// y bestemmer dybde (lavere = nær = større, højere = fjern = mindre).
+// Alle fire konstanter er tunbare og kan justeres live af Jeppe.
+const DYBDE_ZONE_TOP   = 0.45; // andel af højden hvor dybde-zonen begynder (afstand/baggrund over den)
+const DYBDE_SKALA_MIN  = 0.82; // skala bagest (fjernest) — subtil, da vi er mere top-down
+const DYBDE_SKALA_MAX  = 1.12; // skala forrest (nærmest)
+const VY_FORESHORTEN   = 0.6;  // lodret bevægelse komprimeres → "op/ned" føles som "væk/nær"
+
+// Dybde-zonens top/bund i px ud fra habitathøjden (fælles for spawn, bevægelse, skala)
+function dybdeZone(hoejde) {
+  return { top: hoejde * DYBDE_ZONE_TOP, bund: hoejde - 30 };
+}
+// Skala-faktor for en given y i zonen (klemt til [MIN, MAX])
+function dybdeSkala(y, hoejde) {
+  const z = dybdeZone(hoejde);
+  const t = Math.max(0, Math.min(1, (y - z.top) / (z.bund - z.top)));
+  return DYBDE_SKALA_MIN + t * (DYBDE_SKALA_MAX - DYBDE_SKALA_MIN);
+}
+
 // Størrelser brugt til kollisionsberegning
 const DYR_RADIUS = { lille: 10, mellem: 15, stor: 20, mega: 28 };
 
@@ -223,8 +243,9 @@ function tilfoejDyr(dyr) {
     levetid: levetid,
     erStamdyr: erStamdyr,
     // Position (kan overskrives af _startX/_startY for afkom)
+    // y holdes i dybde-zonen (nedre del af skærmen) — oblik 2.5D
     x: dyr._startX ?? (Math.random() * (bredde - 100) + 50),
-    y: dyr._startY ?? (Math.random() * (hoejde - 100) + 50),
+    y: dyr._startY ?? (dybdeZone(hoejde).top + Math.random() * (dybdeZone(hoejde).bund - dybdeZone(hoejde).top)),
     // Hastighed i px/sek
     vx: Math.cos(vinkel) * basisFart,
     vy: Math.sin(vinkel) * basisFart,
@@ -293,7 +314,7 @@ function tilfoejDyr(dyr) {
   el.innerHTML = `
     <span class="tilstand-indikator cue-skjult"></span>
     <span class="res-badge"></span>
-    <div class="dyr-sprite">${Sprites.genererSprite(dyr)}</div>
+    <div class="dyr-sprite"><div class="dyr-skygge"></div>${Sprites.genererSprite(dyr)}</div>
     <div class="formering-bar"><div class="formering-fyld"></div></div>
     <span class="dyr-label">${dyr.danskNavn}${genMaerke}</span>
   `;
@@ -803,15 +824,16 @@ function opdaterBevægelse(nu, dt) {
     if (nu < dyr.spiserSlut) nyAnim = 'eat';
     dyr.animState = nyAnim;
 
-    // Integrér position
+    // Integrér position — lodret bevægelse komprimeres (oblik dybde: op/ned = væk/nær)
     dyr.x += dyr.vx * dt;
-    dyr.y += dyr.vy * dt;
+    dyr.y += dyr.vy * VY_FORESHORTEN * dt;
 
-    // Vend retning ved kanten
+    // Vend retning ved kanten (y holdes inde i dybde-zonen, ikke hele skærmen)
+    const zone = dybdeZone(hoejde);
     if (dyr.x < margin)          { dyr.x = margin; dyr.vx = Math.abs(dyr.vx); }
     if (dyr.x > bredde - margin) { dyr.x = bredde - margin; dyr.vx = -Math.abs(dyr.vx); }
-    if (dyr.y < margin)          { dyr.y = margin; dyr.vy = Math.abs(dyr.vy); }
-    if (dyr.y > hoejde - margin) { dyr.y = hoejde - margin; dyr.vy = -Math.abs(dyr.vy); }
+    if (dyr.y < zone.top)        { dyr.y = zone.top; dyr.vy = Math.abs(dyr.vy); }
+    if (dyr.y > zone.bund)       { dyr.y = zone.bund; dyr.vy = -Math.abs(dyr.vy); }
 
     // Svaghedsindikatorer (uændret fra v1)
     dyr.el.classList.toggle('svagt', levetPct > 0.6);
@@ -1874,12 +1896,15 @@ function opdaterAnimation(nu) {
 // RENDERING — ZONE 1 (DOM-baseret)
 // ============================================================
 function renderDyr() {
+  const hoejde = habitatVerden.clientHeight;
   for (const dyr of dyrListe) {
     if (!dyr.el || dyr.doedsTid) continue;
-    // Flip sprite når dyret bevæger sig mod venstre
-    const flip = dyr.vx < 0 ? ' scaleX(-1)' : '';
+    // Oblik 2.5D: y → dybde-skala (nær=større, fjern=mindre) + y-sortering (nær dækker fjern)
+    const depth = dybdeSkala(dyr.y, hoejde);
+    const sx = (dyr.vx < 0 ? -1 : 1) * depth;   // flip mod venstre + dybde i ét
     dyr.el.style.transform = `translate(${dyr.x}px, ${dyr.y}px)`;
-    if (dyr._elSprite) dyr._elSprite.style.transform = flip;
+    dyr.el.style.zIndex = Math.round(dyr.y);
+    if (dyr._elSprite) dyr._elSprite.style.transform = `scale(${sx.toFixed(3)}, ${depth.toFixed(3)})`;
 
     // v2 — visuelle cues: jagt-glød + tilstandsindikator
     dyr.el.classList.toggle('jager', dyr.tilstand === 'JAGER');

@@ -198,11 +198,33 @@ body {
 }
 
 .dyr-sprite {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
   transition: filter 0.3s;
+  /* Oblik 2.5D: skaler omkring fødderne, så dyret står fast på jorden når dybde-skalaen ændres */
+  transform-origin: 50% 100%;
+}
+
+/* Blød skygge under dyret — forankrer det på jorden i det skrå top-down view */
+.dyr-skygge {
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  width: 72%;
+  height: 20%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center,
+    rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.24) 48%, rgba(0, 0, 0, 0) 72%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+.dyr-sprite img {
+  position: relative;
+  z-index: 1;
 }
 
 /* PNG-sprites: pixeleret rendering */

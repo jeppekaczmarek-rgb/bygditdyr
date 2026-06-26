@@ -60,6 +60,12 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - Populationsgraf: venstre (ældste) kant **fades blødt ud** over ca. 1/8 af bredden + gul stiplet **"NU"-markør** ved højre kant — adskiller start/slut visuelt på den cirkulære skærm. (Den røde START-linje fra første udkast blev fjernet igen efter feedback.)
 - Fjernet pop-up-teksten ("✨ Ny generation!") ved formering — de flyvende ♥ er bevaret. Udslettelses-besked holdes længere via ny `FADE_UDDOED = 14000` (var 8s) + CSS-klasse `.doed-besked.uddoed`; placeres som før ved sidste individ.
 
+**Oblik 2.5D — kode-placeholder (26. juni) — fra kameravinkel-beslutningen:**
+- Skift fra rent side-view mod **skråt top-down (oblik 2.5D, à la Farmwand)**. Besluttet med Jeppe efter diskussion (opgave #5). Mismatchet var: fri 2D-bevægelse men ren side-profil-grafik. Se Notion-undersiden "Plan: Kameravinkel → Oblik 2.5D".
+- `js/habitat.js`: dyr lever nu i en nedre **dybde-zone** (`DYBDE_ZONE_TOP=0.45`); `y` styrer dybde via `dybdeSkala()` (`DYBDE_SKALA_MIN=0.82`→`MAX=1.12`, subtil da vi er mere top-down); **y-sortering** (`zIndex = round(y)`, nær dækker fjern); lodret bevægelse komprimeres (`VY_FORESHORTEN=0.6`). Alle fire konstanter er tunbare.
+- `css/habitat.css`: blød **skygge** (`.dyr-skygge`) under hvert dyr; `.dyr-sprite` skalerer omkring fødderne (`transform-origin: 50% 100%`).
+- `js/sprites.js`: let lodret sammentrykning (`OBLIK_SQUASH=0.85`) som oblik-hint på placeholder-spriten. **Placeholder** — de rigtige høj-¾/top-down-renders kommer fra Blender (offline), og baggrunden skal laves om til en skrå jordplan.
+
 **Næste arbejde:**
 
 1. **Visuel stil — Arktis-habitat i Blender** (brugerens offline-opgave): Lav Arktis-scene med tre lag (baggrund/midterplan/forgrund), animeret sne/is/vind. Se installationsarkitektur nedenfor for tekniske krav.
