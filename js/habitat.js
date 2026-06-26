@@ -1857,29 +1857,21 @@ function opdaterAnimation(nu) {
     else if (dyr.animState === 'eat') interval = 300;
     else if (dyr.el.classList.contains('jager')) interval = 100;
 
+    // Stillestående dyr animeres ikke (fryser på idle) — sparer arbejde
+    const bevaeger = Math.hypot(dyr.vx || 0, dyr.vy || 0) > 0.05;
+    if (dyr.animState !== 'eat' && !bevaeger) continue;
+
     if (nu - dyr.animTid < interval) continue;
     dyr.animTid = nu;
 
-    // Antal frames og filnavns-suffiks
-    let maxFrames, suffix;
-    switch (dyr.animState) {
-      case 'eat':
-        maxFrames = 2;
-        dyr.animFrame = (dyr.animFrame + 1) % maxFrames;
-        suffix = `-eat-${dyr.animFrame + 1}`;
-        break;
-      case 'flee':
-        maxFrames = 2;
-        dyr.animFrame = (dyr.animFrame + 1) % maxFrames;
-        suffix = `-flee-${dyr.animFrame + 1}`;
-        break;
-      default: // walk
-        maxFrames = 4;
-        dyr.animFrame = (dyr.animFrame + 1) % maxFrames;
-        suffix = `-walk-${dyr.animFrame + 1}`;
-    }
+    // Vælg framesæt fra de procedurelle sprites (data-URLs, cachet pr. art)
+    const sæt = dyr._frames || (dyr._frames = Sprites.genererFrames(dyr));
+    const frames = dyr.animState === 'eat'  ? sæt.eat
+                 : dyr.animState === 'flee' ? sæt.flee
+                 :                            sæt.walk;
+    dyr.animFrame = (dyr.animFrame + 1) % frames.length;
 
-    if (dyr._elImg) dyr._elImg.src = `assets/sprites/${dyr.spriteBase}${suffix}.png`;
+    if (dyr._elImg) dyr._elImg.src = frames[dyr.animFrame];
   }
 }
 
