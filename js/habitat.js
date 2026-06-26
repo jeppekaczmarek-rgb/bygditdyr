@@ -18,11 +18,12 @@ const FADE_DOEDSTID = 8000;    // ms for dødsbesked-animation
 const DYR_RADIUS = { lille: 10, mellem: 15, stor: 20, mega: 28 };
 
 // Formering
-// Tuning 25/6 2026: hævet formerings-rater — gamle rater var for lave ift. levetiden;
-// kun score≥6-dyr reproducerede overhovedet. Nu kan alle score-niveauer producere afkom.
-const FORMERING_FART_HURTIG = 100 / 20;    // %/sek (score ≥ 6) — ~25s effektivt
-const FORMERING_FART_MIDDEL = 100 / 50;    // %/sek (score 3-5) — ~64s effektivt, passer i typisk levetid
-const FORMERING_FART_LANGSOM = 100 / 55;   // %/sek (score < 3) — 55s effektivt (sænket 90→55: score<3 dyr har levetid 68-84s, 90s var umuligt)
+// Tuning 26/6 2026: rater hævet markant — mål er 5–10 dyr fra ét stamdyr inden 30s.
+// Logistisk dæmpning (K≈13 for 1 art) begrænser population naturligt; rater er sat ud fra
+// simulation: HURTIG giver 8 dyr ved t≈22s, 10+ ved t≈30s (4× generationsdobling).
+const FORMERING_FART_HURTIG  = 100 / 6;   // %/sek (score ≥ 6) — 1. afkom efter ~6.5s
+const FORMERING_FART_MIDDEL  = 100 / 12;  // %/sek (score 3-5) — 1. afkom efter ~13s → 4 dyr ved 30s
+const FORMERING_FART_LANGSOM = 100 / 18;  // %/sek (score < 3) — 1. afkom efter ~16s (inden MIN_LEVETID=20s)
 
 // Mutation — sandsynlighed for at ét træk muterer ved formering (sæt 0 for at slå fra)
 const MUTATION_RATE = 0.08;
@@ -2015,43 +2016,44 @@ function renderTidslinje() {
   const synlige = popGrafData.filter(s => s.tid >= tidsStart);
   if (synlige.length < 2) return;
 
-  // Find max antal til Y-akse-skalering
-  let maxAntal = 1;
+  // Find max antal til Y-akse-skalering (min 5 — undgår voldsom zoom ved få dyr)
+  let maxAntal = 5;
   for (const s of synlige) {
     for (const n of Object.values(s.artsData)) if (n > maxAntal) maxAntal = n;
   }
 
-  // Margins
-  const ml = 28, mr = 8, mt = 8, mb = 18;
+  // Margins — bred højre side giver plads til labels uden overlap med grafen
+  const ml = 32, mr = 100, mt = 12, mb = 22;
   const gw = w - ml - mr;
   const gh = h - mt - mb;
 
-  // Hjælper: tid → x, antal → y
   const tx = t => ml + ((t - tidsStart) / TIDSLINJE_VINDUE) * gw;
   const ty = n => mt + gh - (n / maxAntal) * gh;
 
   // Y-akse grid + labels
-  ctx.strokeStyle = '#2a2a22';
+  ctx.strokeStyle = '#2e2e26';
   ctx.lineWidth = 1;
-  ctx.fillStyle = '#666658';
-  ctx.font = '10px Inter, sans-serif';
+  ctx.fillStyle = '#7a7466';
+  ctx.font = '11px Inter, sans-serif';
   ctx.textAlign = 'right';
-  const yTrin = maxAntal <= 4 ? 1 : maxAntal <= 10 ? 2 : 5;
+  const yTrin = maxAntal <= 5 ? 1 : maxAntal <= 15 ? 2 : maxAntal <= 40 ? 5 : 10;
   for (let n = 0; n <= maxAntal; n += yTrin) {
     const y = ty(n);
-    ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(w - mr, y); ctx.stroke();
-    ctx.fillText(n, ml - 3, y + 3);
+    ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(ml + gw, y); ctx.stroke();
+    ctx.fillText(n, ml - 4, y + 4);
   }
 
   // X-akse tidsmarkører
-  ctx.fillStyle = '#666658';
+  ctx.fillStyle = '#7a7466';
+  ctx.font = '11px Inter, sans-serif';
   ctx.textAlign = 'center';
   const xInterval = 30;
   const foerste = Math.ceil(tidsStart / xInterval) * xInterval;
   for (let t = foerste; t <= nu; t += xInterval) {
     const x = tx(t);
+    ctx.strokeStyle = '#2e2e26';
     ctx.beginPath(); ctx.moveTo(x, mt); ctx.lineTo(x, mt + gh); ctx.stroke();
-    ctx.fillText(`${Math.round(t)}s`, x, h - 4);
+    ctx.fillText(`${Math.round(t)}s`, x, h - 5);
   }
 
   // Saml alle arter med farve og navn
@@ -2066,9 +2068,12 @@ function renderTidslinje() {
   }
 
   // Tegn én kurve pr. art
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  const labelPunkter = [];
   for (const [artsnavn, info] of Object.entries(artsInfo)) {
     ctx.strokeStyle = info.farve;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     let first = true;
     for (const s of synlige) {
@@ -2080,15 +2085,34 @@ function renderTidslinje() {
     }
     ctx.stroke();
 
-    // Label ved seneste punkt
+    // Saml label-position (løses for overlap efterfølgende)
     const sidst = synlige[synlige.length - 1];
     const sidstAntal = sidst.artsData[artsnavn] || 0;
     if (sidstAntal > 0) {
-      ctx.fillStyle = info.farve;
-      ctx.font = 'bold 11px Inter, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(info.danskNavn, tx(sidst.tid) + 4, ty(sidstAntal) - 3);
+      labelPunkter.push({ navn: info.danskNavn, farve: info.farve, y: ty(sidstAntal) });
     }
+  }
+
+  // Resolver label-overlap: sorter efter y, skub overlappende ned (min 15px afstand)
+  labelPunkter.sort((a, b) => a.y - b.y);
+  const MIN_LABEL_AFSTAND = 15;
+  for (let i = 1; i < labelPunkter.length; i++) {
+    if (labelPunkter[i].y - labelPunkter[i - 1].y < MIN_LABEL_AFSTAND) {
+      labelPunkter[i].y = labelPunkter[i - 1].y + MIN_LABEL_AFSTAND;
+    }
+  }
+
+  // Tegn labels med farvet baggrund til højre for grafen
+  const labelX = ml + gw + 6;
+  ctx.font = 'bold 12px Inter, sans-serif';
+  ctx.textAlign = 'left';
+  for (const lbl of labelPunkter) {
+    const labelY = Math.min(lbl.y + 4, mt + gh);
+    // Farvet dot + navn
+    ctx.fillStyle = lbl.farve;
+    ctx.beginPath(); ctx.arc(labelX + 5, labelY - 3, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = lbl.farve;
+    ctx.fillText(lbl.navn, labelX + 12, labelY);
   }
 }
 
