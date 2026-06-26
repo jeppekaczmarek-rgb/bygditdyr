@@ -10,9 +10,10 @@ const FART_LILLE = 85;         // hævet 50→85: dyr er synlige fra 3 meter
 const FART_MELLEM = 65;        // hævet 35→65
 const FART_STOR = 45;          // hævet 25→45
 const RETNINGSSKIFT_CHANCE = 0.3; // pr. sekund
-const TIDSLINJE_VINDUE = 180;  // sekunder synligt i grafen
+const TIDSLINJE_VINDUE = 600;  // sekunder synligt i grafen (10 min — passer til den store skærms tempo)
 const POP_SAMPLE_INTERVAL = 5000; // ms mellem population-snapshots
-const FADE_DOEDSTID = 8000;    // ms for dødsbesked-animation
+const FADE_DOEDSTID = 8000;    // ms for dødsbesked-animation (individ + sygdom)
+const FADE_UDDOED = 14000;     // ms for udslettelses-besked — holdes længere så man kan nå at læse den
 
 // Størrelser brugt til kollisionsberegning
 const DYR_RADIUS = { lille: 10, mellem: 15, stor: 20, mega: 28 };
@@ -955,18 +956,12 @@ function visSpawnFanfare(dyr) {
   if (window.Audio) Audio.spawnDyr();
 }
 
-// Stor center-celebration + flyvende hjerter ved ny generation
+// Flyvende hjerter ved ny generation (pop-up-tekst fjernet — forstyrrede skærmen)
 let formeringCelebrationSidste = 0;
 function visFormeringsCelebration(dyr) {
   const nu = performance.now();
   if (nu - formeringCelebrationSidste < 4000) return;
   formeringCelebrationSidste = nu;
-
-  const overlay = document.createElement('div');
-  overlay.className = 'formering-celebration';
-  overlay.textContent = `✨ Ny generation! ${dyr.danskNavn}`;
-  habitatVerden.appendChild(overlay);
-  setTimeout(() => overlay.remove(), 2500);
 
   // 6 hjerter der flyver ud i alle retninger
   for (let i = 0; i < 6; i++) {
@@ -1645,7 +1640,7 @@ function tjekDoed(nu) {
 // Dramatisk overlay ved artsudslettelse
 function visArtsudslettelse(dyr, levetidSek, doedsTekst) {
   const el = document.createElement('div');
-  el.className = 'doed-besked';
+  el.className = 'doed-besked uddoed';   // 'uddoed' giver længere fade (se habitat.css)
   el.style.left = dyr.x + 'px';
   el.style.top = dyr.y + 'px';
   el.innerHTML = `
@@ -1655,7 +1650,7 @@ function visArtsudslettelse(dyr, levetidSek, doedsTekst) {
     <span class="doed-besked-tid">Overlevede ${levetidSek} sekunder</span>
   `;
   doedContainer.appendChild(el);
-  setTimeout(() => el.remove(), FADE_DOEDSTID);
+  setTimeout(() => el.remove(), FADE_UDDOED);
 }
 
 // ============================================================
@@ -1973,9 +1968,10 @@ function tagPopulationSnapshot(nu) {
   const tid = (nu - simStart) / 1000;
   const artsData = {};
   for (const d of dyrListe) {
-    if (!d.doedsTid && !d._npc) {
-      artsData[d.artsnavn] = (artsData[d.artsnavn] || 0) + 1;
-    }
+    if (d.doedsTid) continue;
+    // NPC-dyr samles i én fælles linje (__npc__) — ellers bliver grafen forvirrende
+    const noegle = d._npc ? '__npc__' : d.artsnavn;
+    artsData[noegle] = (artsData[noegle] || 0) + 1;
   }
   popGrafData.push({ tid, artsData });
   if (popGrafData.length > 500) popGrafData.shift(); // max ~41 minutter
@@ -2035,37 +2031,41 @@ function renderTidslinje() {
     ctx.fillText(n, ml - 4, y + 4);
   }
 
-  // X-akse tidsmarkører
+  // X-akse tidsmarkører — i minutter (markør hvert 2. minut)
   ctx.fillStyle = '#7a7466';
   ctx.font = '11px Inter, sans-serif';
   ctx.textAlign = 'center';
-  const xInterval = 30;
+  const xInterval = 120; // 2 minutter
   const foerste = Math.ceil(tidsStart / xInterval) * xInterval;
   for (let t = foerste; t <= nu; t += xInterval) {
     const x = tx(t);
     ctx.strokeStyle = '#2e2e26';
     ctx.beginPath(); ctx.moveTo(x, mt); ctx.lineTo(x, mt + gh); ctx.stroke();
-    ctx.fillText(`${Math.round(t)}s`, x, h - 5);
+    ctx.fillText(`${Math.round(t / 60)} min`, x, h - 5);
   }
 
-  // Saml alle arter med farve og navn
+  // Saml alle arter med farve og navn (__npc__ = fælles vildtlevende-linje)
   const artsInfo = {};
   for (const s of synlige) {
     for (const artsnavn of Object.keys(s.artsData)) {
-      if (!artsInfo[artsnavn]) {
+      if (artsInfo[artsnavn]) continue;
+      if (artsnavn === '__npc__') {
+        artsInfo[artsnavn] = { farve: '#9a9486', danskNavn: 'Vildtlevende', npc: true };
+      } else {
         const dyr = dyrListe.find(d => d.artsnavn === artsnavn);
         if (dyr) artsInfo[artsnavn] = { farve: dyr.farve, danskNavn: dyr.danskNavn };
       }
     }
   }
 
-  // Tegn én kurve pr. art
+  // Tegn én kurve pr. art (NPC stiplet, så den tydeligt skiller sig fra spillerdyr)
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   const labelPunkter = [];
   for (const [artsnavn, info] of Object.entries(artsInfo)) {
     ctx.strokeStyle = info.farve;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = info.npc ? 2 : 2.5;
+    ctx.setLineDash(info.npc ? [6, 5] : []);
     ctx.beginPath();
     let first = true;
     for (const s of synlige) {
@@ -2084,6 +2084,7 @@ function renderTidslinje() {
       labelPunkter.push({ navn: info.danskNavn, farve: info.farve, y: ty(sidstAntal) });
     }
   }
+  ctx.setLineDash([]);
 
   // Resolver label-overlap: sorter efter y, skub overlappende ned (min 15px afstand)
   labelPunkter.sort((a, b) => a.y - b.y);
@@ -2106,6 +2107,29 @@ function renderTidslinje() {
     ctx.fillStyle = lbl.farve;
     ctx.fillText(lbl.navn, labelX + 12, labelY);
   }
+
+  // Start/slut-adskillelse: på den cirkulære museumsskærm ligger grafens venstre
+  // (ældste) og højre (NU) kant lige op ad hinanden. To tydelige markører gør
+  // bruddet umiskendeligt, så tidslinjen ikke læses som sammenhængende.
+  const nuX = ml + gw;
+  // "NU"-linje ved højre kant (nyeste)
+  ctx.strokeStyle = '#e8c46a';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(nuX, mt); ctx.lineTo(nuX, mt + gh); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#e8c46a';
+  ctx.font = 'bold 11px Inter, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('NU', nuX - 4, mt + 11);
+  // Kraftig seam-linje ved venstre kant (hvor grafen "starter forfra")
+  ctx.strokeStyle = '#c0392b';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(ml, mt); ctx.lineTo(ml, mt + gh); ctx.stroke();
+  ctx.fillStyle = '#c0392b';
+  ctx.textAlign = 'left';
+  ctx.fillText('START', ml + 4, mt + 11);
 }
 
 // ============================================================
