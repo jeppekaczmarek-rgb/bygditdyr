@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (26. juni 2026, opdateret sjette gang)
+## Aktuel status (26. juni 2026, opdateret syvende gang)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -68,11 +68,13 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 
 **Næste arbejde:**
 
-1. **Visuel stil — Arktis-habitat i Blender** (brugerens offline-opgave): Lav Arktis-scene med tre lag (baggrund/midterplan/forgrund), animeret sne/is/vind. Se installationsarkitektur nedenfor for tekniske krav.
-2. **Blender-pipeline for dyr** (brugerens offline-opgave): `base1_generalist` kræver re-rigging + re-animation på ny grævling-krop. `base2_slank` og `base3_kraftig` er klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
-3. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave). **Bemærk:** indtil disse + Blender-renders findes, viser spillet nu procedurelle SVG-placeholder-sprites (PR #29) i både station og habitat — så der ER fungerende dyregrafik overalt nu.
-4. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
-5. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
+> **Aktiv retning:** kameravinkel er besluttet til **oblik 2.5D (skråt top-down, Farmwand-stil)** — kode-placeholder er live (PR #34). Se Notion "Plan: Kameravinkel → Oblik 2.5D" + oblik-afsnittet ovenfor. Dette ændrer Blender-baggrundsplanen nedenfor.
+
+1. **Oblik-tuning:** Jeppe vurderer dybden live → tune `DYBDE_ZONE_TOP`/`DYBDE_SKALA_MIN`/`MAX`/`VY_FORESHORTEN` + evt. `OBLIK_SQUASH` (sprites.js) efter feedback.
+2. **Blender — dyr i høj ¾/top-down vinkel** (brugerens offline-opgave): re-render dyr fra en højere kameravinkel (ikke ren profil) — erstatter de procedurelle placeholder-sprites. `base1_generalist` kræver re-rigging; `base2_slank`/`base3_kraftig` klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
+3. **Blender — baggrund som skrå jordplan** (brugerens offline-opgave): erstatter den tidligere side-view-lagdeling (himmel/midter/forgrund). Forgrund nederst (nær) → afstand øverst. Gælder også **Arktis-scenen** (første habitat). Opdatér installationsarkitekturen nedenfor når hældningen er låst.
+4. **Forhåndsgenererede stationsbilleder:** `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` (offline, Google image API). Indtil Blender-renders findes, kører spillet på procedurelle SVG-placeholder-sprites (PR #29 + oblik-hint PR #34).
+5. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
 
@@ -138,6 +140,7 @@ bygditdyr/
 10. Dansk dyrenavn (`genererDanskNavn`) bruger `foedevalg × hudtype` som nøgle — aldrig `foedevalg × kropsform`. Navne må ikke referere til rigtige dyr med stærke udseende-forventninger (ingen Skildpadde, Løve osv.). **NPC-dyr bruger samme navnegenerator** — ingen hardcodede dyrenavne i koden.
 11. Formerings-konstanter i `habitat.js`: `FORM_ENERGI_MIN = 0.15` (energitærskel), `FORM_NETTO_MIN = -3` (ressource-tærskel), `FORMERING_FART_HURTIG/MIDDEL/LANGSOM = 100/6, 100/12, 100/18` (%/sek) — giver hhv. 8–10 / 4–5 / 1–2 dyr fra ét stamdyr inden 30s. Stofskifte: `kold: 0` i `HABITAT_SCORE.skov` — begge stofskifter er levedygtige i skov.
 12. Populationsgraf i `habitat.js`: `TIDSLINJE_VINDUE = 600` (sekunder synligt = 10 min; X-akse i minutter), `POP_SAMPLE_INTERVAL = 5000` (ms mellem samples). `popGrafData[]` er et array af `{ tid, artsData: { artsnavn: antal } }`. NPC-dyr tælles **med** og samles under nøglen `__npc__` (én fælles stiplet grå "Vildtlevende"-linje). NU forankres altid ved højre kant (`tidsStart = nu - TIDSLINJE_VINDUE`, kan være negativ tidligt), så historikken trækker mod venstre tilbage i tiden; venstre kant fades blødt ud (~1/8 bredde) + gul "NU"-markør til højre — start/slut-adskillelse på den cirkulære skærm. Generations-popup er fjernet; udslettelses-besked bruger `FADE_UDDOED = 14000`.
+13. Oblik 2.5D (skråt top-down) i `habitat.js`: dyr lever i en nedre **dybde-zone** (`DYBDE_ZONE_TOP = 0.45` af højden); `dybdeSkala(y, hoejde)` mapper y → skala (`DYBDE_SKALA_MIN = 0.82` bagest → `DYBDE_SKALA_MAX = 1.12` forrest, subtil da vi er mere top-down); y-sortering via `zIndex = round(y)`; lodret bevægelse komprimeres med `VY_FORESHORTEN = 0.6`. `dybdeZone(hoejde)` er fælles for spawn/bevægelse/skala. Skygge = `.dyr-skygge` (CSS); `.dyr-sprite` har `transform-origin: 50% 100%` (skalér om fødderne). `OBLIK_SQUASH = 0.85` i `sprites.js` er et placeholder-hint. **Placeholder indtil Blender-renders + skrå baggrund findes.** Alle konstanter er tunbare.
 
 ## Vigtige datastrukturer
 
@@ -243,6 +246,8 @@ Produktionsskærmen er et **360° oktonalt rum** ved Naturama: 8 projektorer à 
 - 0–300 px: himmel / fjerne trækroner (langsom bevægelse)
 - 300–800 px: habitatzone — dyrene lever her
 - 800–1.200 px: forgrund, græs og blade (hurtigere bevægelse)
+
+> **OBS — under revision (26. juni):** kameravinklen er besluttet til **oblik 2.5D (skråt top-down)**, så denne side-view-lagdeling skal laves om til en **skrå jordplan** (forgrund/nær nederst → afstand øverst). Koden bruger nu en nedre dybde-zone (`DYBDE_ZONE_TOP` i `habitat.js`). De endelige px-zoner låses når Blender-hældningen er valgt. Se Notion "Plan: Kameravinkel → Oblik 2.5D".
 
 Første habitat der produceres: **Arktis**.
 
