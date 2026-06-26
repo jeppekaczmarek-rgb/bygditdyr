@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (26. juni 2026, opdateret femte gang)
+## Aktuel status (26. juni 2026, opdateret sjette gang)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -53,6 +53,12 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - `habitat.js`: frame-cycling bruger nu `Sprites.genererFrames()` i stedet for ikke-eksisterende PNG-stier; stillestående dyr fryser på idle.
 - `station.js`: byggepreview viser den procedurelle sprite, så hvert valg giver øjeblikkelig visuel reaktion.
 - De 5184 forældede gamle-skema PNG'er i `assets/sprites/` er **slettet** (helt ubrugte). `assets/sprites/nye-test/` (Blender-pilotrenders, brugt af `render-demo.html`) er bevaret.
+
+**PR #31 (26. juni) — Graf-forbedringer + generations-popup (fra Jeppes opgaveliste):**
+- Populationsgraf: vindue `TIDSLINJE_VINDUE 180→600` (10 min); X-akse vist i **minutter** (markør hvert 2. min) i stedet for sekunder.
+- Populationsgraf: **NPC-dyr tælles nu med** — samlet i én fælles stiplet grå "Vildtlevende"-linje (nøgle `__npc__` i `artsData`), så grafens tal stemmer med skærmen.
+- Populationsgraf: venstre (ældste) kant **fades blødt ud** over ca. 1/8 af bredden + gul stiplet **"NU"-markør** ved højre kant — adskiller start/slut visuelt på den cirkulære skærm. (Den røde START-linje fra første udkast blev fjernet igen efter feedback.)
+- Fjernet pop-up-teksten ("✨ Ny generation!") ved formering — de flyvende ♥ er bevaret. Udslettelses-besked holdes længere via ny `FADE_UDDOED = 14000` (var 8s) + CSS-klasse `.doed-besked.uddoed`; placeres som før ved sidste individ.
 
 **Næste arbejde:**
 
@@ -125,7 +131,7 @@ bygditdyr/
 9. Enkelt habitat: kun `'skov'` (lysåben dansk skov, istidsperiode). Arktis og ørken er fjernet fra både survival.js, habitat.js og deathtext.js.
 10. Dansk dyrenavn (`genererDanskNavn`) bruger `foedevalg × hudtype` som nøgle — aldrig `foedevalg × kropsform`. Navne må ikke referere til rigtige dyr med stærke udseende-forventninger (ingen Skildpadde, Løve osv.). **NPC-dyr bruger samme navnegenerator** — ingen hardcodede dyrenavne i koden.
 11. Formerings-konstanter i `habitat.js`: `FORM_ENERGI_MIN = 0.15` (energitærskel), `FORM_NETTO_MIN = -3` (ressource-tærskel), `FORMERING_FART_HURTIG/MIDDEL/LANGSOM = 100/6, 100/12, 100/18` (%/sek) — giver hhv. 8–10 / 4–5 / 1–2 dyr fra ét stamdyr inden 30s. Stofskifte: `kold: 0` i `HABITAT_SCORE.skov` — begge stofskifter er levedygtige i skov.
-12. Populationsgraf i `habitat.js`: `TIDSLINJE_VINDUE = 180` (sekunder synligt), `POP_SAMPLE_INTERVAL = 5000` (ms mellem samples). `popGrafData[]` er et array af `{ tid, artsData: { artsnavn: antal } }`. NPC-dyr (`_npc: true`) tælles ikke med.
+12. Populationsgraf i `habitat.js`: `TIDSLINJE_VINDUE = 600` (sekunder synligt = 10 min; X-akse i minutter), `POP_SAMPLE_INTERVAL = 5000` (ms mellem samples). `popGrafData[]` er et array af `{ tid, artsData: { artsnavn: antal } }`. NPC-dyr tælles **med** og samles under nøglen `__npc__` (én fælles stiplet grå "Vildtlevende"-linje). Venstre kant fades blødt ud (~1/8 bredde) + gul "NU"-markør til højre — start/slut-adskillelse på den cirkulære skærm. Generations-popup er fjernet; udslettelses-besked bruger `FADE_UDDOED = 14000`.
 
 ## Vigtige datastrukturer
 
