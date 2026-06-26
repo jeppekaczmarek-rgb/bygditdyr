@@ -253,13 +253,11 @@ Første habitat der produceres: **Arktis**.
 
 ## Fuldt GDD
 
-Se: [Game Design Document — Byg Dit Dyr](https://www.notion.so/Game-Design-Document-Byg-Dit-Dyr-36c6276fd47f81e18deaf35bc719f0ac?pvs=21)
+Se: [Game Design Document — Byg Dit Dyr (aktuel)](https://www.notion.so/Game-Design-Document-Byg-Dit-Dyr-aktuel-38b6276fd47f816392ecfc10f0ebf94d) — matcher det faktiske spil (ét skov-habitat, nyt skema, oblik 2.5D). Det oprindelige GDD (6 habitater, gammelt skema) ligger i Notion-arkivet som historisk reference.
 
 ## Overlevelsesmatrix
 
-Se: [Overlevelsesmatrix — Prototype (3 habitater)](https://www.notion.so/Overlevelsesmatrix-Prototype-3-habitater-3396276fd47f81cf9c84db83148cbc1d?pvs=21)
-
-**Bemærk:** kun skov-kolonnen er aktiv. Kør `node analyse/balance.js` ved ændringer i `HABITAT_SCORE` i `survival.js`.
+**Kilde til sandhed er koden:** `HABITAT_SCORE`-matricen i `js/survival.js`. Kør `node analyse/balance.js` ved ændringer. Kun skov-kolonnen er aktiv. (Den gamle Notion-side "Overlevelsesmatrix — Prototype (3 habitater)" er historisk og ligger i 🗄️ Arkiv.)
 
 ## Start her (dispatch, juni 2026)
 
