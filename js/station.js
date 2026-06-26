@@ -400,6 +400,10 @@ function opdaterDyrPreview() {
     .filter(Boolean).join('_');
   const billedSti = `assets/dyrbygger/${noegle}.webp`;
 
+  // Procedurel placeholder-sprite: opdateres for hvert valg → øjeblikkelig reaktion.
+  // Vises som fallback hvis det forhåndsgenererede billede mangler (det normale lige nu).
+  const placeholderSprite = Sprites.genererSprite(valg, { hoejde: 110 });
+
   dom.spritePreview.innerHTML = `
     <img src="${billedSti}"
          alt="Dit dyr"
@@ -407,6 +411,7 @@ function opdaterDyrPreview() {
          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
     />
     <div class="dyr-placeholder" style="display:none">
+      ${placeholderSprite}
       <span class="placeholder-form">${valg.kropsform?.replace(/_/g, ' ')}</span>
       ${valg.hudtype ? `<span class="placeholder-hud">${VAERDI_NAVNE[valg.hudtype] || valg.hudtype}</span>` : ''}
     </div>
