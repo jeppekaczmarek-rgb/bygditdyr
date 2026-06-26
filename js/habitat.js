@@ -2000,7 +2000,10 @@ function renderTidslinje() {
     return;
   }
 
-  const tidsStart = Math.max(0, nu - TIDSLINJE_VINDUE);
+  // NU forankres altid ved højre kant; historikken trækker mod venstre tilbage i
+  // tiden. tidsStart kan være negativ tidligt (vinduet ikke fyldt) — så står den
+  // tomme del til venstre, ikke under NU-markøren.
+  const tidsStart = nu - TIDSLINJE_VINDUE;
   const synlige = popGrafData.filter(s => s.tid >= tidsStart);
   if (synlige.length < 2) return;
 
@@ -2036,7 +2039,7 @@ function renderTidslinje() {
   ctx.font = '11px Inter, sans-serif';
   ctx.textAlign = 'center';
   const xInterval = 120; // 2 minutter
-  const foerste = Math.ceil(tidsStart / xInterval) * xInterval;
+  const foerste = Math.max(0, Math.ceil(tidsStart / xInterval) * xInterval);
   for (let t = foerste; t <= nu; t += xInterval) {
     const x = tx(t);
     ctx.strokeStyle = '#2e2e26';
