@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (26. juni 2026, opdateret fjerde gang)
+## Aktuel status (26. juni 2026, opdateret femte gang)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -46,11 +46,19 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - Populationsgraf: label-overlap løst (resolver skyder labels lodret, min. 15 px afstand); labels placeret i bred højre margin (mr 8→100 px) med farvet dot; linjerne tykkere (2→2,5 px, roundede joins); Y-akse starter ved 5
 - Station afsendt-skærm: "Byg nyt dyr"-knap altid synlig — `overflow-y: auto` tilføjet globalt på `.afsendt-indhold`
 
+**PR #29 (26. juni) — Procedurelle placeholder-karaktersprites:**
+- `sprites.js` omskrevet til en **procedurel SVG-generator**: tegner et simpelt, men aflæseligt dyr ud fra de fem egenskaber — stand-in for de kommende Blender/billede-renders. Hver egenskab har en synlig overflade: `kropsform`→silhuet+størrelse (lave krybdyr-positurer for `kold_*`), `hudtype`→grundfarve+mønster+hoved-feature (pels=øre, fjer=krest, skael=kam), `stofskifte`→varm/kølig tone, `foedevalg`→snude (rovdyr-tænder vs. blød mule), `forsvar`→kendetegn (pigge, giftpletter, camouflage, fartstriber, mimicry-øjeplet).
+- **Baggrund/årsag:** de 5184 gamle PNG-sprites brugte det gamle egenskabs-skema (`hojt`/`lavt`/`alleaeder`), så habitatet renderede dyr som *brudte billeder* under det nye skema, og stationens preview faldt tilbage til ren tekst. Der var reelt ingen fungerende dyregrafik.
+- **Vektor (SVG)** → skarpt i alle størrelser (også 15.360 px-museumsvæggen); **ingen asset-filer**. Animeres via cachede frame-data-URLs (`walk`/`flee`/`eat` + `idle` med vejrtrækning), cachet pr. art (`Sprites.genererFrames()`).
+- `habitat.js`: frame-cycling bruger nu `Sprites.genererFrames()` i stedet for ikke-eksisterende PNG-stier; stillestående dyr fryser på idle.
+- `station.js`: byggepreview viser den procedurelle sprite, så hvert valg giver øjeblikkelig visuel reaktion.
+- De 5184 forældede gamle-skema PNG'er i `assets/sprites/` er **slettet** (helt ubrugte). `assets/sprites/nye-test/` (Blender-pilotrenders, brugt af `render-demo.html`) er bevaret.
+
 **Næste arbejde:**
 
 1. **Visuel stil — Arktis-habitat i Blender** (brugerens offline-opgave): Lav Arktis-scene med tre lag (baggrund/midterplan/forgrund), animeret sne/is/vind. Se installationsarkitektur nedenfor for tekniske krav.
 2. **Blender-pipeline for dyr** (brugerens offline-opgave): `base1_generalist` kræver re-rigging + re-animation på ny grævling-krop. `base2_slank` og `base3_kraftig` er klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
-3. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave).
+3. **Forhåndsgenererede billeder** til stationsflowet: `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` — ét billede pr. egenskabs-kombination. Genereres med Google image API (offline-opgave). **Bemærk:** indtil disse + Blender-renders findes, viser spillet nu procedurelle SVG-placeholder-sprites (PR #29) i både station og habitat — så der ER fungerende dyregrafik overalt nu.
 4. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
 5. **Ingen planlagte kodepakker pt.** — næste kodearbejde aftales med Jeppe baseret på testresultater.
 
@@ -92,7 +100,7 @@ bygditdyr/
 │   ├── deathtext.js       # Biologiske dødsforklaringer (individ OG art)
 │   ├── scoreboard.js      # Rekordliste-datastruktur (vises ikke på habitat — kun mini-scoreboard på station)
 │   ├── audio.js           # Syntetiseret lyd via Web Audio: ambient loops + event-effekter
-│   ├── sprites.js         # PNG sprite integration
+│   ├── sprites.js         # PROCEDUREL SVG-sprite-generator (placeholder for Blender/billeder): genererSprite/genererFrames ud fra de 5 egenskaber + hentDyrFarve
 │   └── telemetri.js       # Anonym gameplay-telemetri til Supabase (tuning-data)
 ├── assets/
 │   ├── sprites/           # Pixel art PNG sprites
@@ -187,7 +195,8 @@ Mål: markant højere visuel finish end flade SVG'er, performant i ren HTML5, ud
 4. **Render:** ortografisk walk, 24 frames, 720px WebP. Crop fra `walk/crop-info.json` SKAL bruges på alle lag-passes for at bevare registrering. Frames vender MOD HØJRE.
 5. **Runtime:** `js/render.js` baker alle lag til `ImageBitmap` ved spawn; sim-loopet blitter kun det færdige sprite.
 
-**Aktuel stand (25. juni):**
+**Aktuel stand (26. juni):**
+- **Runtime bruger pt. procedurelle SVG-placeholder-sprites** (`js/sprites.js`, PR #29) — IKKE den bagte ImageBitmap/PNG-pipeline. Når Blender-renders eller `assets/dyrbygger/`-billeder er klar, kan habitat/station kobles over på dem. De gamle gamle-skema PNG'er er slettet.
 - `base1_generalist`: omformet til grævling-krop; **kræver re-rigging + re-animation** i Blender. Kun `side`-turnarounds regenereret; trekvart/front/bag udestår.
 - `base2_slank`, `base3_kraftig`: uændrede og klar til Blender-rig.
 - `base1_generalist_pels` pilot: gennemført på gammel katte-krop — skal redo på ny krop.
