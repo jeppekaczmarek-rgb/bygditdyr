@@ -2109,10 +2109,17 @@ function renderTidslinje() {
   }
 
   // Start/slut-adskillelse: på den cirkulære museumsskærm ligger grafens venstre
-  // (ældste) og højre (NU) kant lige op ad hinanden. To tydelige markører gør
-  // bruddet umiskendeligt, så tidslinjen ikke læses som sammenhængende.
+  // (ældste) og højre (NU) kant lige op ad hinanden. Venstre kant fades blødt ud
+  // over ca. 1/8 af bredden, så start og slut ikke flyder sammen visuelt.
+  const fadeBredde = w / 8;
+  const grad = ctx.createLinearGradient(ml, 0, ml + fadeBredde, 0);
+  grad.addColorStop(0, 'rgba(17,17,9,1)');   // fuldt dækkende ved start-kanten
+  grad.addColorStop(1, 'rgba(17,17,9,0)');   // gennemsigtig → grafen toner frem
+  ctx.fillStyle = grad;
+  ctx.fillRect(ml, mt, fadeBredde, gh);
+
+  // "NU"-markør ved højre kant (nyeste)
   const nuX = ml + gw;
-  // "NU"-linje ved højre kant (nyeste)
   ctx.strokeStyle = '#e8c46a';
   ctx.lineWidth = 2;
   ctx.setLineDash([4, 4]);
@@ -2122,14 +2129,6 @@ function renderTidslinje() {
   ctx.font = 'bold 11px Inter, sans-serif';
   ctx.textAlign = 'right';
   ctx.fillText('NU', nuX - 4, mt + 11);
-  // Kraftig seam-linje ved venstre kant (hvor grafen "starter forfra")
-  ctx.strokeStyle = '#c0392b';
-  ctx.lineWidth = 3;
-  ctx.setLineDash([]);
-  ctx.beginPath(); ctx.moveTo(ml, mt); ctx.lineTo(ml, mt + gh); ctx.stroke();
-  ctx.fillStyle = '#c0392b';
-  ctx.textAlign = 'left';
-  ctx.fillText('START', ml + 4, mt + 11);
 }
 
 // ============================================================
