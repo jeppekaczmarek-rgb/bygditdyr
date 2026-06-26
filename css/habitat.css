@@ -430,6 +430,11 @@ body {
   z-index: 5;
 }
 
+/* Udslettelses-besked holdes længere så man kan nå at læse den (keyframes skalerer) */
+.doed-besked.uddoed {
+  animation-duration: 14s;
+}
+
 .doed-besked-navn {
   font-family: 'Playfair Display', Georgia, serif;
   font-style: italic;
