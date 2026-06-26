@@ -70,6 +70,9 @@
   // ---- Hjælp: byg SVG-elementer --------------------------------------------
   const GROUND = 86;            // gulvlinje i viewBox
   const VBW = 120, VBH = 96;
+  // Oblik-hint: let lodret sammentrykning omkring gulvlinjen antyder en højere
+  // (mere top-down) kameravinkel. Placeholder — rigtige top-down-renders kommer fra Blender.
+  const OBLIK_SQUASH = 0.85;
 
   // Et ben tegnet som tyk afrundet streg fra hofte til fod (fod forskudt = gang).
   function ben(hofteX, hofteY, len, sving, farve, lav) {
@@ -278,7 +281,9 @@
   // Pak tegningen ind i et fuldt SVG-dokument og returnér som data-URL.
   function svgDataUrl(e, pose) {
     const inner = tegnDyr(e, pose);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VBW} ${VBH}">${inner}</svg>`;
+    // Tryk tegningen let sammen lodret omkring gulvlinjen (oblik-hint)
+    const g = `<g transform="translate(0 ${GROUND}) scale(1 ${OBLIK_SQUASH}) translate(0 ${-GROUND})">${inner}</g>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VBW} ${VBH}">${g}</svg>`;
     return 'data:image/svg+xml,' + encodeURIComponent(svg);
   }
 
