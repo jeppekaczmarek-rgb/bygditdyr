@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (25. juni 2026, opdateret tredje gang)
+## Aktuel status (26. juni 2026, opdateret fjerde gang)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -40,6 +40,11 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - Scoreboard ("Dagens bedste" + "Rekordlisten") fjernet fra `habitat.html` — `scoreboard.js` bevaret til dataindsamling og mini-scoreboard på stationen
 - `teststation.html` tilføjet: send dyr direkte til habitatet uden stationsflow, med dropdowns, 6 presets, bulk-send og live score-beregning
 - `index.html`: 🧪 Teststation-link tilføjet i fodfoden ved siden af ⚙️ Personalemenu
+
+**PR #27 (26. juni):**
+- Formerings-rater 4× hævet: `HURTIG 100/20→100/6`, `MIDDEL 100/50→100/12`, `LANGSOM 100/55→100/18` — et veltilpasset stamdyr giver nu 8–10 individer inden for 30 sekunder
+- Populationsgraf: label-overlap løst (resolver skyder labels lodret, min. 15 px afstand); labels placeret i bred højre margin (mr 8→100 px) med farvet dot; linjerne tykkere (2→2,5 px, roundede joins); Y-akse starter ved 5
+- Station afsendt-skærm: "Byg nyt dyr"-knap altid synlig — `overflow-y: auto` tilføjet globalt på `.afsendt-indhold`
 
 **Næste arbejde:**
 
@@ -111,7 +116,7 @@ bygditdyr/
 8. Størrelse afledes altid fra `kropsform` via `Survival.kropsformTilStorrelse()` — der er IKKE et selvstændigt `storrelse`-felt på dyr-objektet.
 9. Enkelt habitat: kun `'skov'` (lysåben dansk skov, istidsperiode). Arktis og ørken er fjernet fra både survival.js, habitat.js og deathtext.js.
 10. Dansk dyrenavn (`genererDanskNavn`) bruger `foedevalg × hudtype` som nøgle — aldrig `foedevalg × kropsform`. Navne må ikke referere til rigtige dyr med stærke udseende-forventninger (ingen Skildpadde, Løve osv.). **NPC-dyr bruger samme navnegenerator** — ingen hardcodede dyrenavne i koden.
-11. Formerings-konstanter i `habitat.js`: `FORM_ENERGI_MIN = 0.3` (energitærskel), `FORMERING_FART_HURTIG/MIDDEL/LANGSOM = 100/20, 100/50, 100/90` (%/sek). Stofskifte: `kold: 0` i `HABITAT_SCORE.skov` — begge stofskifter er levedygtige i skov.
+11. Formerings-konstanter i `habitat.js`: `FORM_ENERGI_MIN = 0.15` (energitærskel), `FORM_NETTO_MIN = -3` (ressource-tærskel), `FORMERING_FART_HURTIG/MIDDEL/LANGSOM = 100/6, 100/12, 100/18` (%/sek) — giver hhv. 8–10 / 4–5 / 1–2 dyr fra ét stamdyr inden 30s. Stofskifte: `kold: 0` i `HABITAT_SCORE.skov` — begge stofskifter er levedygtige i skov.
 12. Populationsgraf i `habitat.js`: `TIDSLINJE_VINDUE = 180` (sekunder synligt), `POP_SAMPLE_INTERVAL = 5000` (ms mellem samples). `popGrafData[]` er et array af `{ tid, artsData: { artsnavn: antal } }`. NPC-dyr (`_npc: true`) tælles ikke med.
 
 ## Vigtige datastrukturer
