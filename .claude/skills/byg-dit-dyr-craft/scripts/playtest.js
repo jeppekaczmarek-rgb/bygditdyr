@@ -122,15 +122,15 @@ async function measureFps(page, seconds) {
   // getByText / getByRole er robuste mod layout-ændringer. Udfyld efter
   // opdagelses-kørslen ud fra interactables-byg.json og screenshots.
   // ───────────────────────────────────────────────────────────────────────
-  // Opdateret 25. juni 2026 — pakke 06 ændrede til 5-trins flow:
-  // stofskifte → kropsform → hudtype → foedevalg → forsvar (MAX_ENERGI=12).
-  // Dette sæt koster 11 energi og giver skov-score +6 (HURTIG formering).
+  // Opdateret 27. juni 2026 — PR #37 samlede kropsform + foedevalg i ét
+  // dyretype-trin. Flow er nu 4 trin: stofskifte → dyretype → hudtype → forsvar
+  // (MAX_ENERGI=12). 'alt_stor' udfolder til stor_kraftig + altaeder.
+  // Dette sæt koster 11 energi og giver skov-score +5 (HURTIG formering).
   const BYGGEVALG = [
-    { vaerdi: 'varm',       label: 'Varmblodet',    energi: 3 },  // stofskifte
-    { vaerdi: 'stor_slank', label: 'Stor og slank', energi: 3 },  // kropsform
-    { vaerdi: 'pels',       label: 'Pels',          energi: 2 },  // hudtype
-    { vaerdi: 'altaeder',   label: 'Altæder',       energi: 2 },  // foedevalg
-    { vaerdi: 'camouflage', label: 'Camouflage',    energi: 1 },  // forsvar
+    { vaerdi: 'varm',       label: 'Varmblodet',   energi: 3 },  // stofskifte
+    { vaerdi: 'alt_stor',   label: 'Stor altæder', energi: 5 },  // dyretype (→ stor_kraftig + altaeder)
+    { vaerdi: 'pels',       label: 'Pels',         energi: 2 },  // hudtype
+    { vaerdi: 'camouflage', label: 'Camouflage',   energi: 1 },  // forsvar
   ];
 
   await builder.locator('#btn-start').click();            // "Byg dit dyr"
