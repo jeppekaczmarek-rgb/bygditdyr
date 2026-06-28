@@ -423,8 +423,13 @@ function opdaterDyrPreview() {
   dom.spritePreview.classList.add('har-valg');
 
   // Forsøg at vise et forhåndsgenereret billede; fald tilbage til tekst-placeholder
-  const noegle = [e.stofskifte, e.kropsform, e.hudtype, e.foedevalg, e.forsvar]
-    .filter(Boolean).join('_');
+  // Vis billedet allerede naar kropsform er valgt: fyld fornuftige standarder ind for
+  // endnu-ikke-valgte VISUELLE egenskaber, saa dyret kan udvikle sig trin for trin.
+  const _st  = e.stofskifte || (e.kropsform.startsWith('kold') ? 'kold' : 'varm');
+  const _hud = e.hudtype  || (_st === 'kold' ? 'skael' : 'pels');
+  const _fvr = e.forsvar  || 'hastighed';
+  const _fde = e.foedevalg || 'koedaeder';   // ligegyldig for billedet; noeglen kraever feltet
+  const noegle = `${_st}_${e.kropsform}_${_hud}_${_fde}_${_fvr}`;
   const billedSti = `assets/dyrbygger/${noegle}.webp`;
 
   // Procedurel placeholder-sprite: opdateres for hvert valg → øjeblikkelig reaktion.
