@@ -49,13 +49,19 @@
       </div>
     </header>
 
-    <!-- Bygge-trin (ét synligt ad gangen) -->
-    <main id="trin-container" class="trin-container">
-      <!-- Fyldes dynamisk af station.js -->
-    </main>
+    <!-- Arbejdsområde: preparat-scene + byggetrin side om side (stables på mobil) -->
+    <div class="bygge-arbejdsomraade">
+      <!-- Preparat-scene: dyret vises stort og centralt (AI-billede eller procedurel sprite) -->
+      <div id="sprite-preview" class="sprite-preview">
+        <span class="scene-label">Dit dyr</span>
+        <p class="scene-tom">Vælg en dyretype, så tager dit dyr form her ✨</p>
+      </div>
 
-    <!-- Sprite-preview (fyldes dynamisk med SVG) -->
-    <div id="sprite-preview" class="sprite-preview"></div>
+      <!-- Bygge-trin (ét synligt ad gangen) -->
+      <main id="trin-container" class="trin-container">
+        <!-- Fyldes dynamisk af station.js -->
+      </main>
+    </div>
 
     <!-- Navigation -->
     <nav class="bygge-nav">

@@ -416,7 +416,10 @@ function opdaterDyrPreview() {
   const e = egenskaberFraValg();
   // Preview vises kun når dyretype (→ kropsform) er valgt
   if (!e.kropsform) {
-    dom.spritePreview.innerHTML = '';
+    dom.spritePreview.innerHTML = `
+      <span class="scene-label">Dit dyr</span>
+      <p class="scene-tom">Vælg en dyretype, så tager dit dyr form her ✨</p>
+    `;
     dom.spritePreview.classList.remove('har-valg');
     return;
   }
@@ -439,6 +442,7 @@ function opdaterDyrPreview() {
   const placeholderSprite = Sprites.genererSprite(e, { hoejde: 110 });
 
   dom.spritePreview.innerHTML = `
+    <span class="scene-label">Dit dyr</span>
     <img src="${billedSti}"
          alt="Dit dyr"
          class="dyr-byggerbillede"
