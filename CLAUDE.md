@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (27. juni 2026, opdateret ottende gang)
+## Aktuel status (28. juni 2026, opdateret niende gang)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -73,6 +73,15 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - **Implementering:** `DYRETYPE_VARM` (5 kort: koed_lille/koed_stor/alt_lille/alt_stor/plante_kaempe) og `DYRETYPE_KOLD` (2 kort: kold_kompakt/kold_lang); hvert kort har `foede` + `kropsform`. `egenskaberFraValg()` udfolder valget til de 5 nøgler; `prisForVaerdi()` beregner dyretype-energi = kropsform + foedevalg (bruges i kort-render, for-dyrt-gating, energimåler). Opsummeringen viser stadig afledt Fødevalg + Kropsform i checklisten.
 - **Balance:** alle 7 dyretyper levedygtige i skoven (84–100s bedste-bygning ≤ 12 energi); kæmpe planteæder klarer 92s. Verificeret med Playwright-gennemspil (varm + kold).
 
+**PR #42 + #43 (28. juni) — AI-stationsbilleder live + preparat-scene:**
+- **Forhåndsgenererede AI-billeder er nu overført** til `assets/dyrbygger/` (187 webp, ét pr. byggekombination + 2 `*_neutral` til koldblodig basekrop) og **bruges live på byggestationen** — station kører ikke længere kun på procedurelle SVG-placeholders (SVG er stadig fallback når et billede mangler, fx varmblodig basekrop før hudtype er valgt, hvor `*_neutral` ikke findes).
+- **Problem der blev løst:** billederne havde ingen CSS-størrelsesregler → renderedes i fuld naturlig størrelse (1024–1408 px) i et bittelille fast hjørne-felt og væltede ud over Næste-knappen. Varierede pr. billede pga. blandede aspect ratios (1408×768 + 1024×1024), hvid baggrund og forskellig motiv-fylde. På smal mobil (≤420 px) var dyret endda skjult helt.
+- **Løsning — preparat-scene:** dyret vises nu stort og centralt i en hvid "lyskasse"-flade (`.sprite-preview`) ved siden af valgkortene (to-spalte `.bygge-arbejdsomraade`), med `object-fit: contain` så begge aspect ratios passer ind uden overflow og billedernes hvide baggrund smelter sømløst sammen. På tablet/mobil (≤900 px) stables scenen oven på kortene som et bånd → dyret altid synligt, også på telefon.
+- **Dyret vises nu tre steder** via genbrugelig `dyrSceneHTML()` i `station.js`: byggeflow (preparat-scene), bekræftelse ("Dit dyr er klar!") og efter afsendelse ("Dyret er sendt!"). De to sidste bruger en genbrugelig `.dyr-scene` lyskasse-boks.
+- **Sidegevinster:** trin-titel klippedes lodret ved mange kort (flexbox `justify/align-center` + overflow) → skiftet til `margin:auto` på `.trin`. Auto-valgt-toasten (koldblodig → skæl) var ustylet → nu en pille-toast forneden. `.bekraeftelse-indhold` scroller nu generelt (var kun mobil) så Send-knappen altid kan nås når scene-billedet gør skærmen høj.
+- **Kun `station.html` / `css/station.css` / `js/station.js` ændret.** De fem kanoniske egenskaber og broadcast-formatet er urørt. Verificeret med Playwright (desktop + mobil, begge aspect ratios, fallback, toast).
+- **Næste:** offline-normalisering af billedstørrelser — dyrene fremstår i lidt forskellig størrelse fordi AI-billederne har varierende mængde luft omkring motivet (kræver auto-beskæring af det hvide; intet billedværktøj i miljøet pt.).
+
 **Næste arbejde:**
 
 > **Aktiv retning:** kameravinkel er besluttet til **oblik 2.5D (skråt top-down, Farmwand-stil)** — kode-placeholder er live (PR #34). Se Notion "Plan: Kameravinkel → Oblik 2.5D" + oblik-afsnittet ovenfor. Dette ændrer Blender-baggrundsplanen nedenfor.
@@ -80,7 +89,7 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 1. **Oblik-tuning:** Jeppe vurderer dybden live → tune `DYBDE_ZONE_TOP`/`DYBDE_SKALA_MIN`/`MAX`/`VY_FORESHORTEN` + evt. `OBLIK_SQUASH` (sprites.js) efter feedback.
 2. **Blender — dyr i høj ¾/top-down vinkel** (brugerens offline-opgave): re-render dyr fra en højere kameravinkel (ikke ren profil) — erstatter de procedurelle placeholder-sprites. `base1_generalist` kræver re-rigging; `base2_slank`/`base3_kraftig` klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
 3. **Blender — baggrund som skrå jordplan** (brugerens offline-opgave): erstatter den tidligere side-view-lagdeling (himmel/midter/forgrund). Forgrund nederst (nær) → afstand øverst. Gælder også **Arktis-scenen** (første habitat). Opdatér installationsarkitekturen nedenfor når hældningen er låst.
-4. **Forhåndsgenererede stationsbilleder:** `assets/dyrbygger/{stofskifte}_{kropsform}_{hudtype}_{foedevalg}_{forsvar}.webp` (offline, Google image API). Indtil Blender-renders findes, kører spillet på procedurelle SVG-placeholder-sprites (PR #29 + oblik-hint PR #34).
+4. **Forhåndsgenererede stationsbilleder:** ✅ overført (`assets/dyrbygger/*.webp`, 187 stk) og live på byggestationen (PR #42/#43). **Udestår: normalisering** — dyrene fremstår i lidt forskellig størrelse fordi AI-billederne har blandede aspect ratios (1408×768 + 1024×1024) og varierende mængde hvid luft omkring motivet. Kræver offline auto-beskæring til motivets bounding box + ensartet ramme (intet billedværktøj i remote-miljøet pt. — PIL/sharp/ImageMagick mangler). **Bemærk:** habitatet bruger stadig de procedurelle SVG-sprites; AI-billederne er kun koblet på stationen indtil videre.
 5. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
@@ -110,7 +119,7 @@ bygditdyr/
 │   ├── station.css
 │   └── habitat.css
 ├── js/
-│   ├── station.js         # Byggeflow (4 trin: stofskifte→dyretype→hudtype→forsvar), energimåler, egenskabs-checklist, match-måler
+│   ├── station.js         # Byggeflow (4 trin: stofskifte→dyretype→hudtype→forsvar), energimåler, egenskabs-checklist, match-måler, dyrSceneHTML() (AI-billede+SVG-fallback, delt af preparat-scene/bekræftelse/afsendt)
 │   ├── habitat.js         # Simulationsloop, tilstandsmaskine, NPC-dyr, dag/nat-cyklus, populationsgraf
 │   ├── broadcast.js       # Kommunikation: Supabase Realtime ELLER BroadcastChannel (samme API)
 │   ├── config.js          # Runtime-config: Supabase-endpoint + kanalnavn
@@ -218,8 +227,9 @@ Mål: markant højere visuel finish end flade SVG'er, performant i ren HTML5, ud
 4. **Render:** ortografisk walk, 24 frames, 720px WebP. Crop fra `walk/crop-info.json` SKAL bruges på alle lag-passes for at bevare registrering. Frames vender MOD HØJRE.
 5. **Runtime:** `js/render.js` baker alle lag til `ImageBitmap` ved spawn; sim-loopet blitter kun det færdige sprite.
 
-**Aktuel stand (26. juni):**
-- **Runtime bruger pt. procedurelle SVG-placeholder-sprites** (`js/sprites.js`, PR #29) — IKKE den bagte ImageBitmap/PNG-pipeline. Når Blender-renders eller `assets/dyrbygger/`-billeder er klar, kan habitat/station kobles over på dem. De gamle gamle-skema PNG'er er slettet.
+**Aktuel stand (28. juni):**
+- **Byggestationen bruger nu AI-billederne i `assets/dyrbygger/*.webp`** (187 stk, PR #42/#43) — vist i en preparat-scene med `object-fit: contain`. Procedurel SVG (`js/sprites.js`, PR #29) er fallback når et billede mangler. **Habitatet bruger fortsat de procedurelle SVG-sprites** — IKKE den bagte ImageBitmap/PNG-pipeline. Når Blender-renders er klar, kan habitatet kobles over på dem. De gamle gamle-skema PNG'er er slettet.
+- **Udestår på AI-billederne:** normalisering af motiv-størrelse (blandede aspect ratios + varierende hvid luft → dyr fremstår i forskellig størrelse). Kræver offline auto-beskæring.
 - `base1_generalist`: omformet til grævling-krop; **kræver re-rigging + re-animation** i Blender. Kun `side`-turnarounds regenereret; trekvart/front/bag udestår.
 - `base2_slank`, `base3_kraftig`: uændrede og klar til Blender-rig.
 - `base1_generalist_pels` pilot: gennemført på gammel katte-krop — skal redo på ny krop.
