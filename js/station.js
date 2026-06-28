@@ -136,9 +136,11 @@ const dom = {
   btnTilbageByg:   document.getElementById('btn-tilbage-byg'),
   btnNytDyr:       document.getElementById('btn-nyt-dyr'),
   artsnavnDisplay: document.getElementById('artsnavn-display'),
+  bekraeftelseScene: document.getElementById('bekraeftelse-scene'),
   valgOversigt:    document.getElementById('valg-oversigt'),
   energiBrugt:     document.getElementById('energi-brugt-display'),
   afsendtArtsnavn: document.getElementById('afsendt-artsnavn'),
+  afsendtScene:    document.getElementById('afsendt-scene'),
   liveStatus:      document.getElementById('live-status'),
   liveStatusTekst: document.getElementById('live-status-tekst'),
   eventFeed:       document.getElementById('event-feed'),
@@ -411,6 +413,37 @@ function visAutoVaelgBesked(trinNavn, vaelgNavn) {
   setTimeout(() => besked.remove(), 1800);
 }
 
+// --- Dyr-scene (genbruges i live-preview, bekræftelse og efter afsendelse) ---
+// Bygger HTML for et AI-billede med procedurel SVG-fallback. Fylder fornuftige
+// standarder ind for endnu-ikke-valgte VISUELLE egenskaber, så dyret kan vises
+// trin for trin under byggeflowet (på bekræftelse/afsendt er alle 5 valgt).
+function dyrSceneHTML(e, opts = {}) {
+  const visLabel = opts.label !== false;
+  const _st  = e.stofskifte || (e.kropsform && e.kropsform.startsWith('kold') ? 'kold' : 'varm');
+  const _fvr = e.forsvar  || 'hastighed';
+  const _fde = e.foedevalg || 'koedaeder';   // ligegyldig for billedet; nøglen kræver feltet
+  // Uden valgt hudtype: vis den grå uskind'ede basekrop, så det er tydeligt at hud mangler.
+  const noegle = e.hudtype
+    ? `${_st}_${e.kropsform}_${e.hudtype}_${_fde}_${_fvr}`
+    : `${_st}_${e.kropsform}_neutral`;
+  const billedSti = `assets/dyrbygger/${noegle}.webp`;
+  const placeholderSprite = Sprites.genererSprite(e, { hoejde: opts.hoejde || 110 });
+
+  return `
+    ${visLabel ? '<span class="scene-label">Dit dyr</span>' : ''}
+    <img src="${billedSti}"
+         alt="Dit dyr"
+         class="dyr-byggerbillede"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+    />
+    <div class="dyr-placeholder" style="display:none">
+      ${placeholderSprite}
+      <span class="placeholder-form">${(e.kropsform || '').replace(/_/g, ' ')}</span>
+      ${e.hudtype ? `<span class="placeholder-hud">${VAERDI_NAVNE[e.hudtype] || e.hudtype}</span>` : ''}
+    </div>
+  `;
+}
+
 // --- Dyr-preview (vises under byggeflowet) ---
 function opdaterDyrPreview() {
   const e = egenskaberFraValg();
@@ -424,36 +457,7 @@ function opdaterDyrPreview() {
     return;
   }
   dom.spritePreview.classList.add('har-valg');
-
-  // Forsøg at vise et forhåndsgenereret billede; fald tilbage til tekst-placeholder
-  // Vis billedet allerede naar kropsform er valgt: fyld fornuftige standarder ind for
-  // endnu-ikke-valgte VISUELLE egenskaber, saa dyret kan udvikle sig trin for trin.
-  const _st  = e.stofskifte || (e.kropsform.startsWith('kold') ? 'kold' : 'varm');
-  const _fvr = e.forsvar  || 'hastighed';
-  const _fde = e.foedevalg || 'koedaeder';   // ligegyldig for billedet; noeglen kraever feltet
-  // Uden valgt hudtype: vis den graa uskind'ede basekrop, saa det er tydeligt at hud mangler.
-  const noegle = e.hudtype
-    ? `${_st}_${e.kropsform}_${e.hudtype}_${_fde}_${_fvr}`
-    : `${_st}_${e.kropsform}_neutral`;
-  const billedSti = `assets/dyrbygger/${noegle}.webp`;
-
-  // Procedurel placeholder-sprite: opdateres for hvert valg → øjeblikkelig reaktion.
-  // Vises som fallback hvis det forhåndsgenererede billede mangler (det normale lige nu).
-  const placeholderSprite = Sprites.genererSprite(e, { hoejde: 110 });
-
-  dom.spritePreview.innerHTML = `
-    <span class="scene-label">Dit dyr</span>
-    <img src="${billedSti}"
-         alt="Dit dyr"
-         class="dyr-byggerbillede"
-         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
-    />
-    <div class="dyr-placeholder" style="display:none">
-      ${placeholderSprite}
-      <span class="placeholder-form">${e.kropsform.replace(/_/g, ' ')}</span>
-      ${e.hudtype ? `<span class="placeholder-hud">${VAERDI_NAVNE[e.hudtype] || e.hudtype}</span>` : ''}
-    </div>
-  `;
+  dom.spritePreview.innerHTML = dyrSceneHTML(e);
 }
 
 // Tegn-ikon og CSS-klasse for et checklistepunkt
@@ -492,6 +496,8 @@ function visBekraeftelse() {
   const navneForklaring = navneLed.map(l =>
     `<span class="linne-led"><em>${l.led}</em> = <span class="linne-bety">${l.betydning}</span></span>`
   ).join(' &nbsp;·&nbsp; ');
+
+  dom.bekraeftelseScene.innerHTML = dyrSceneHTML(egenskaber, { label: false });
 
   dom.artsnavnDisplay.innerHTML = `
     <span class="artsnavn-latin">${artsnavn}</span>
@@ -547,6 +553,7 @@ function sendDyr() {
     window.Broadcast.send({ type: 'NYT_DYR', dyr: dyr });
   }
 
+  dom.afsendtScene.innerHTML = dyrSceneHTML(egenskaber, { label: false });
   dom.afsendtArtsnavn.innerHTML = `${dyr.artsnavn}<br><span class="dansk-navn">${dyr.danskNavn}</span>`;
   visSkaerm('afsendt');
 }
