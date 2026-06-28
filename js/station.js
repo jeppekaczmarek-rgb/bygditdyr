@@ -426,10 +426,12 @@ function opdaterDyrPreview() {
   // Vis billedet allerede naar kropsform er valgt: fyld fornuftige standarder ind for
   // endnu-ikke-valgte VISUELLE egenskaber, saa dyret kan udvikle sig trin for trin.
   const _st  = e.stofskifte || (e.kropsform.startsWith('kold') ? 'kold' : 'varm');
-  const _hud = e.hudtype  || (_st === 'kold' ? 'skael' : 'pels');
   const _fvr = e.forsvar  || 'hastighed';
   const _fde = e.foedevalg || 'koedaeder';   // ligegyldig for billedet; noeglen kraever feltet
-  const noegle = `${_st}_${e.kropsform}_${_hud}_${_fde}_${_fvr}`;
+  // Uden valgt hudtype: vis den graa uskind'ede basekrop, saa det er tydeligt at hud mangler.
+  const noegle = e.hudtype
+    ? `${_st}_${e.kropsform}_${e.hudtype}_${_fde}_${_fvr}`
+    : `${_st}_${e.kropsform}_neutral`;
   const billedSti = `assets/dyrbygger/${noegle}.webp`;
 
   // Procedurel placeholder-sprite: opdateres for hvert valg → øjeblikkelig reaktion.
