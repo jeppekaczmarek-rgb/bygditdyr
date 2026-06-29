@@ -1,0 +1,21 @@
+{
+  "url": "http://localhost:8000",
+  "fps": {
+    "avg": 27,
+    "min": 9
+  },
+  "konsolfejl": [],
+  "screenshots": [
+    "01-byg-start.png",
+    "01-habitat-start.png",
+    "02-byg-trin1.png",
+    "03-bekraeftelse.png",
+    "03-habitat-t1.png",
+    "03-habitat-t2.png",
+    "03-habitat-t3.png",
+    "03-habitat-t4.png",
+    "03-habitat-t5.png",
+    "04-byg-afsendt.png"
+  ],
+  "huskeliste": "Åbn screenshots + video og vurder mod kvalitetsbaren i SKILL.md."
+}

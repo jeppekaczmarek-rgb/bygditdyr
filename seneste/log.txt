@@ -1,0 +1,16 @@
+[2026-06-29T08:05:55.111Z] Åbner byggestation + habitat-skærm i samme context...
+[2026-06-29T08:05:57.954Z] 📸 01-byg-start.png
+[2026-06-29T08:05:58.223Z] 📸 01-habitat-start.png
+[2026-06-29T08:05:58.239Z] 🔎 6 interaktive elementer gemt (interactables-byg.json)
+[2026-06-29T08:05:58.816Z] 📸 02-byg-trin1.png
+[2026-06-29T08:06:01.224Z] 📸 03-bekraeftelse.png
+[2026-06-29T08:06:02.124Z] 📸 04-byg-afsendt.png
+[2026-06-29T08:06:02.124Z] Dyr bygget og sendt til habitatet.
+[2026-06-29T08:06:02.124Z] Lader habitatet leve i 20s og tager screenshots undervejs...
+[2026-06-29T08:06:06.406Z] 📸 03-habitat-t1.png
+[2026-06-29T08:06:10.563Z] 📸 03-habitat-t2.png
+[2026-06-29T08:06:14.813Z] 📸 03-habitat-t3.png
+[2026-06-29T08:06:19.098Z] 📸 03-habitat-t4.png
+[2026-06-29T08:06:23.318Z] 📸 03-habitat-t5.png
+[2026-06-29T08:06:23.318Z] Måler fps på habitat-skærmen (jævnhed)...
+[2026-06-29T08:06:28.350Z] 🎞️ fps: gennemsnit 27, minimum 9
