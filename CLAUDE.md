@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (28. juni 2026, opdateret tiende gang)
+## Aktuel status (29. juni 2026, opdateret ellevte gang)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -87,6 +87,11 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - Alle 187 billeder er **beskåret til alpha-bounding-box**, **skaleret så dyrets længste side = 1000 px** og placeret på transparent lærred med **ensartet 80 px margin**. Nu fylder alle dyr scenen konsistent (lange dyr fylder bredden, kompakte fylder højden). Transparens bevaret → blender med scene-fladen.
 - Lavet offline med Pillow (`pip install Pillow` i sessionen); originaler sikret i git-historik. Kun `assets/dyrbygger/*.webp` ændret, ingen kode. Verificeret med Playwright (desktop + mobil).
 
+**PR #47 (29. juni) — Frigiv energi ved tilbagenavigation på byggestationen:**
+- **Bug:** energimåleren regner altid på hele `valg`-objektet. Når man gik tilbage i byggeflowet for at vælge om, blev de senere trins energi stadig regnet som brugt → måleren viste for lidt tilbage, og dyrere kort blev fejlagtigt markeret "for dyrt". Man kunne reelt ikke bygge en anden (dyrere) dyretype end den, man først valgte.
+- **Fix:** `gaaTilbage()` rydder nu valgene for alle trin **efter** det trin man vender tilbage til (ny hjælper `ryddSenereValg(index)`), så energibudgettet nulstilles til kun de trin man stadig har låst bag sig. De senere valg tages forfra på vej frem — samme mønster som allerede gælder når stofskiftet ændres. `visTrin()` opdaterer nu også preview'et, så nulstillingen er synlig med det samme.
+- **Kun `js/station.js` ændret.** De fem kanoniske egenskaber + broadcast-format urørt. Verificeret med Playwright (varm + kold sti, inkl. auto-springet skæl-trin): energi nulstilles korrekt, ingen kort fejlagtigt "for dyrt", hudtype kræver nyt valg på vej frem, ingen konsolfejl.
+
 **Næste arbejde:**
 
 > **Aktiv retning:** kameravinkel er besluttet til **oblik 2.5D (skråt top-down, Farmwand-stil)** — kode-placeholder er live (PR #34). Se Notion "Plan: Kameravinkel → Oblik 2.5D" + oblik-afsnittet ovenfor. Dette ændrer Blender-baggrundsplanen nedenfor.
@@ -124,7 +129,7 @@ bygditdyr/
 │   ├── station.css
 │   └── habitat.css
 ├── js/
-│   ├── station.js         # Byggeflow (4 trin: stofskifte→dyretype→hudtype→forsvar), energimåler, egenskabs-checklist, match-måler, dyrSceneHTML() (AI-billede+SVG-fallback, delt af preparat-scene/bekræftelse/afsendt)
+│   ├── station.js         # Byggeflow (4 trin: stofskifte→dyretype→hudtype→forsvar), energimåler, egenskabs-checklist, match-måler, dyrSceneHTML() (AI-billede+SVG-fallback, delt af preparat-scene/bekræftelse/afsendt). Tilbagenavigation rydder senere trins valg (ryddSenereValg) → energi nulstilles
 │   ├── habitat.js         # Simulationsloop, tilstandsmaskine, NPC-dyr, dag/nat-cyklus, populationsgraf
 │   ├── broadcast.js       # Kommunikation: Supabase Realtime ELLER BroadcastChannel (samme API)
 │   ├── config.js          # Runtime-config: Supabase-endpoint + kanalnavn
@@ -162,7 +167,7 @@ bygditdyr/
 11. Formerings-konstanter i `habitat.js`: `FORM_ENERGI_MIN = 0.15` (energitærskel), `FORM_NETTO_MIN = -3` (ressource-tærskel), `FORMERING_FART_HURTIG/MIDDEL/LANGSOM = 100/6, 100/12, 100/18` (%/sek) — giver hhv. 8–10 / 4–5 / 1–2 dyr fra ét stamdyr inden 30s. Stofskifte: `kold: 0` i `HABITAT_SCORE.skov` — begge stofskifter er levedygtige i skov.
 12. Populationsgraf i `habitat.js`: `TIDSLINJE_VINDUE = 600` (sekunder synligt = 10 min; X-akse i minutter), `POP_SAMPLE_INTERVAL = 5000` (ms mellem samples). `popGrafData[]` er et array af `{ tid, artsData: { artsnavn: antal } }`. NPC-dyr tælles **med** og samles under nøglen `__npc__` (én fælles stiplet grå "Vildtlevende"-linje). NU forankres altid ved højre kant (`tidsStart = nu - TIDSLINJE_VINDUE`, kan være negativ tidligt), så historikken trækker mod venstre tilbage i tiden; venstre kant fades blødt ud (~1/8 bredde) + gul "NU"-markør til højre — start/slut-adskillelse på den cirkulære skærm. Generations-popup er fjernet; udslettelses-besked bruger `FADE_UDDOED = 14000`.
 13. Oblik 2.5D (skråt top-down) i `habitat.js`: dyr lever i en nedre **dybde-zone** (`DYBDE_ZONE_TOP = 0.45` af højden); `dybdeSkala(y, hoejde)` mapper y → skala (`DYBDE_SKALA_MIN = 0.82` bagest → `DYBDE_SKALA_MAX = 1.12` forrest, subtil da vi er mere top-down); y-sortering via `zIndex = round(y)`; lodret bevægelse komprimeres med `VY_FORESHORTEN = 0.6`. `dybdeZone(hoejde)` er fælles for spawn/bevægelse/skala. Skygge = `.dyr-skygge` (CSS); `.dyr-sprite` har `transform-origin: 50% 100%` (skalér om fødderne). `OBLIK_SQUASH = 0.85` i `sprites.js` er et placeholder-hint. **Placeholder indtil Blender-renders + skrå baggrund findes.** Alle konstanter er tunbare.
-14. Dyretype-byggetrin i `station.js` (PR #37): byggeflowet har ét samlet **dyretype**-trin i stedet for separate kropsform- og foedevalg-trin. `DYRETYPE_VARM`/`DYRETYPE_KOLD` er kortlisterne; hvert kort har `foede` + `kropsform`. `egenskaberFraValg()` udfolder valget til de 5 kanoniske egenskaber — `dyretype` er KUN en station-mellemtilstand i `valg{}` og må ALDRIG havne i dyr-objektets `egenskaber` eller broadcast. `prisForVaerdi(kategori, vaerdi)` beregner energi (dyretype = kropsform + foedevalg). Kun kombinationer i kortlisterne kan bygges (fx slank+planteæder findes ikke længere) — krop og diæt er altid kongruente, fordi diæten aflæses af kropsformen i grafikken.
+14. Dyretype-byggetrin i `station.js` (PR #37): byggeflowet har ét samlet **dyretype**-trin i stedet for separate kropsform- og foedevalg-trin. `DYRETYPE_VARM`/`DYRETYPE_KOLD` er kortlisterne; hvert kort har `foede` + `kropsform`. `egenskaberFraValg()` udfolder valget til de 5 kanoniske egenskaber — `dyretype` er KUN en station-mellemtilstand i `valg{}` og må ALDRIG havne i dyr-objektets `egenskaber` eller broadcast. `prisForVaerdi(kategori, vaerdi)` beregner energi (dyretype = kropsform + foedevalg). Kun kombinationer i kortlisterne kan bygges (fx slank+planteæder findes ikke længere) — krop og diæt er altid kongruente, fordi diæten aflæses af kropsformen i grafikken. **Tilbagenavigation (PR #47):** `gaaTilbage()` rydder valgene for alle trin EFTER det man vender tilbage til (`ryddSenereValg(index)`), så energibudgettet nulstilles til kun de trin man stadig har låst bag sig — ellers er senere trins energi stadig "brugt", og man kan ikke vælge en dyrere mulighed end første gang. Senere valg tages forfra på vej frem.
 
 ## Vigtige datastrukturer
 
