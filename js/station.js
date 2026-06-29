@@ -367,6 +367,7 @@ function visTrin(index) {
 
   opdaterNavigation();
   opdaterEnergi();
+  opdaterDyrPreview();
 }
 
 function gaaNaeste() {
@@ -400,7 +401,21 @@ function gaaTilbage() {
     const forrigeTrin = BYGGETRIN[forrige];
     const valgListe = hentAktuelleValg(forrigeTrin);
     if (forrigeTrin.autoVaelgEen && valgListe.length === 1) forrige--;
-    if (forrige >= 0) visTrin(forrige);
+    if (forrige >= 0) {
+      // Når man går tilbage for at vælge om, frigives energien fra de senere
+      // trin igen — ellers er den stadig "brugt", og man kan ikke vælge en
+      // dyrere mulighed end første gang. De senere valg tages forfra på vej frem.
+      ryddSenereValg(forrige);
+      visTrin(forrige);
+    }
+  }
+}
+
+// Slet valgene for alle trin EFTER det givne trin-index, så energibudgettet
+// nulstilles til kun de trin man stadig har låst bag sig.
+function ryddSenereValg(index) {
+  for (let i = index + 1; i < BYGGETRIN.length; i++) {
+    delete valg[BYGGETRIN[i].kategori];
   }
 }
 
