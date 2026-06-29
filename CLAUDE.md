@@ -6,7 +6,7 @@ Dette dokument beskriver projektet til Claude Code. Læs det før du skriver en 
 
 Et interaktivt museumsoplevelse-spil til Naturama i Svendborg. Elever i 4.-6. klasse bygger et dyr med biologiske egenskaber og sender det ud i et habitat på en stor fælles skærm.
 
-## Aktuel status (28. juni 2026, opdateret niende gang)
+## Aktuel status (28. juni 2026, opdateret tiende gang)
 
 **Spillet er live:** https://jeppekaczmarek-rgb.github.io/bygditdyr/ (forside · /station.html · /habitat.html)
 
@@ -82,6 +82,11 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 - **Kun `station.html` / `css/station.css` / `js/station.js` ændret.** De fem kanoniske egenskaber og broadcast-formatet er urørt. Verificeret med Playwright (desktop + mobil, begge aspect ratios, fallback, toast).
 - **Næste:** offline-normalisering af billedstørrelser — dyrene fremstår i lidt forskellig størrelse fordi AI-billederne har varierende mængde luft omkring motivet (kræver auto-beskæring af det hvide; intet billedværktøj i miljøet pt.).
 
+**PR #45 (28. juni) — Normalisering af AI-stationsbilleder:**
+- AI-billederne har **transparent baggrund** (RGBA), ikke hvid — de så hvide ud fordi den hvide scene-flade skinner igennem. Men motiv-fylden varierede stærkt (firben 0,24 · hund 0,38 · pindsvin 0,46 af rammen) plus blandede aspect ratios → dyr i vidt forskellig størrelse, nogle svømmende i tomrum.
+- Alle 187 billeder er **beskåret til alpha-bounding-box**, **skaleret så dyrets længste side = 1000 px** og placeret på transparent lærred med **ensartet 80 px margin**. Nu fylder alle dyr scenen konsistent (lange dyr fylder bredden, kompakte fylder højden). Transparens bevaret → blender med scene-fladen.
+- Lavet offline med Pillow (`pip install Pillow` i sessionen); originaler sikret i git-historik. Kun `assets/dyrbygger/*.webp` ændret, ingen kode. Verificeret med Playwright (desktop + mobil).
+
 **Næste arbejde:**
 
 > **Aktiv retning:** kameravinkel er besluttet til **oblik 2.5D (skråt top-down, Farmwand-stil)** — kode-placeholder er live (PR #34). Se Notion "Plan: Kameravinkel → Oblik 2.5D" + oblik-afsnittet ovenfor. Dette ændrer Blender-baggrundsplanen nedenfor.
@@ -89,7 +94,7 @@ Kerne-spiludviklingen er **færdig**. Alle forbedringspakker er implementeret:
 1. **Oblik-tuning:** Jeppe vurderer dybden live → tune `DYBDE_ZONE_TOP`/`DYBDE_SKALA_MIN`/`MAX`/`VY_FORESHORTEN` + evt. `OBLIK_SQUASH` (sprites.js) efter feedback.
 2. **Blender — dyr i høj ¾/top-down vinkel** (brugerens offline-opgave): re-render dyr fra en højere kameravinkel (ikke ren profil) — erstatter de procedurelle placeholder-sprites. `base1_generalist` kræver re-rigging; `base2_slank`/`base3_kraftig` klar til rig. Detaljer: Assets-sektionen + `assets/blender/LAG-RENDER-GUIDE.md`.
 3. **Blender — baggrund som skrå jordplan** (brugerens offline-opgave): erstatter den tidligere side-view-lagdeling (himmel/midter/forgrund). Forgrund nederst (nær) → afstand øverst. Gælder også **Arktis-scenen** (første habitat). Opdatér installationsarkitekturen nedenfor når hældningen er låst.
-4. **Forhåndsgenererede stationsbilleder:** ✅ overført (`assets/dyrbygger/*.webp`, 187 stk) og live på byggestationen (PR #42/#43). **Udestår: normalisering** — dyrene fremstår i lidt forskellig størrelse fordi AI-billederne har blandede aspect ratios (1408×768 + 1024×1024) og varierende mængde hvid luft omkring motivet. Kræver offline auto-beskæring til motivets bounding box + ensartet ramme (intet billedværktøj i remote-miljøet pt. — PIL/sharp/ImageMagick mangler). **Bemærk:** habitatet bruger stadig de procedurelle SVG-sprites; AI-billederne er kun koblet på stationen indtil videre.
+4. **Forhåndsgenererede stationsbilleder:** ✅ overført + normaliseret + live på byggestationen (PR #42/#43 + #45). Billederne er RGBA (transparent baggrund), beskåret til alpha-bbox og skaleret til ens motivstørrelse (længste side 1000 px + 80 px margin). **Bemærk:** habitatet bruger stadig de procedurelle SVG-sprites; AI-billederne er kun koblet på stationen indtil videre. Re-normalisering ved nye billeder: Pillow-script (alpha-bbox → skalér længste side → margin), se PR #45.
 5. **Real-world test:** test med rigtige elever ved Naturama; tune kode baseret på observationer.
 
 **Arbejdsgang i dispatch:** foreslå plan → vent på Jeppes ok → implementér → test (`node --check js/*.js`) → vent på ok → PR (merg den med det samme uden at spørge → Pages udgiver ~1 min) → **kør `/sync-projekt`** (opdater CLAUDE.md + Notion). Log beslutninger i Notion → Fremdrift & status; fejl i Fejl & bugs.
@@ -229,7 +234,7 @@ Mål: markant højere visuel finish end flade SVG'er, performant i ren HTML5, ud
 
 **Aktuel stand (28. juni):**
 - **Byggestationen bruger nu AI-billederne i `assets/dyrbygger/*.webp`** (187 stk, PR #42/#43) — vist i en preparat-scene med `object-fit: contain`. Procedurel SVG (`js/sprites.js`, PR #29) er fallback når et billede mangler. **Habitatet bruger fortsat de procedurelle SVG-sprites** — IKKE den bagte ImageBitmap/PNG-pipeline. Når Blender-renders er klar, kan habitatet kobles over på dem. De gamle gamle-skema PNG'er er slettet.
-- **Udestår på AI-billederne:** normalisering af motiv-størrelse (blandede aspect ratios + varierende hvid luft → dyr fremstår i forskellig størrelse). Kræver offline auto-beskæring.
+- **AI-billederne er normaliseret (PR #45):** RGBA (transparent baggrund), beskåret til alpha-bbox, skaleret til ens motivstørrelse (længste side 1000 px) + 80 px margin → dyr fylder scenen konsistent. Re-normalisering af nye billeder: Pillow-script i PR #45.
 - `base1_generalist`: omformet til grævling-krop; **kræver re-rigging + re-animation** i Blender. Kun `side`-turnarounds regenereret; trekvart/front/bag udestår.
 - `base2_slank`, `base3_kraftig`: uændrede og klar til Blender-rig.
 - `base1_generalist_pels` pilot: gennemført på gammel katte-krop — skal redo på ny krop.
